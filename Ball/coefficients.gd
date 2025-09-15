@@ -12,10 +12,10 @@ static func get_Cd(Re: float) -> float:
 static func get_Cl(Re: float, S: float) -> float:
 	# Low and high S
 	if S < 0.05:
-		return 0.1
+		return 0.05
 	if S > .35:
 		if Re > 12.5e4:
-			return .13
+			return .3
 		else:
 			return -1.34786 + 0.0000354549*Re - 1.847e-10*Re*Re
 	
@@ -23,7 +23,7 @@ static func get_Cl(Re: float, S: float) -> float:
 	if Re < 50000:
 		return 0.1
 	if Re > 75000:
-		return .203 - 0.000000431*Re
+		return .203 
 		
 	# Calculations
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
