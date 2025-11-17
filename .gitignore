@@ -7,7 +7,7 @@
 export.cfg
 export_presets.cfg
 export_credentials.cfg
-*.import
+addons/**/*.import
 
 # Imported translations
 *.translation
