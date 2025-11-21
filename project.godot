@@ -24,10 +24,6 @@ SceneManager="*res://Utils/SceneManager.gd"
 window/size/viewport_width=1728
 window/size/viewport_height=972
 
-[dotnet]
-
-project/assembly_name="OpenShotGolf"
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
