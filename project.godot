@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.5", "Mobile")
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 SceneManager="*res://Utils/SceneManager.gd"
 EventBus="*res://Utils/EventBus.gd"
+GlobalSettings="*res://Utils/Settings/global_settings.gd"
 
 [display]
 
