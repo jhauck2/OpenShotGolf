@@ -1,6 +1,32 @@
 extends Object
 class_name Coefficients
 
+const KELVIN_DEGREES = 273.15
+
+const PRESSURE_AT_SEALEVEL = 101325.0 # Unit: [Pa]
+const EARTH_ACCELERATION_SPEED = 9.80665 # Unit: [m/s^2]
+const MOLAR_MASS_DRY_AIR = 0.0289644 # Unit: [kg/mol]
+const UNIVERSAL_GAS_CONSTANT = 8.314462618 # Unit: [J/(mol*K)]
+const GAS_CONSTANT_DRY_AIR = 287.058 # Unit: [J/(kg*K)]
+
+const DYN_VISCOSITY_ZERO_DEGREE = 1.716e-05 # Unit: [kg/(m*s)]
+const SUTHERLAND_CONSTANT = 198.72 # Unit: [K] Source: https://www.grc.nasa.gov/www/BGH/viscosity.html
+
+static func get_air_density(altitude: float, temp: float) -> float:
+	var tempK = temp + KELVIN_DEGREES
+	
+	# calculation through barometric formula. Source: https://en.wikipedia.org/wiki/Barometric_formula
+	var exponent = (-EARTH_ACCELERATION_SPEED * MOLAR_MASS_DRY_AIR * altitude) / (UNIVERSAL_GAS_CONSTANT * tempK)
+	var pressure = PRESSURE_AT_SEALEVEL * exp(exponent)
+	
+	return pressure / (GAS_CONSTANT_DRY_AIR * tempK)
+	
+static func get_dynamic_air_viscosity(temp: float) -> float:
+	var tempK = temp + KELVIN_DEGREES
+	
+	# Sutherland formula
+	return DYN_VISCOSITY_ZERO_DEGREE * pow((tempK / KELVIN_DEGREES), 1.5) * (KELVIN_DEGREES + SUTHERLAND_CONSTANT) / (tempK + SUTHERLAND_CONSTANT)
+
 static func get_Cd(Re: float) -> float:
 	if Re < 50000.0:
 		return 0.5

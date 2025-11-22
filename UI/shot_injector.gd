@@ -20,5 +20,7 @@ func _on_button_pressed() -> void:
 	data["TotalSpin"] = float($TotalSpinText.text)
 	data["HLA"] = float($HLAText.text)
 	data["VLA"] = float($VLAText.text)
+	data["Altitude"] = float($AltitudeText.text)
+	data["Temp"] = float($TemperatureText.text)
 	
 	emit_signal("inject", data)

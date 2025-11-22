@@ -5,6 +5,9 @@ var rolling = false
 var on_ground := false
 var floor_norm := Vector3(0.0, 1.0, 0.0)
 
+var temp := 25.0
+var altitude := 0.0
+
 var mass = 0.04592623
 var radius = 0.021335
 var A = PI*radius*radius # Cross-sectional area
@@ -12,8 +15,8 @@ var I = 0.4*mass*radius*radius # Moment of inertia
 var u_k = 0.4 # friction coefficient with the ground
 var u_kr = 0.2 # friction coefficient with the ground while rolling
 
-var rho = 1.225 # Air density (kg/m^3)
-var mu = 0.00001802 # Air Dynamic Viscosity
+#var rho = 1.225 # Air density (kg/m^3)
+#var mu = 0.00001802 # Air Dynamic Viscosity
 var nu = 0.00001470 # Air Kinematic Viscosity
 var nu_g = 0.0012 # Grass Viscosity (estimate somewhere between air and water)
 var drag_cf := 1.2 # Drag correction factor
@@ -68,8 +71,11 @@ func _physics_process(delta: float) -> void:
 		var spin := 0.0
 		if speed > 0.5:
 			spin = omega.length()*radius/speed
-			
-		var Re : float = rho*speed*radius*2.0/mu
+		
+		var airDensity = Coefficients.get_air_density(altitude + position.y, temp)
+		var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temp)
+		
+		var Re : float = airDensity*speed*radius*2.0/dynamicAirViscosity
 		
 		# Magnus, drag, and coefficients
 		var Cl = Coefficients.get_Cl(Re, spin)*lift_cf
@@ -80,11 +86,11 @@ func _physics_process(delta: float) -> void:
 		var om_x_vel = omega.cross(velocity)
 		var omega_len = omega.length()
 		if omega_len > 0.1:
-			F_m = 0.5*Cl*rho*A*om_x_vel*velocity.length()/omega.length()
+			F_m = 0.5*Cl*airDensity*A*om_x_vel*velocity.length()/omega.length()
 		# Viscous Torque
 		T_d = -Cm*omega
 		# Drag force
-		F_d = -0.5*Cd*rho*A*velocity*speed
+		F_d = -0.5*Cd*airDensity*A*velocity*speed
 		
 	# Total force
 	var F : Vector3 = F_g + F_d + F_m + F_f + F_gd
@@ -167,11 +173,15 @@ func bounce(vel, normal) -> Vector3:
 
 func hit():
 	# 8 iron test shot - 100 mph, 20.8 deg launch, 1.7 deg horz launch, 7494 rpm, 2.7 degree spin axis offset
-	var data : Dictionary = {"Speed": 100.0,
-	"VLA": 22.0,
-	"HLA": -3.1,
-	"TotalSpin": 6000.0,
-	"SpinAxis": 3.5}
+	var data : Dictionary = {
+		"Speed": 100.0,
+		"VLA": 22.0,
+		"HLA": -3.1,
+		"TotalSpin": 6000.0,
+		"SpinAxis": 3.5,
+		"Temp": 25.0,
+		"Altitude": 0.0
+	}
 	
 	state = Enums.BallState.FLIGHT
 	position = Vector3(0.0, 0.05, 0.0)
@@ -179,6 +189,8 @@ func hit():
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
+	altitude = data["Altitude"]
+	temp = data["Temp"]
 	
 func hit_from_data(data : Dictionary):
 	state = Enums.BallState.FLIGHT
@@ -187,7 +199,8 @@ func hit_from_data(data : Dictionary):
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180)
-	
+	altitude = data["Altitude"]
+	temp = data["Temp"]
 	
 func reset():
 	position = Vector3(0.0, 0.1, 0.0)

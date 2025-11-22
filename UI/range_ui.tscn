@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://xwb2lctkdfv5" path="res://UI/ClubSelector/club_selector.tscn" id="3_crlyb"]
 [ext_resource type="PackedScene" uid="uid://bixsmx2mhvyyx" path="res://UI/SessionPopUp/session_pop_up.tscn" id="4_7kh1v"]
 [ext_resource type="Script" uid="uid://3iepiwkqvgs7" path="res://UI/grid_canvas.gd" id="5_rfb4h"]
-[ext_resource type="Script" path="res://UI/shot_injector.gd" id="6_j5yvw"]
+[ext_resource type="Script" uid="uid://cgdpaxem0op8k" path="res://UI/shot_injector.gd" id="6_j5yvw"]
 
 [node name="RangeUI" type="MarginContainer"]
 anchors_preset = 15
@@ -59,7 +59,7 @@ mouse_filter = 2
 script = ExtResource("5_rfb4h")
 
 [node name="Distance" parent="GridCanvas" instance=ExtResource("1_q72xt")]
-layout_mode = 2
+layout_mode = 0
 offset_top = 182.0
 offset_right = 120.0
 offset_bottom = 275.0
@@ -67,7 +67,7 @@ label = "Distance"
 units = "yd"
 
 [node name="Carry" parent="GridCanvas" instance=ExtResource("1_q72xt")]
-layout_mode = 2
+layout_mode = 0
 offset_top = 230.0
 offset_right = 120.0
 offset_bottom = 323.0
@@ -75,7 +75,7 @@ label = "Carry"
 units = "yd"
 
 [node name="Offline" parent="GridCanvas" instance=ExtResource("1_q72xt")]
-layout_mode = 2
+layout_mode = 0
 offset_top = 279.0
 offset_right = 120.0
 offset_bottom = 372.0
@@ -83,7 +83,7 @@ label = "Offline"
 units = "yd"
 
 [node name="Apex" parent="GridCanvas" instance=ExtResource("1_q72xt")]
-layout_mode = 2
+layout_mode = 0
 offset_top = 327.0
 offset_right = 120.0
 offset_bottom = 420.0
@@ -91,7 +91,7 @@ label = "Apex"
 units = "ft"
 
 [node name="VLA" parent="GridCanvas" instance=ExtResource("1_q72xt")]
-layout_mode = 2
+layout_mode = 0
 offset_top = 376.0
 offset_right = 120.0
 offset_bottom = 469.0
@@ -99,7 +99,7 @@ label = "VLA"
 units = "deg"
 
 [node name="HLA" parent="GridCanvas" instance=ExtResource("1_q72xt")]
-layout_mode = 2
+layout_mode = 0
 offset_top = 424.0
 offset_right = 120.0
 offset_bottom = 517.0
@@ -111,6 +111,26 @@ layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
 script = ExtResource("6_j5yvw")
+
+[node name="Temperature" type="Label" parent="ShotInjector"]
+layout_mode = 2
+text = "Temperature"
+
+[node name="TemperatureText" type="TextEdit" parent="ShotInjector"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+text = "25.0"
+placeholder_text = "0.0"
+
+[node name="Altitude" type="Label" parent="ShotInjector"]
+layout_mode = 2
+text = "Altitude"
+
+[node name="AltitudeText" type="TextEdit" parent="ShotInjector"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+text = "0.0"
+placeholder_text = "0.0"
 
 [node name="Speed" type="Label" parent="ShotInjector"]
 layout_mode = 2
