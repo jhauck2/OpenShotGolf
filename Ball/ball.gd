@@ -15,8 +15,8 @@ var I = 0.4*mass*radius*radius # Moment of inertia
 var u_k = 0.4 # friction coefficient with the ground
 var u_kr = 0.2 # friction coefficient with the ground while rolling
 
-#var rho = 1.225 # Air density (kg/m^3)
-#var mu = 0.00001802 # Air Dynamic Viscosity
+var airDensity = Coefficients.get_air_density(0.0, 75.0)
+var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(75.0)
 var nu = 0.00001470 # Air Kinematic Viscosity
 var nu_g = 0.0012 # Grass Viscosity (estimate somewhere between air and water)
 var drag_cf := 1.2 # Drag correction factor
@@ -71,9 +71,6 @@ func _physics_process(delta: float) -> void:
 		var spin := 0.0
 		if speed > 0.5:
 			spin = omega.length()*radius/speed
-		
-		var airDensity = Coefficients.get_air_density(altitude + position.y, temp)
-		var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temp)
 		
 		var Re : float = airDensity*speed*radius*2.0/dynamicAirViscosity
 		
@@ -189,8 +186,6 @@ func hit():
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
-	altitude = data["Altitude"]
-	temp = data["Temp"]
 	
 func hit_from_data(data : Dictionary):
 	state = Enums.BallState.FLIGHT
@@ -199,8 +194,10 @@ func hit_from_data(data : Dictionary):
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180)
-	altitude = data["Altitude"]
-	temp = data["Temp"]
+	
+func set_env(data: Dictionary):
+	airDensity = Coefficients.get_air_density(data["Altitude"], data["Temp"])
+	dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(data["Temp"])
 	
 func reset():
 	position = Vector3(0.0, 0.1, 0.0)

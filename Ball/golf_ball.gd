@@ -108,3 +108,7 @@ func _on_range_ui_hit_shot(data: Variant) -> void:
 	$BallTrail.call_deferred("clear_points")
 	$BallTrail.call_deferred("add_point", $Ball.position)
 	$Ball.call_deferred("hit_from_data", data)
+	
+
+func _on_range_ui_set_env(data: Variant) -> void:
+	$Ball.call_deferred("set_env", data)

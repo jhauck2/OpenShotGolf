@@ -5,6 +5,7 @@ signal club_selected(club: String)
 signal set_session(dir: String, player_name: String)
 
 signal hit_shot(data)
+signal set_env(data)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -62,6 +63,8 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
 
+func _on_environment_settings_inject_env(data: Variant) -> void:
+	emit_signal("set_env", data)
 
 func _on_exit_button_pressed() -> void:
 	SceneManager.change_scene("res://UI/MainMenu/main_menu.tscn")

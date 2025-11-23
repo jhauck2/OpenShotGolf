@@ -318,6 +318,7 @@ script = ExtResource("21_6rpr1")
 [connection signal="club_selected" from="RangeUI" to="SessionRecorder" method="_on_range_ui_club_selected"]
 [connection signal="hit_shot" from="RangeUI" to="GolfBall" method="_on_range_ui_hit_shot"]
 [connection signal="rec_button_pressed" from="RangeUI" to="SessionRecorder" method="toggle_recording"]
+[connection signal="set_env" from="RangeUI" to="GolfBall" method="_on_range_ui_set_env"]
 [connection signal="set_session" from="RangeUI" to="SessionRecorder" method="_on_range_ui_set_session"]
 [connection signal="recording_state" from="SessionRecorder" to="RangeUI" method="_on_session_recorder_recording_state"]
 [connection signal="set_session" from="SessionRecorder" to="RangeUI" method="_on_session_recorder_set_session"]
