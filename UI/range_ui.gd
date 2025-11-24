@@ -70,6 +70,3 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
-
-func _on_environment_settings_inject_env(data: Variant) -> void:
-	emit_signal("set_env", data)

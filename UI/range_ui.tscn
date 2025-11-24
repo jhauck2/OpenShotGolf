@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://da1vsfwmbk8vw"]
+[gd_scene load_steps=9 format=3 uid="uid://da1vsfwmbk8vw"]
 
 [ext_resource type="Script" uid="uid://dginc6hghigy3" path="res://UI/range_ui.gd" id="1_kur1t"]
 [ext_resource type="PackedScene" uid="uid://bxqjwaed60ykh" path="res://UI/data_panel.tscn" id="1_q72xt"]
@@ -8,7 +8,6 @@
 [ext_resource type="PackedScene" uid="uid://bixsmx2mhvyyx" path="res://UI/SessionPopUp/session_pop_up.tscn" id="4_7kh1v"]
 [ext_resource type="Script" uid="uid://3iepiwkqvgs7" path="res://UI/grid_canvas.gd" id="5_rfb4h"]
 [ext_resource type="Script" uid="uid://cgdpaxem0op8k" path="res://UI/shot_injector.gd" id="6_j5yvw"]
-[ext_resource type="Script" uid="uid://8ug625530jav" path="res://UI/environment_settings.gd" id="7_ax8lh"]
 
 [node name="RangeUI" type="MarginContainer"]
 anchors_preset = 15
@@ -168,36 +167,6 @@ placeholder_text = "0.0"
 layout_mode = 2
 text = "Hit Shot"
 
-[node name="EnvironmentSettings" type="VBoxContainer" parent="."]
-layout_mode = 2
-size_flags_horizontal = 8
-size_flags_vertical = 8
-script = ExtResource("7_ax8lh")
-
-[node name="Altitude" type="Label" parent="EnvironmentSettings"]
-layout_mode = 2
-text = "Altitude"
-
-[node name="AltitudeText" type="TextEdit" parent="EnvironmentSettings"]
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-text = "0.0"
-placeholder_text = "0.0"
-
-[node name="Temperature" type="Label" parent="EnvironmentSettings"]
-layout_mode = 2
-text = "Temperature"
-
-[node name="TemperatureText" type="TextEdit" parent="EnvironmentSettings"]
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-text = "75.0"
-placeholder_text = "75.0"
-
-[node name="Button" type="Button" parent="EnvironmentSettings"]
-layout_mode = 2
-text = "Set"
-
 [connection signal="club_selected" from="HBoxContainer/ClubSelector" to="." method="_on_club_selector_club_selected"]
 [connection signal="pressed" from="HBoxContainer/RecButton" to="." method="_on_rec_button_pressed"]
 [connection signal="pressed" from="HBoxContainer/SettingsButton" to="HBoxContainer/RangeSettings" method="_on_settings_button_pressed"]
@@ -216,5 +185,3 @@ text = "Set"
 [connection signal="drag_started" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="inject" from="ShotInjector" to="." method="_on_shot_injector_inject"]
 [connection signal="pressed" from="ShotInjector/Button" to="ShotInjector" method="_on_button_pressed"]
-[connection signal="inject_env" from="EnvironmentSettings" to="." method="_on_environment_settings_inject_env"]
-[connection signal="pressed" from="EnvironmentSettings/Button" to="EnvironmentSettings" method="_on_button_pressed"]
