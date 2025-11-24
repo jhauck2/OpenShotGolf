@@ -3,6 +3,7 @@ extends MarginContainer
 signal rec_button_pressed
 signal club_selected(club: String)
 signal set_session(dir: String, player_name: String)
+signal toggle_overlay_pressed
 
 signal hit_shot(data)
 
@@ -17,20 +18,16 @@ func _process(_delta: float) -> void:
 
 
 func set_data(data: Dictionary) -> void:
-	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
-		$GridCanvas/Distance.set_data(data["Distance"])
-		$GridCanvas/Carry.set_data(data["Carry"])
-		$GridCanvas/Offline.set_data(data["Offline"])
-		$GridCanvas/Apex.set_data(data["Apex"])
-		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
-		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
-	else:
-		$GridCanvas/Distance.set_data(data["Distance"])
-		$GridCanvas/Carry.set_data(data["Carry"])
-		$GridCanvas/Offline.set_data(data["Offline"])
-		$GridCanvas/Apex.set_data(data["Apex"])
-		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
-		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
+	$GridCanvas/Distance.set_data(data["Distance"])
+	$GridCanvas/Carry.set_data(data["Carry"])
+	$GridCanvas/Offline.set_data(data["Offline"])
+	$GridCanvas/Apex.set_data(data["Apex"])
+	$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
+	$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
+
+	# Set points if it exists (target practice mode)
+	if has_node("GridCanvas/Points"):
+		$GridCanvas/Points.set_data(str(data.get("Points", "---")))
 
 
 func _on_rec_button_pressed() -> void:
@@ -38,17 +35,30 @@ func _on_rec_button_pressed() -> void:
 
 
 func _on_session_recorder_recording_state(value: bool) -> void:
-	if value:
-		var red = Color(1.0, 0.0, 0.0, 1.0)
-		$HBoxContainer/RecButton.text = "REC: On"
-		$HBoxContainer/RecButton.set("theme_override_colors/font_color", red)
-		$HBoxContainer/RecButton.tooltip_text = "Stop Recording Range Session"
-		$SessionPopUp.open()
-	else:
-		var white = Color(1.0, 1.0, 1.0, 1.0)
-		$HBoxContainer/RecButton.text = "REC: Off"
-		$HBoxContainer/RecButton.set("theme_override_colors/font_color", white)
-		$HBoxContainer/RecButton.tooltip_text = "Start Recording Range Session"
+	# The REC button is now in the unified header
+	# Check both the old path and the new unified header path
+	var rec_button = null
+
+	# Try old path first (for backward compatibility)
+	if has_node("HBoxContainer/RecButton"):
+		rec_button = $HBoxContainer/RecButton
+	# Try new unified header path
+	elif get_parent() and get_parent().has_node("UnifiedHeader") and get_parent().get_node("UnifiedHeader").has_node("rec_button"):
+		rec_button = get_parent().get_node("UnifiedHeader").rec_button
+
+	if rec_button:
+		if value:
+			var red = Color(1.0, 0.0, 0.0, 1.0)
+			rec_button.text = "REC: On"
+			rec_button.set("theme_override_colors/font_color", red)
+			rec_button.tooltip_text = "Stop Recording Range Session"
+			if has_node("SessionPopUp"):
+				$SessionPopUp.open()
+		else:
+			var white = Color(1.0, 1.0, 1.0, 1.0)
+			rec_button.text = "REC: Off"
+			rec_button.set("theme_override_colors/font_color", white)
+			rec_button.tooltip_text = "Start Recording Range Session"
 
 
 func _on_club_selector_club_selected(club: String) -> void:
@@ -69,3 +79,11 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
+
+
+func _on_exit_button_pressed() -> void:
+	SceneManager.change_scene("res://UI/MainMenu/main_menu.tscn")
+
+
+func _on_toggle_overlay_button_pressed() -> void:
+	emit_signal("toggle_overlay_pressed")

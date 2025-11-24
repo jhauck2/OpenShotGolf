@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3 uid="uid://c5xlam8n4pq2w"]
+
+[ext_resource type="Script" path="res://UI/Layouts/custom_layout.gd" id="1_custom"]
+[ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="2_range_ui"]
+[ext_resource type="PackedScene" uid="uid://c8xk5nan3pq8s" path="res://UI/Layouts/unified_header.tscn" id="3_header"]
+[ext_resource type="PackedScene" uid="uid://xwb2lctkdfv5" path="res://UI/ClubSelector/club_selector.tscn" id="4_club"]
+
+[node name="CustomLayout" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_custom")
+
+[node name="RangeUI" parent="." instance=ExtResource("2_range_ui")]
+layout_mode = 1
+
+[node name="UnifiedHeader" parent="." instance=ExtResource("3_header")]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 15.0
+offset_top = 15.0
+offset_right = -15.0
+offset_bottom = 65.0
+grow_horizontal = 2
+next_layout_text = "Detail >"
+show_rec_button = true
+show_exit_button = true
+
+[node name="ClubSelector" parent="." instance=ExtResource("4_club")]
+layout_mode = 1
+offset_left = 2.0
+offset_top = 79.0
+offset_right = 164.0
+offset_bottom = 148.0

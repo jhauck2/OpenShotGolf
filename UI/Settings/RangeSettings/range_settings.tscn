@@ -1,8 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://cr5js3cuw3b7y"]
+[gd_scene load_steps=7 format=3 uid="uid://cr5js3cuw3b7y"]
 
 [ext_resource type="Script" uid="uid://coaq5bnt4i7s6" path="res://UI/Settings/RangeSettings/range_settings.gd" id="1_btrk3"]
 [ext_resource type="Script" uid="uid://0ef3ofo80ce6" path="res://UI/Settings/RangeSettings/units.gd" id="2_2xa0x"]
-[ext_resource type="Script" uid="uid://bxnnahi0ahiul" path="res://UI/Settings/RangeSettings/camera_follow.gd" id="3_42o4p"]
 [ext_resource type="Script" uid="uid://cgaio06fhkat4" path="res://UI/Settings/RangeSettings/auto_ball_reset.gd" id="3_aae4w"]
 [ext_resource type="Script" uid="uid://brlwyoe7dhsuf" path="res://UI/Settings/RangeSettings/ball_reset_timer.gd" id="3_pf5re"]
 [ext_resource type="Script" uid="uid://bipu0fif60jd5" path="res://UI/Settings/RangeSettings/temperature.gd" id="4_uelst"]
@@ -51,35 +50,6 @@ layout_mode = 2
 text = "Metric"
 
 [node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/Units"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="CameraFollow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-script = ExtResource("3_42o4p")
-
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/CameraFollow"]
-layout_mode = 2
-text = "Camera
-Follow Mode"
-
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/CameraFollow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 1.5
-
-[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer/CameraFollow"]
-layout_mode = 2
-text = "Off"
-
-[node name="CheckButton" type="CheckButton" parent="MarginContainer/VBoxContainer/CameraFollow"]
-layout_mode = 2
-
-[node name="Label3" type="Label" parent="MarginContainer/VBoxContainer/CameraFollow"]
-layout_mode = 2
-text = "On"
-
-[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/CameraFollow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -193,7 +163,6 @@ size_flags_horizontal = 4
 text = "Exit to Menu"
 
 [connection signal="toggled" from="MarginContainer/VBoxContainer/Units/CheckButton" to="MarginContainer/VBoxContainer/Units" method="_on_check_button_toggled"]
-[connection signal="toggled" from="MarginContainer/VBoxContainer/CameraFollow/CheckButton" to="MarginContainer/VBoxContainer/CameraFollow" method="_on_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/AutoBallReset/CheckButton" to="MarginContainer/VBoxContainer/AutoBallReset" method="_on_check_button_toggled"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox" to="MarginContainer/VBoxContainer/BallResetTimer" method="_on_reset_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox" to="MarginContainer/VBoxContainer/Temperature" method="_on_temperature_spin_box_value_changed"]

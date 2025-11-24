@@ -1,10 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://da1vsfwmbk8vw"]
+[gd_scene load_steps=7 format=3 uid="uid://da1vsfwmbk8vw"]
 
 [ext_resource type="Script" uid="uid://dginc6hghigy3" path="res://UI/range_ui.gd" id="1_kur1t"]
 [ext_resource type="PackedScene" uid="uid://bxqjwaed60ykh" path="res://UI/data_panel.tscn" id="1_q72xt"]
-[ext_resource type="PackedScene" uid="uid://cr5js3cuw3b7y" path="res://UI/Settings/RangeSettings/range_settings.tscn" id="3_bxj45"]
 [ext_resource type="PackedScene" uid="uid://xwb2lctkdfv5" path="res://UI/ClubSelector/club_selector.tscn" id="3_crlyb"]
-[ext_resource type="Texture2D" uid="uid://d02uis8ujb4ml" path="res://Utils/Settings/Gear.png" id="3_omvf4"]
 [ext_resource type="PackedScene" uid="uid://bixsmx2mhvyyx" path="res://UI/SessionPopUp/session_pop_up.tscn" id="4_7kh1v"]
 [ext_resource type="Script" uid="uid://3iepiwkqvgs7" path="res://UI/grid_canvas.gd" id="5_rfb4h"]
 [ext_resource type="Script" uid="uid://cgdpaxem0op8k" path="res://UI/shot_injector.gd" id="6_j5yvw"]
@@ -32,29 +30,28 @@ layout_mode = 2
 
 [node name="PlayerName" type="Label" parent="HBoxContainer"]
 layout_mode = 2
-size_flags_vertical = 0
+size_flags_vertical = 1
 theme_override_font_sizes/font_size = 32
 text = "Player1"
 vertical_alignment = 1
 
-[node name="RecButton" type="Button" parent="HBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 0
-tooltip_text = "Start Recording Range Session"
-text = "REC: Off"
-
-[node name="Control" type="Control" parent="HBoxContainer"]
+[node name="ModeContainer" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 0
 
-[node name="RangeSettings" parent="HBoxContainer" instance=ExtResource("3_bxj45")]
-visible = false
-z_index = 1
+[node name="ModeLabel" type="Label" parent="HBoxContainer/ModeContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "FREE PRACTICE"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="SettingsButton" type="TextureButton" parent="HBoxContainer"]
+[node name="TargetLabel" type="Label" parent="HBoxContainer/ModeContainer"]
 layout_mode = 2
-texture_normal = ExtResource("3_omvf4")
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="SessionPopUp" parent="." instance=ExtResource("4_7kh1v")]
 layout_mode = 2
@@ -168,8 +165,6 @@ layout_mode = 2
 text = "Hit Shot"
 
 [connection signal="club_selected" from="HBoxContainer/ClubSelector" to="." method="_on_club_selector_club_selected"]
-[connection signal="pressed" from="HBoxContainer/RecButton" to="." method="_on_rec_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/SettingsButton" to="HBoxContainer/RangeSettings" method="_on_settings_button_pressed"]
 [connection signal="dir_selected" from="SessionPopUp" to="." method="_on_session_pop_up_dir_selected"]
 [connection signal="drag_ended" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_started"]

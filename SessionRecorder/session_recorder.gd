@@ -38,7 +38,7 @@ var session_id : int = 0
 var date : String = ""
 var current_club : String = "Dr"
 var shot_number : int = 0
-var base_shot : Dictionary = {"Shot": 1, 
+var base_shot : Dictionary = {"Shot": 1,
 		"Club": "Dr",
 		"Speed": 0.0,
 		"SpinAxis": 0.0,
@@ -48,7 +48,11 @@ var base_shot : Dictionary = {"Shot": 1,
 		"TotalDistance": 0,
 		"CarryDistance": 0,
 		"OfflineDistance": 0,
-		"Apex": 0}
+		"Apex": 0,
+		"TargetDistance": 0.0,
+		"DistanceToTarget": 0.0,
+		"TargetZone": "",
+		"TargetScore": 0}
 
 signal recording_state(value: bool)
 signal set_session(user: String, dir: String)
@@ -88,7 +92,7 @@ func toggle_recording():
 func start_recording():
 	session_id += 1
 	date = Time.get_date_string_from_system()
-	session_data = {"User": username, "Date": date, "SessionID": session_id, "Shots": []}
+	session_data = {"User": username, "Date": date, "SessionID": session_id, "Shots": [], "TargetPractice": true}
 	
 	
 func record_shot(shot_data: Dictionary):

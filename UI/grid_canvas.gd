@@ -61,6 +61,7 @@ func _on_panel_drag_ended(panel):
 	show_grid = false
 	queue_redraw()
 	snap_to_grid(panel)
+	save_layout()  # Save positions after dragging
 	
 func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:

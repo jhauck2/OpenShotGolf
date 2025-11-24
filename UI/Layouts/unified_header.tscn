@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8xk5nan3pq8s"]
+
+[ext_resource type="Script" path="res://UI/Layouts/unified_header.gd" id="1_header"]
+
+[node name="UnifiedHeader" type="HBoxContainer"]
+offset_right = 1920.0
+offset_bottom = 50.0
+script = ExtResource("1_header")
