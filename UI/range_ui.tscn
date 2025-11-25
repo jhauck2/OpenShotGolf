@@ -27,9 +27,6 @@ layout_mode = 2
 size_flags_vertical = 0
 theme_override_constants/separation = 11
 
-[node name="ClubSelector" parent="HBoxContainer" instance=ExtResource("3_crlyb")]
-layout_mode = 2
-
 [node name="PlayerName" type="Label" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 0
@@ -112,6 +109,13 @@ offset_bottom = 517.0
 label = "HLA"
 units = "deg"
 
+[node name="ClubSelector" parent="GridCanvas" instance=ExtResource("3_crlyb")]
+layout_mode = 0
+offset_top = 70.0
+offset_right = 120.0
+offset_bottom = 150.0
+rotation = -0.0004276121
+
 [node name="ShotInjector" type="VBoxContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 8
@@ -167,7 +171,6 @@ placeholder_text = "0.0"
 layout_mode = 2
 text = "Hit Shot"
 
-[connection signal="club_selected" from="HBoxContainer/ClubSelector" to="." method="_on_club_selector_club_selected"]
 [connection signal="pressed" from="HBoxContainer/RecButton" to="." method="_on_rec_button_pressed"]
 [connection signal="pressed" from="HBoxContainer/SettingsButton" to="HBoxContainer/RangeSettings" method="_on_settings_button_pressed"]
 [connection signal="dir_selected" from="SessionPopUp" to="." method="_on_session_pop_up_dir_selected"]
@@ -183,5 +186,6 @@ text = "Hit Shot"
 [connection signal="drag_started" from="GridCanvas/VLA" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="drag_ended" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="club_selected" from="GridCanvas/ClubSelector" to="." method="_on_club_selector_club_selected"]
 [connection signal="inject" from="ShotInjector" to="." method="_on_shot_injector_inject"]
 [connection signal="pressed" from="ShotInjector/Button" to="ShotInjector" method="_on_button_pressed"]

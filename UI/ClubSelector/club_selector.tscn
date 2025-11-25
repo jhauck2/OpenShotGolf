@@ -1,37 +1,35 @@
-[gd_scene load_steps=5 format=3 uid="uid://xwb2lctkdfv5"]
+[gd_scene load_steps=2 format=3 uid="uid://xwb2lctkdfv5"]
 
 [ext_resource type="Script" uid="uid://7qixaoi6dbvj" path="res://UI/ClubSelector/club_selector.gd" id="1_bim0c"]
-[ext_resource type="Texture2D" uid="uid://bekfc0lhs3bd" path="res://UI/ClubSelector/LClubSelect.png" id="1_cxupd"]
-[ext_resource type="Script" uid="uid://dbhxqo4o8hkay" path="res://UI/ClubSelector/club_indicator.gd" id="1_tf82b"]
-[ext_resource type="Texture2D" uid="uid://dm720ku0m20d5" path="res://UI/ClubSelector/RClubSelect.png" id="3_bim0c"]
 
-[node name="ClubSelector" type="HBoxContainer"]
-offset_right = 162.0
-offset_bottom = 69.0
-size_flags_horizontal = 0
-size_flags_vertical = 0
+[node name="ClubSelector" type="PanelContainer"]
+z_index = 1000
+custom_minimum_size = Vector2(120, 80)
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_bim0c")
 
-[node name="LeftSelect" type="TextureButton" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
-texture_normal = ExtResource("1_cxupd")
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="ClubIndicator" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(90, 0)
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-script = ExtResource("1_tf82b")
+mouse_filter = 0
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="ClubIndicator"]
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "Dr"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_font_sizes/font_size = 16
+text = "Club"
 
-[node name="RightSelect" type="TextureButton" parent="."]
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-texture_normal = ExtResource("3_bim0c")
-
-[connection signal="club_selected" from="." to="ClubIndicator" method="_on_club_selector_club_selected"]
-[connection signal="pressed" from="LeftSelect" to="." method="_on_left_select_pressed"]
-[connection signal="pressed" from="RightSelect" to="." method="_on_right_select_pressed"]
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 5
