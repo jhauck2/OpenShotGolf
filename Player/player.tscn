@@ -1,8 +1,8 @@
 [gd_scene load_steps=8 format=3 uid="uid://w55fmvo7ly8g"]
 
-[ext_resource type="Script" uid="uid://bsmxwh6d6yri6" path="res://Ball/golf_ball.gd" id="1_g0ryd"]
-[ext_resource type="Script" uid="uid://b664jppxri6ts" path="res://Ball/ball.gd" id="2_g0ryd"]
-[ext_resource type="Script" uid="uid://j86sopbu1jca" path="res://Ball/ball_trail.gd" id="3_g0ryd"]
+[ext_resource type="Script" uid="uid://bqimll8b8vom6" path="res://Player/player.gd" id="1_btcbx"]
+[ext_resource type="Script" uid="uid://b664jppxri6ts" path="res://Player/ball.gd" id="2_g0ryd"]
+[ext_resource type="Script" uid="uid://j86sopbu1jca" path="res://Player/ball_trail.gd" id="3_g0ryd"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_ubhqr"]
 margin = 0.06
@@ -18,8 +18,8 @@ height = 0.085
 
 [sub_resource type="ImmediateMesh" id="ImmediateMesh_d1a0v"]
 
-[node name="GolfBall" type="Node3D"]
-script = ExtResource("1_g0ryd")
+[node name="Player" type="Node3D"]
+script = ExtResource("1_btcbx")
 
 [node name="Ball" type="CharacterBody3D" parent="."]
 script = ExtResource("2_g0ryd")
