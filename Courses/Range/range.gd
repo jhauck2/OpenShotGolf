@@ -8,11 +8,25 @@ var ball_data: Dictionary = {"Distance": "---", "Carry": "---", "Offline": "---"
 var ball_reset_time := 5.0
 var auto_reset_enabled := false
 
+var camera_controller: CameraController = null
 
-# Called when the node enters the scene tree for the first time.
+
 func _ready() -> void:
-	$PhantomCamera3D.follow_target = $GolfBall/Ball
-	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
+	_setup_camera_system()
+
+
+func _setup_camera_system() -> void:
+	if has_node("PhantomCamera3D"):
+		$PhantomCamera3D.queue_free()
+
+	camera_controller = CameraController.new()
+	camera_controller.name = "CameraController"
+	add_child(camera_controller)
+
+	if has_node("GolfBall/Ball"):
+		camera_controller.set_ball_target($GolfBall/Ball)
+
+	camera_controller.camera_changed.connect(_on_camera_changed)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -41,6 +55,26 @@ func _process(_delta: float) -> void:
 	
 	$RangeUI.set_data(ball_data)
 
+	_handle_camera_input()
+
+
+func _handle_camera_input() -> void:
+	if not camera_controller:
+		return
+
+	if Input.is_action_just_pressed("ui_1"):
+		camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
+	elif Input.is_action_just_pressed("ui_2"):
+		camera_controller.set_camera_mode(CameraController.CameraMode.DOWN_THE_LINE)
+	elif Input.is_action_just_pressed("ui_3"):
+		camera_controller.set_camera_mode(CameraController.CameraMode.FACE_ON)
+	elif Input.is_action_just_pressed("ui_4"):
+		camera_controller.set_camera_mode(CameraController.CameraMode.BIRDS_EYE)
+	elif Input.is_action_just_pressed("ui_5"):
+		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
+	elif Input.is_action_just_pressed("ui_c"):
+		camera_controller.next_camera()
+
 
 func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 	ball_data = data.duplicate()
@@ -52,11 +86,7 @@ func _on_golf_ball_rest(_ball_data) -> void:
 		$GolfBall.reset_ball()
 		ball_data["HLA"] = 0.0
 		ball_data["VLA"] = 0.0
-		
-func set_camera_follow_mode() -> void:
-	if GlobalSettings.range_settings.camera_follow_mode.value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
-		$PhantomCamera3D.follow_target = $GolfBall/Ball
-	else:
-		$PhantomCamera3D.follow_mode = 0 # None
-	
+
+
+func _on_camera_changed(camera_name: String) -> void:
+	print("Camera switched to: %s" % camera_name)
