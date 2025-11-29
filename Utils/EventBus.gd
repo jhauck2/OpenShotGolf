@@ -1,5 +1,7 @@
 extends Node
 
+signal club_selected(club_name: String)
+
 func register(node, event, callback):
 # warning-ignore:return_value_discarded
 	connect(event, node, callback)

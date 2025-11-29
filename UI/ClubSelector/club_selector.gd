@@ -16,8 +16,6 @@ const DISPLAY_BORDER = Color.WHITE
 const BUTTON_UNSELECTED = Color(0.8, 0.8, 0.8, 1.0)
 const BUTTON_UNSELECTED_FONT = Color(0.9, 0.9, 0.9, 1.0)
 
-signal club_selected(club: String)
-
 func _ready() -> void:
 	grid_container = $MarginContainer/VBoxContainer/GridContainer
 	_create_club_display_button()
@@ -141,4 +139,4 @@ func _on_club_button_pressed(button: Button) -> void:
 
 	_toggle_grid_visibility()
 
-	emit_signal("club_selected", current_club.text)
+	EventBus.emit_signal("club_selected", current_club.text)

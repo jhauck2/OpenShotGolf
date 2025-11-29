@@ -186,6 +186,5 @@ text = "Hit Shot"
 [connection signal="drag_started" from="GridCanvas/VLA" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="drag_ended" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_started"]
-[connection signal="club_selected" from="GridCanvas/ClubSelector" to="." method="_on_club_selector_club_selected"]
 [connection signal="inject" from="ShotInjector" to="." method="_on_shot_injector_inject"]
 [connection signal="pressed" from="ShotInjector/Button" to="ShotInjector" method="_on_button_pressed"]
