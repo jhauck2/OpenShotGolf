@@ -9,12 +9,12 @@ var grid_container: GridContainer = null
 const BUTTON_BG_NORMAL = Color(0.4, 0.4, 0.4, 1.0)
 const BUTTON_BG_HOVER = Color(0.5, 0.5, 0.5, 1.0)
 const BUTTON_BG_PRESSED = Color(1, 0.65, 0, 0.8)
+const BUTTON_BG_SELECTED = Color(0.75, 0.75, 0.75, 0.8)
 const BUTTON_BORDER = Color(1, 0.65, 0, 1)
+const BUTTON_FONT_SELECTED = Color.WHITE
 const DISPLAY_BG_NORMAL = Color(1, 0.65, 0, 0.8)
 const DISPLAY_BG_HOVER = Color(1, 0.75, 0.1, 0.9)
 const DISPLAY_BORDER = Color.WHITE
-const BUTTON_UNSELECTED = Color(0.8, 0.8, 0.8, 1.0)
-const BUTTON_UNSELECTED_FONT = Color(0.9, 0.9, 0.9, 1.0)
 
 func _ready() -> void:
 	grid_container = $MarginContainer/VBoxContainer/GridContainer
@@ -25,7 +25,7 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not grid_container.visible:
+	if not grid_container.visible: # This handles the click off so it does not toggle from outside btn
 		return
 	var global_mouse_pos = get_global_mouse_position()
 	var selector_rect = get_global_rect()
@@ -36,10 +36,6 @@ func _input(event: InputEvent) -> void:
 			if event.pressed:
 				_toggle_grid_visibility()
 			get_tree().root.set_input_as_handled()
-	elif event is InputEventMouseMotion:
-		if not is_over_selector:
-			get_tree().root.set_input_as_handled()
-
 
 func _create_club_display_button() -> void:
 	club_button = Button.new()
@@ -67,28 +63,31 @@ func _create_club_button_theme() -> Theme:
 	var button_theme = Theme.new()
 	button_theme.set_font_size("font_size", "Button", 14)
 
-	var normal_style = StyleBoxFlat.new()
-	normal_style.bg_color = BUTTON_BG_NORMAL
-	normal_style.corner_radius_top_left = 8
-	normal_style.corner_radius_top_right = 8
-	normal_style.corner_radius_bottom_left = 8
-	normal_style.corner_radius_bottom_right = 8
-	normal_style.border_color = BUTTON_BORDER
-	normal_style.border_width_left = 3
-	normal_style.border_width_right = 3
-	normal_style.border_width_top = 3
-	normal_style.border_width_bottom = 3
+	var normal_style = _create_button_style(BUTTON_BG_NORMAL)
 	button_theme.set_stylebox("normal", "Button", normal_style)
 
-	var hover_style = normal_style.duplicate()
-	hover_style.bg_color = BUTTON_BG_HOVER
+	var hover_style = _create_button_style(BUTTON_BG_HOVER)
 	button_theme.set_stylebox("hover", "Button", hover_style)
 
-	var pressed_style = normal_style.duplicate()
-	pressed_style.bg_color = BUTTON_BG_PRESSED
+	var pressed_style = _create_button_style(BUTTON_BG_PRESSED)
 	button_theme.set_stylebox("pressed", "Button", pressed_style)
 
 	return button_theme
+
+
+func _create_button_style(bg_color: Color) -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.border_color = BUTTON_BORDER
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	return style
 
 
 func _create_display_button_theme() -> Theme:
@@ -126,17 +125,30 @@ func _on_display_button_pressed() -> void:
 func _on_club_button_pressed(button: Button) -> void:
 	# Deselect the old button
 	if current_club:
-		current_club.self_modulate = BUTTON_UNSELECTED
-		current_club.add_theme_color_override("font_color", BUTTON_UNSELECTED_FONT)
+		_set_button_deselected(current_club)
 
 	# Update the display button
 	club_button.text = button.text
 
 	# Select the new button
 	current_club = button
-	current_club.self_modulate = Color.WHITE
-	current_club.add_theme_color_override("font_color", Color.WHITE)
+	_set_button_selected(current_club)
 
 	_toggle_grid_visibility()
 
 	EventBus.emit_signal("club_selected", current_club.text)
+
+
+func _set_button_selected(button: Button) -> void:
+	button.add_theme_color_override("font_color", BUTTON_FONT_SELECTED)
+	var selected_style = _create_selected_button_style()
+	button.add_theme_stylebox_override("normal", selected_style)
+
+
+func _set_button_deselected(button: Button) -> void:
+	button.remove_theme_color_override("font_color")
+	button.remove_theme_stylebox_override("normal")
+
+
+func _create_selected_button_style() -> StyleBoxFlat:
+	return _create_button_style(BUTTON_BG_SELECTED)
