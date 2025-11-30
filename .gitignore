@@ -15,3 +15,6 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# IDE Specific, used for code analytics outside of Godot IDE. 
+.vscode

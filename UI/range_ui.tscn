@@ -77,12 +77,12 @@ offset_bottom = 323.0
 label = "Carry"
 units = "yd"
 
-[node name="Offline" parent="GridCanvas" instance=ExtResource("1_q72xt")]
+[node name="Side" parent="GridCanvas" instance=ExtResource("1_q72xt")]
 layout_mode = 0
 offset_top = 279.0
 offset_right = 120.0
 offset_bottom = 372.0
-label = "Offline"
+label = "Side"
 units = "yd"
 
 [node name="Apex" parent="GridCanvas" instance=ExtResource("1_q72xt")]
@@ -178,8 +178,8 @@ text = "Hit Shot"
 [connection signal="drag_started" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="drag_ended" from="GridCanvas/Carry" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/Carry" to="GridCanvas" method="_on_panel_drag_started"]
-[connection signal="drag_ended" from="GridCanvas/Offline" to="GridCanvas" method="_on_panel_drag_ended"]
-[connection signal="drag_started" from="GridCanvas/Offline" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="drag_ended" from="GridCanvas/Side" to="GridCanvas" method="_on_panel_drag_ended"]
+[connection signal="drag_started" from="GridCanvas/Side" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="drag_ended" from="GridCanvas/Apex" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/Apex" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="drag_ended" from="GridCanvas/VLA" to="GridCanvas" method="_on_panel_drag_ended"]

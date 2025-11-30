@@ -19,14 +19,14 @@ func set_data(data: Dictionary) -> void:
 	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
-		$GridCanvas/Offline.set_data(data["Offline"])
+		$GridCanvas/Side.set_data(data["Offline"])
 		$GridCanvas/Apex.set_data(data["Apex"])
 		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
 		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
 	else:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
-		$GridCanvas/Offline.set_data(data["Offline"])
+		$GridCanvas/Side.set_data(data["Offline"])
 		$GridCanvas/Apex.set_data(data["Apex"])
 		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
 		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
