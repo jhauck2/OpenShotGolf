@@ -1,0 +1,27 @@
+[gd_scene load_steps=2 format=3 uid="uid://dxr8yn52lf3x"]
+
+[ext_resource type="Script" uid="uid://b3d2qtp7dya86" path="res://UI/Layouts/overview_layout.gd" id="1_8m3xs"]
+
+[node name="OverviewLayout" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8m3xs")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="CenterContainer"]
+layout_mode = 2
+text = "Overview Layout
+(Minimal UI)"
+horizontal_alignment = 1
+vertical_alignment = 1

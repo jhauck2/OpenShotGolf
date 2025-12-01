@@ -1,5 +1,20 @@
 extends Node3D
 
+enum LayoutType {
+	DEFAULT = 0,
+	OVERVIEW = 1,
+}
+
+const LAYOUT_PATHS = {
+	LayoutType.DEFAULT: "res://UI/Layouts/default_layout.tscn",
+	LayoutType.OVERVIEW: "res://UI/Layouts/overview_layout.tscn",
+}
+
+const LAYOUT_NAMES = {
+	LayoutType.DEFAULT: "default",
+	LayoutType.OVERVIEW: "overview",
+}
+
 var track_points : bool = false
 var trail_timer : float = 0.0
 var trail_resolution : float = 0.1
@@ -8,11 +23,24 @@ var ball_data: Dictionary = {"Distance": "---", "Carry": "---", "Offline": "---"
 var ball_reset_time := 5.0
 var auto_reset_enabled := false
 
+var layout_container: Control = null
+var current_layout_type: LayoutType = LayoutType.DEFAULT
+var available_layout_types: Array[LayoutType] = [LayoutType.DEFAULT, LayoutType.OVERVIEW]
+var current_layout_index: int = 0
+
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	$PhantomCamera3D.follow_target = $Player/Ball
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
+
+	_setup_layout_system()
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_L:
+			_cycle_layout()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -39,7 +67,7 @@ func _process(_delta: float) -> void:
 		offline_text += str(abs(offline))
 		ball_data["Offline"] = offline_text
 	
-	$RangeUI.set_data(ball_data)
+	update_layout_data(ball_data)
 
 
 func _on_tcp_client_hit_ball(data: Dictionary) -> void:
@@ -59,4 +87,79 @@ func set_camera_follow_mode() -> void:
 		$PhantomCamera3D.follow_target = $Player/Ball
 	else:
 		$PhantomCamera3D.follow_mode = 0 # None
-	
+
+
+func _setup_layout_system() -> void:
+	if not has_node("LayoutContainer"):
+		layout_container = Control.new()
+		layout_container.name = "LayoutContainer"
+		layout_container.layout_mode = 1
+		layout_container.anchors_preset = Control.PRESET_FULL_RECT
+		add_child(layout_container)
+	else:
+		layout_container = $LayoutContainer
+
+	for layout_type in available_layout_types:
+		var layout_path = LAYOUT_PATHS[layout_type]
+		var layout_name = LAYOUT_NAMES[layout_type]
+
+		var layout_scene = load(layout_path)
+		var layout = layout_scene.instantiate()
+		layout.name = layout_name.capitalize() + "Layout"
+
+		if layout.has_method("set_range"):
+			layout.set_range(self)
+
+		layout_container.add_child(layout)
+		layout.hide()
+
+	_switch_active_layout(LayoutType.DEFAULT)
+
+
+func _switch_active_layout(layout_type: LayoutType) -> void:
+	if layout_type not in available_layout_types:
+		push_error("Layout type '%s' not found" % layout_type)
+		return
+
+	var current_layout_name = LAYOUT_NAMES[current_layout_type]
+	if current_layout_name != "":
+		var current_layout_node = layout_container.get_node_or_null(current_layout_name.capitalize() + "Layout")
+		if current_layout_node:
+			if current_layout_node.has_method("deactivate"):
+				current_layout_node.deactivate()
+			current_layout_node.hide()
+
+	var new_layout_name = LAYOUT_NAMES[layout_type]
+	var new_layout_node = layout_container.get_node_or_null(new_layout_name.capitalize() + "Layout")
+	if new_layout_node:
+		if new_layout_node.has_method("activate"):
+			new_layout_node.activate()
+		new_layout_node.show()
+
+	current_layout_type = layout_type
+	print("Switched to layout: %s" % new_layout_name)
+
+
+func switch_layout(layout_type: LayoutType) -> void:
+	_switch_active_layout(layout_type)
+
+
+func _cycle_layout() -> void:
+	current_layout_index = (current_layout_index + 1) % available_layout_types.size()
+	var next_layout_type = available_layout_types[current_layout_index]
+	_switch_active_layout(next_layout_type)
+
+
+func _on_layout_club_selected(club: String) -> void:
+	print("Club selected from layout: %s" % club)
+
+
+func _get_active_layout() -> Control:
+	var layout_name = LAYOUT_NAMES[current_layout_type]
+	return layout_container.get_node_or_null(layout_name.capitalize() + "Layout")
+
+
+func update_layout_data(data: Dictionary) -> void:
+	var active_layout = _get_active_layout()
+	if active_layout and active_layout.has_method("update_data"):
+		active_layout.update_data(data)

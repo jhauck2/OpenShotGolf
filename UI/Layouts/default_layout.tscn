@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3 uid="uid://d0bkmmvq8cqu"]
+
+[ext_resource type="Script" uid="uid://cxc6i6i8yvme" path="res://UI/Layouts/default_layout.gd" id="1_qd4sx"]
+[ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="2_x5o8j"]
+
+[node name="DefaultLayout" type="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_qd4sx")
+
+[node name="RangeUI" parent="." instance=ExtResource("2_x5o8j")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
