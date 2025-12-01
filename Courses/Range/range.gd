@@ -31,7 +31,7 @@ var current_layout_index: int = 0
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	$PhantomCamera3D.follow_target = $GolfBall/Ball
+	$PhantomCamera3D.follow_target = $Player/Ball
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 
 	_setup_layout_system()
@@ -47,20 +47,20 @@ func _input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	var m2yd = 1.09361 # Meters to yards
 	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
-		ball_data["Distance"] = str(int($GolfBall.get_distance()*m2yd))
-		ball_data["Carry"] = str(int($GolfBall.carry*m2yd))
-		ball_data["Apex"] = str(int($GolfBall.apex*3*m2yd))
-		var offline = int($GolfBall.get_offline()*m2yd)
+		ball_data["Distance"] = str(int($Player.get_distance()*m2yd))
+		ball_data["Carry"] = str(int($Player.carry*m2yd))
+		ball_data["Apex"] = str(int($Player.apex*3*m2yd))
+		var offline = int($Player.get_offline()*m2yd)
 		var offline_text := "R"
 		if offline < 0:
 			offline_text = "L"
 		offline_text += str(abs(offline))
 		ball_data["Offline"] = offline_text
 	else:
-		ball_data["Distance"] = str($GolfBall.get_distance())
-		ball_data["Carry"] = str($GolfBall.carry)
-		ball_data["Apex"] = str($GolfBall.apex)
-		var offline = $GolfBall.get_offline()
+		ball_data["Distance"] = str($Player.get_distance())
+		ball_data["Carry"] = str($Player.carry)
+		ball_data["Apex"] = str($Player.apex)
+		var offline = $Player.get_offline()
 		var offline_text := "R"
 		if offline < 0:
 			offline_text = "L"
@@ -77,14 +77,14 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 func _on_golf_ball_rest(_ball_data) -> void:
 	if GlobalSettings.range_settings.auto_ball_reset.value:
 		await get_tree().create_timer(GlobalSettings.range_settings.ball_reset_timer.value).timeout
-		$GolfBall.reset_ball()
+		$Player.reset_ball()
 		ball_data["HLA"] = 0.0
 		ball_data["VLA"] = 0.0
 		
 func set_camera_follow_mode() -> void:
 	if GlobalSettings.range_settings.camera_follow_mode.value:
 		$PhantomCamera3D.follow_mode = 5 # Framed
-		$PhantomCamera3D.follow_target = $GolfBall/Ball
+		$PhantomCamera3D.follow_target = $Player/Ball
 	else:
 		$PhantomCamera3D.follow_mode = 0 # None
 

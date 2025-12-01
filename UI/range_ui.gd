@@ -1,14 +1,13 @@
 extends MarginContainer
 
 signal rec_button_pressed
-signal club_selected(club: String)
 signal set_session(dir: String, player_name: String)
 
 signal hit_shot(data)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass # Replace with function body.
+	pass
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -20,14 +19,14 @@ func set_data(data: Dictionary) -> void:
 	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
-		$GridCanvas/Offline.set_data(data["Offline"])
+		$GridCanvas/Side.set_data(data["Offline"])
 		$GridCanvas/Apex.set_data(data["Apex"])
 		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
 		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
 	else:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
-		$GridCanvas/Offline.set_data(data["Offline"])
+		$GridCanvas/Side.set_data(data["Offline"])
 		$GridCanvas/Apex.set_data(data["Apex"])
 		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
 		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
@@ -49,10 +48,6 @@ func _on_session_recorder_recording_state(value: bool) -> void:
 		$HBoxContainer/RecButton.text = "REC: Off"
 		$HBoxContainer/RecButton.set("theme_override_colors/font_color", white)
 		$HBoxContainer/RecButton.tooltip_text = "Start Recording Range Session"
-
-
-func _on_club_selector_club_selected(club: String) -> void:
-	emit_signal("club_selected", club)
 
 
 func _on_session_pop_up_dir_selected(dir: String, player_name: String) -> void:

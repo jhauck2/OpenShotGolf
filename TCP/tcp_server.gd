@@ -71,3 +71,7 @@ func _on_golf_ball_good_data() -> void:
 		tcp_connected = false
 	elif tcp_status == StreamPeerTCP.STATUS_CONNECTED:
 		tcp_connection.put_data(JSON.stringify(resp_200).to_ascii_buffer())
+
+
+func _on_player_bad_data() -> void:
+	pass # Replace with function body.

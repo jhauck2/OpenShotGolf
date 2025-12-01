@@ -55,6 +55,8 @@ signal set_session(user: String, dir: String)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	EventBus.connect("club_selected", Callable(self, "_on_event_bus_club_selected"))
+
 	if FileAccess.file_exists(session_save_file):
 		var save_file := FileAccess.open(session_save_file, FileAccess.READ)
 		var json_object = JSON.new()
@@ -65,7 +67,7 @@ func _ready() -> void:
 			username = save_data["Username"]
 			folder_path = save_data["SessionPath"]
 			emit_signal("set_session", username, folder_path)
-			
+
 	else: # Create the save file
 		var save_file = FileAccess.open(session_save_file, FileAccess.WRITE)
 		var default_save_data := {"SessionID": session_id, "SessionPath": folder_path, "Username": username}
@@ -122,7 +124,7 @@ func _on_golf_ball_rest(shot_data: Dictionary) -> void:
 		record_shot(shot_data)
 
 
-func _on_range_ui_club_selected(club: String) -> void:
+func _on_event_bus_club_selected(club: String) -> void:
 	current_club = club
 
 
