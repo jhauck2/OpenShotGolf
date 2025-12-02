@@ -72,7 +72,8 @@ size_flags_stretch_ratio = 1.5
 layout_mode = 2
 text = "Off"
 
-[node name="CheckButton" type="CheckButton" parent="MarginContainer/VBoxContainer/CameraFollow"]
+[node name="CameraCheckButton" type="CheckButton" parent="MarginContainer/VBoxContainer/CameraFollow"]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="Label3" type="Label" parent="MarginContainer/VBoxContainer/CameraFollow"]
@@ -193,7 +194,7 @@ size_flags_horizontal = 4
 text = "Exit to Menu"
 
 [connection signal="toggled" from="MarginContainer/VBoxContainer/Units/CheckButton" to="MarginContainer/VBoxContainer/Units" method="_on_check_button_toggled"]
-[connection signal="toggled" from="MarginContainer/VBoxContainer/CameraFollow/CheckButton" to="MarginContainer/VBoxContainer/CameraFollow" method="_on_check_button_toggled"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/CameraFollow/CameraCheckButton" to="MarginContainer/VBoxContainer/CameraFollow" method="_on_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/AutoBallReset/CheckButton" to="MarginContainer/VBoxContainer/AutoBallReset" method="_on_check_button_toggled"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox" to="MarginContainer/VBoxContainer/BallResetTimer" method="_on_reset_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox" to="MarginContainer/VBoxContainer/Temperature" method="_on_temperature_spin_box_value_changed"]

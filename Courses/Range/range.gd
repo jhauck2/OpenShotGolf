@@ -8,10 +8,25 @@ var ball_data: Dictionary = {"Distance": "---", "Carry": "---", "Offline": "---"
 var ball_reset_time := 5.0
 var auto_reset_enabled := false
 
+var camera_controller: CameraController = null
 
-# Called when the node enters the scene tree for the first time.
+
 func _ready() -> void:
-	$PhantomCamera3D.follow_target = $Player/Ball
+	_setup_camera_system()
+
+
+func _setup_camera_system() -> void:
+	if has_node("PhantomCamera3D"):
+		$PhantomCamera3D.queue_free()
+
+	camera_controller = CameraController.new()
+	camera_controller.name = "CameraController"
+	add_child(camera_controller)
+
+	if has_node("Player/Ball"):
+		camera_controller.set_ball_target($Player/Ball)
+
+	camera_controller.camera_changed.connect(_on_camera_changed)
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 
 
@@ -41,6 +56,32 @@ func _process(_delta: float) -> void:
 	
 	$RangeUI.set_data(ball_data)
 
+	_handle_camera_input()
+
+
+func _handle_camera_input() -> void:
+	if not camera_controller:
+		return
+
+	if Input.is_action_just_pressed("ui_1"):
+		_reset_camera_toggle()
+		camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
+	elif Input.is_action_just_pressed("ui_2"):
+		_reset_camera_toggle()
+		camera_controller.set_camera_mode(CameraController.CameraMode.DOWN_THE_LINE)
+	elif Input.is_action_just_pressed("ui_3"):
+		_reset_camera_toggle()
+		camera_controller.set_camera_mode(CameraController.CameraMode.FACE_ON)
+	elif Input.is_action_just_pressed("ui_4"):
+		_reset_camera_toggle()
+		camera_controller.set_camera_mode(CameraController.CameraMode.BIRDS_EYE)
+	elif Input.is_action_just_pressed("ui_5"):
+		_reset_camera_toggle(true)
+		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
+	elif Input.is_action_just_pressed("ui_c"):
+		_reset_camera_toggle()
+		camera_controller.next_camera()
+
 
 func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 	ball_data = data.duplicate()
@@ -52,11 +93,18 @@ func _on_golf_ball_rest(_ball_data) -> void:
 		$Player.reset_ball()
 		ball_data["HLA"] = 0.0
 		ball_data["VLA"] = 0.0
+
+
+func _reset_camera_toggle(toggled_on: bool = false) -> void:
+	GlobalSettings.range_settings.camera_follow_mode.set_value(toggled_on)
+
+func _on_camera_changed(_camera_name: String) -> void:
+	pass
 		
-func set_camera_follow_mode() -> void:
+
+func set_camera_follow_mode(_value) -> void:
 	if GlobalSettings.range_settings.camera_follow_mode.value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
-		$PhantomCamera3D.follow_target = $Player/Ball
+		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
 	else:
-		$PhantomCamera3D.follow_mode = 0 # None
+		camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
 	
