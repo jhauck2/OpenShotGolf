@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://bk3m8n5p2wx7q"]
+
+[ext_resource type="Script" uid="uid://qfurrk02vvj7" path="res://UI/Components/TrajectoryGraph/trajectory_graph.gd" id="1_traj"]
+
+[node name="TrajectoryGraph" type="Panel"]
+custom_minimum_size = Vector2(400, 200)
+script = ExtResource("1_traj")

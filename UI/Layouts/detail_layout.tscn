@@ -1,0 +1,283 @@
+[gd_scene load_steps=7 format=3 uid="uid://dyq5m8k3pyawn"]
+
+[ext_resource type="Script" uid="uid://3o065j5nwx3e" path="res://UI/Layouts/detail_layout.gd" id="1_detail"]
+[ext_resource type="PackedScene" uid="uid://bk3m8n5p2wx7q" path="res://UI/Components/TrajectoryGraph/trajectory_graph.tscn" id="2_traj"]
+[ext_resource type="PackedScene" uid="uid://c2oam8k4px5wq" path="res://UI/Components/RadarView/radar_view.tscn" id="3_radar"]
+[ext_resource type="PackedScene" uid="uid://cmjx8w2p7tn1k" path="res://UI/Components/DataTile/data_tile.tscn" id="4_tile"]
+[ext_resource type="PackedScene" uid="uid://xwb2lctkdfv5" path="res://UI/ClubSelector/club_selector.tscn" id="5_club"]
+[ext_resource type="PackedScene" uid="uid://7ybrycndh0k7" path="res://UI/Components/RangeHeader/range_header_container.tscn" id="6_s0i0n"]
+
+[node name="DetailLayout" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_detail")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.169, 0.169, 0.169, 0)
+
+[node name="MainHBox" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 15.0
+offset_top = 100.0
+offset_right = -15.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_constants/separation = 10
+
+[node name="ViewportPanel" type="PanelContainer" parent="MainHBox/LeftPanel"]
+custom_minimum_size = Vector2(640, 400)
+layout_mode = 2
+
+[node name="CameraContainer" type="SubViewportContainer" parent="MainHBox/LeftPanel/ViewportPanel"]
+layout_mode = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="MainHBox/LeftPanel/ViewportPanel/CameraContainer"]
+handle_input_locally = false
+size = Vector2i(844, 400)
+render_target_update_mode = 4
+
+[node name="ViewportOverlay" type="Control" parent="MainHBox/LeftPanel/ViewportPanel/CameraContainer"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TrajectoryGraph" parent="MainHBox/LeftPanel" instance=ExtResource("2_traj")]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RightSideStatus" type="VBoxContainer" parent="MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_constants/separation = 10
+
+[node name="RightSidebar" type="HBoxContainer" parent="MainHBox/RightSideStatus"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="RadarColumn" type="VBoxContainer" parent="MainHBox/RightSideStatus/RightSidebar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RadarView" parent="MainHBox/RightSideStatus/RightSidebar/RadarColumn" instance=ExtResource("3_radar")]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DataColumn" type="VBoxContainer" parent="MainHBox/RightSideStatus/RightSidebar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Navigation" type="VBoxContainer" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShotNavigation" type="HBoxContainer" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation"]
+layout_mode = 2
+
+[node name="PrevButton" type="Button" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/ShotNavigation"]
+layout_mode = 2
+text = "<"
+
+[node name="ShotCounter" type="Label" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/ShotNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1 / 1"
+horizontal_alignment = 1
+
+[node name="NextButton" type="Button" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/ShotNavigation"]
+layout_mode = 2
+text = ">"
+
+[node name="DataGrid" type="GridContainer" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 3
+
+[node name="CarryTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Carry"
+unit = "yds"
+
+[node name="TotalTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Total"
+unit = "yds"
+
+[node name="RollTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Roll"
+unit = "yds"
+
+[node name="BallSpeedTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Ball Spd"
+unit = "mph"
+
+[node name="ClubSpeedTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Club Spd"
+unit = "mph"
+
+[node name="SmashTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Smash"
+unit = ""
+
+[node name="VLaunchTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "V. Launch"
+unit = "°"
+color_category = "Green"
+
+[node name="HeightTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Height"
+unit = "yds"
+color_category = "Green"
+
+[node name="DescentTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Descent"
+unit = "°"
+color_category = "Green"
+
+[node name="HLaunchTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "H. Launch"
+unit = "°"
+color_category = "Green"
+
+[node name="LateralTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Lateral"
+unit = "yds"
+color_category = "Green"
+
+[node name="AttackTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Attack"
+unit = "°"
+color_category = "Green"
+
+[node name="SpinTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+size_flags_horizontal = 3
+title = "Spin"
+unit = "rpm"
+color_category = "Blue"
+
+[node name="SpinAxisTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Spin Axis"
+unit = "°"
+color_category = "Blue"
+
+[node name="ClubPathTile" parent="MainHBox/RightSideStatus/RightSidebar/DataColumn/Navigation/DataGrid" instance=ExtResource("4_tile")]
+layout_mode = 2
+title = "Club Path"
+value = "--"
+unit = "°"
+color_category = "Blue"
+
+[node name="DataTablePanel" type="PanelContainer" parent="MainHBox/RightSideStatus"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="MainHBox/RightSideStatus/DataTablePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer"]
+layout_mode = 2
+
+[node name="TableHeader" type="HBoxContainer" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ShotLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Shot #"
+horizontal_alignment = 1
+
+[node name="ClubLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Club"
+horizontal_alignment = 1
+
+[node name="CarryLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Carry"
+horizontal_alignment = 1
+
+[node name="TotalLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Total"
+horizontal_alignment = 1
+
+[node name="RollLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Roll"
+horizontal_alignment = 1
+
+[node name="OfflineLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Offline"
+horizontal_alignment = 1
+
+[node name="PointsLabel" type="Label" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/TableHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Points"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DataRows" type="VBoxContainer" parent="MainHBox/RightSideStatus/DataTablePanel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ClubSelector" parent="." instance=ExtResource("5_club")]
+layout_mode = 1
+offset_left = 2.0
+offset_top = 79.0
+offset_right = 164.0
+offset_bottom = 148.0
+
+[node name="RangeHeaderContainer" parent="." instance=ExtResource("6_s0i0n")]
+layout_mode = 1

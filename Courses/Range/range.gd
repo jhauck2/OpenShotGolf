@@ -3,16 +3,19 @@ extends Node3D
 enum LayoutType {
 	DEFAULT = 0,
 	OVERVIEW = 1,
+	DETAIL = 2,
 }
 
 const LAYOUT_PATHS = {
 	LayoutType.DEFAULT: "res://UI/Layouts/default_layout.tscn",
 	LayoutType.OVERVIEW: "res://UI/Layouts/overview_layout.tscn",
+	LayoutType.DETAIL: "res://UI/Layouts/detail_layout.tscn",
 }
 
 const LAYOUT_NAMES = {
 	LayoutType.DEFAULT: "default",
 	LayoutType.OVERVIEW: "overview",
+	LayoutType.DETAIL: "detail",
 }
 
 var track_points : bool = false
@@ -25,7 +28,7 @@ var auto_reset_enabled := false
 
 var layout_container: Control = null
 var current_layout_type: LayoutType = LayoutType.DEFAULT
-var available_layout_types: Array[LayoutType] = [LayoutType.DEFAULT, LayoutType.OVERVIEW]
+var available_layout_types: Array[LayoutType] = [LayoutType.DEFAULT, LayoutType.OVERVIEW, LayoutType.DETAIL]
 var current_layout_index: int = 0
 
 
@@ -175,6 +178,9 @@ func _on_layout_switch_requested(layout_name: String) -> void:
 			layout_type = LayoutType.DEFAULT
 		"Overview":
 			layout_type = LayoutType.OVERVIEW
+		"Detail":
+			layout_type = LayoutType.DETAIL
+	_switch_active_layout(layout_type)
 
 
 func _get_active_layout() -> Control:
