@@ -7,7 +7,7 @@ signal hit_shot(data)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass
+	GlobalSettings.range_settings.shot_injector_enabled.setting_changed.connect(toggle_shot_injector)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -64,3 +64,6 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
+
+func toggle_shot_injector(value) -> void:
+	$ShotInjector.visible = value

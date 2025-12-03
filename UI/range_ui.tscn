@@ -117,6 +117,7 @@ offset_bottom = 150.0
 rotation = -0.0004276121
 
 [node name="ShotInjector" type="VBoxContainer" parent="."]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4

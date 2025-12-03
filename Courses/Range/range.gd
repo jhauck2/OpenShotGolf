@@ -53,8 +53,8 @@ func _on_golf_ball_rest(_ball_data) -> void:
 		ball_data["HLA"] = 0.0
 		ball_data["VLA"] = 0.0
 		
-func set_camera_follow_mode() -> void:
-	if GlobalSettings.range_settings.camera_follow_mode.value:
+func set_camera_follow_mode(value) -> void:
+	if value:
 		$PhantomCamera3D.follow_mode = 5 # Framed
 		$PhantomCamera3D.follow_target = $Player/Ball
 	else:

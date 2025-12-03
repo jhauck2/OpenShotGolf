@@ -1,12 +1,6 @@
-[gd_scene load_steps=8 format=3 uid="uid://cr5js3cuw3b7y"]
+[gd_scene load_steps=2 format=3 uid="uid://cr5js3cuw3b7y"]
 
 [ext_resource type="Script" uid="uid://coaq5bnt4i7s6" path="res://UI/Settings/RangeSettings/range_settings.gd" id="1_btrk3"]
-[ext_resource type="Script" uid="uid://0ef3ofo80ce6" path="res://UI/Settings/RangeSettings/units.gd" id="2_2xa0x"]
-[ext_resource type="Script" uid="uid://bxnnahi0ahiul" path="res://UI/Settings/RangeSettings/camera_follow.gd" id="3_42o4p"]
-[ext_resource type="Script" uid="uid://cgaio06fhkat4" path="res://UI/Settings/RangeSettings/auto_ball_reset.gd" id="3_aae4w"]
-[ext_resource type="Script" uid="uid://brlwyoe7dhsuf" path="res://UI/Settings/RangeSettings/ball_reset_timer.gd" id="3_pf5re"]
-[ext_resource type="Script" uid="uid://bipu0fif60jd5" path="res://UI/Settings/RangeSettings/temperature.gd" id="4_uelst"]
-[ext_resource type="Script" uid="uid://gnkrw1x3sj3y" path="res://UI/Settings/RangeSettings/altitude.gd" id="5_aae4w"]
 
 [node name="RangeSettings" type="PanelContainer"]
 offset_right = 379.0
@@ -28,7 +22,6 @@ theme_override_constants/separation = 20
 
 [node name="Units" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-script = ExtResource("2_2xa0x")
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Units"]
 layout_mode = 2
@@ -56,7 +49,6 @@ size_flags_horizontal = 3
 
 [node name="CameraFollow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-script = ExtResource("3_42o4p")
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/CameraFollow"]
 layout_mode = 2
@@ -85,7 +77,6 @@ size_flags_horizontal = 3
 
 [node name="AutoBallReset" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-script = ExtResource("3_aae4w")
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/AutoBallReset"]
 layout_mode = 2
@@ -110,9 +101,34 @@ text = "On"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="ShotInjector" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ShotInjector"]
+layout_mode = 2
+text = "Shot Injector"
+
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/ShotInjector"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer/ShotInjector"]
+layout_mode = 2
+text = "Off"
+
+[node name="CheckButton" type="CheckButton" parent="MarginContainer/VBoxContainer/ShotInjector"]
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="MarginContainer/VBoxContainer/ShotInjector"]
+layout_mode = 2
+text = "On"
+
+[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/ShotInjector"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="BallResetTimer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-script = ExtResource("3_pf5re")
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/BallResetTimer"]
 layout_mode = 2
@@ -138,7 +154,6 @@ size_flags_horizontal = 3
 
 [node name="Temperature" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-script = ExtResource("4_uelst")
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Temperature"]
 layout_mode = 2
@@ -163,7 +178,6 @@ size_flags_horizontal = 3
 
 [node name="Altitude" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-script = ExtResource("5_aae4w")
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/Altitude"]
 layout_mode = 2
@@ -192,10 +206,11 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "Exit to Menu"
 
-[connection signal="toggled" from="MarginContainer/VBoxContainer/Units/CheckButton" to="MarginContainer/VBoxContainer/Units" method="_on_check_button_toggled"]
-[connection signal="toggled" from="MarginContainer/VBoxContainer/CameraFollow/CheckButton" to="MarginContainer/VBoxContainer/CameraFollow" method="_on_check_button_toggled"]
-[connection signal="toggled" from="MarginContainer/VBoxContainer/AutoBallReset/CheckButton" to="MarginContainer/VBoxContainer/AutoBallReset" method="_on_check_button_toggled"]
-[connection signal="value_changed" from="MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox" to="MarginContainer/VBoxContainer/BallResetTimer" method="_on_reset_spin_box_value_changed"]
-[connection signal="value_changed" from="MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox" to="MarginContainer/VBoxContainer/Temperature" method="_on_temperature_spin_box_value_changed"]
-[connection signal="value_changed" from="MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox" to="MarginContainer/VBoxContainer/Altitude" method="_on_altitude_spin_box_value_changed"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/Units/CheckButton" to="." method="_on_units_check_button_toggled"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/CameraFollow/CheckButton" to="." method="_on_camer_check_button_toggled"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/AutoBallReset/CheckButton" to="." method="_on_auto_reset_check_button_toggled"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/ShotInjector/CheckButton" to="." method="_on_injector_check_button_toggled"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox" to="." method="_on_reset_spin_box_value_changed"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox" to="." method="_on_temperature_spin_box_value_changed"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox" to="." method="_on_altitude_spin_box_value_changed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ExitButton" to="." method="_on_exit_button_pressed"]
