@@ -4,6 +4,7 @@ var bad_dir_text : String = "This directory does not exist."
 
 
 signal dir_selected(dir: String, player_name: String)
+signal session_cancelled
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -28,6 +29,7 @@ func set_session_data(user, dir):
 func close():
 	visible = false
 	get_tree().paused = false
+	session_cancelled.emit()
 
 func _on_ok_button_pressed() -> void:
 	var dir_text = $PanelContainer/MarginContainer/VBoxContainer/Directory/TextEdit.text

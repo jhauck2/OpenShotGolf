@@ -1,9 +1,8 @@
-[gd_scene load_steps=38 format=3 uid="uid://b1idtxfp7eoke"]
+[gd_scene load_steps=37 format=3 uid="uid://b1idtxfp7eoke"]
 
 [ext_resource type="Script" uid="uid://c4whkfuiysonu" path="res://Courses/Range/range.gd" id="1_sunpe"]
 [ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://TCP/tcp_server.gd" id="2_d1a0v"]
-[ext_resource type="PackedScene" uid="uid://w55fmvo7ly8g" path="res://Player/player.tscn" id="3_4jr3s"]
-[ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="4_d1a0v"]
+[ext_resource type="PackedScene" uid="uid://w55fmvo7ly8g" path="res://Ball/golf_ball.tscn" id="3_4jr3s"]
 [ext_resource type="Texture2D" uid="uid://btxo07ji1qkds" path="res://Courses/Environments/grassy-meadow1-bl/grassy-meadow1_alb_ht.png" id="5_6rpr1"]
 [ext_resource type="Shader" uid="uid://cvd0x7lon1ur6" path="res://addons/sky_3d/shaders/SkyMaterial.gdshader" id="5_k478i"]
 [ext_resource type="Texture2D" uid="uid://dfrpctfpmv3c7" path="res://addons/sky_3d/assets/thirdparty/textures/milkyway/Milkyway.jpg" id="6_1cdky"]
@@ -210,8 +209,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 174.334, 165.881, 0)
 light_indirect_energy = 6.592
 
-[node name="RangeUI" parent="." instance=ExtResource("4_d1a0v")]
-
 [node name="Terrain3D" type="Terrain3D" parent="."]
 data_directory = "res://Courses/Range/Terrain"
 material = SubResource("Terrain3DMaterial_ls2bl")
@@ -311,6 +308,10 @@ text = "250
 script = ExtResource("21_6rpr1")
 
 [connection signal="hit_ball" from="TCPServer" to="." method="_on_tcp_client_hit_ball"]
+[connection signal="hit_ball" from="TCPServer" to="GolfBall" method="_on_tcp_client_hit_ball"]
+[connection signal="good_data" from="GolfBall" to="TCPServer" method="_on_golf_ball_good_data"]
+[connection signal="rest" from="GolfBall" to="." method="_on_golf_ball_rest"]
+[connection signal="rest" from="GolfBall" to="SessionRecorder" method="_on_golf_ball_rest"]
 [connection signal="hit_ball" from="TCPServer" to="Player" method="_on_tcp_client_hit_ball"]
 [connection signal="bad_data" from="Player" to="TCPServer" method="_on_player_bad_data"]
 [connection signal="good_data" from="Player" to="TCPServer" method="_on_golf_ball_good_data"]

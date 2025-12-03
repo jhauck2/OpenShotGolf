@@ -1,0 +1,45 @@
+[gd_scene load_steps=5 format=3 uid="uid://7ybrycndh0k7"]
+
+[ext_resource type="Script" uid="uid://sex5o0hbby1g" path="res://UI/Components/RangeHeader/range_header_container.gd" id="1_1up5h"]
+[ext_resource type="PackedScene" uid="uid://c8xk5nan3pq8s" path="res://UI/Components/RangeHeader/range_header.tscn" id="1_bq6ua"]
+[ext_resource type="PackedScene" uid="uid://bixsmx2mhvyyx" path="res://UI/SessionPopUp/session_pop_up.tscn" id="2_1up5h"]
+[ext_resource type="PackedScene" uid="uid://cr5js3cuw3b7y" path="res://UI/Settings/RangeSettings/range_settings.tscn" id="3_e80k8"]
+
+[node name="RangeHeaderContainer" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1up5h")
+
+[node name="RangeHeader" parent="." instance=ExtResource("1_bq6ua")]
+layout_mode = 1
+offset_bottom = 68.0
+
+[node name="SessionPopUp" parent="." instance=ExtResource("2_1up5h")]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -213.0
+offset_top = -134.0
+offset_right = 213.0
+offset_bottom = 134.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RangeSettings" parent="." instance=ExtResource("3_e80k8")]
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -473.0
+offset_top = 76.0
+offset_right = -94.0
+offset_bottom = 457.0
+grow_horizontal = 0

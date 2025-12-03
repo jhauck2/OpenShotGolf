@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://cmjx8w2p7tn1k"]
+
+[ext_resource type="Script" uid="uid://dm6hmk5enqruw" path="res://UI/Components/DataTile/data_tile.gd" id="1_data_tile"]
+
+[node name="DataTile" type="PanelContainer"]
+custom_minimum_size = Vector2(100, 70)
+script = ExtResource("1_data_tile")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "TITLE"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="ValueLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "0.0"
+horizontal_alignment = 1
+
+[node name="UnitLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "unit"
+horizontal_alignment = 1
