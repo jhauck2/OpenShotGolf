@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://cr5js3cuw3b7y"]
+[gd_scene load_steps=9 format=3 uid="uid://cr5js3cuw3b7y"]
 
 [ext_resource type="Script" uid="uid://coaq5bnt4i7s6" path="res://UI/Settings/RangeSettings/range_settings.gd" id="1_btrk3"]
 [ext_resource type="Script" uid="uid://0ef3ofo80ce6" path="res://UI/Settings/RangeSettings/units.gd" id="2_2xa0x"]
@@ -8,11 +8,15 @@
 [ext_resource type="Script" uid="uid://bipu0fif60jd5" path="res://UI/Settings/RangeSettings/temperature.gd" id="4_uelst"]
 [ext_resource type="Script" uid="uid://gnkrw1x3sj3y" path="res://UI/Settings/RangeSettings/altitude.gd" id="5_aae4w"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_42o4p"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+
 [node name="RangeSettings" type="PanelContainer"]
 offset_right = 379.0
 offset_bottom = 197.0
 size_flags_horizontal = 4
 size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_42o4p")
 script = ExtResource("1_btrk3")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -187,15 +191,9 @@ text = "ft"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ExitButton" type="Button" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-text = "Exit to Menu"
-
 [connection signal="toggled" from="MarginContainer/VBoxContainer/Units/CheckButton" to="MarginContainer/VBoxContainer/Units" method="_on_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/CameraFollow/CheckButton" to="MarginContainer/VBoxContainer/CameraFollow" method="_on_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/AutoBallReset/CheckButton" to="MarginContainer/VBoxContainer/AutoBallReset" method="_on_check_button_toggled"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox" to="MarginContainer/VBoxContainer/BallResetTimer" method="_on_reset_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox" to="MarginContainer/VBoxContainer/Temperature" method="_on_temperature_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox" to="MarginContainer/VBoxContainer/Altitude" method="_on_altitude_spin_box_value_changed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/ExitButton" to="." method="_on_exit_button_pressed"]

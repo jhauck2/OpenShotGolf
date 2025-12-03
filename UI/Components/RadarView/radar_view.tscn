@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://c2oam8k4px5wq"]
+
+[ext_resource type="Script" uid="uid://d4es53hgye50s" path="res://UI/Components/RadarView/radar_view.gd" id="1_radar"]
+
+[node name="RadarView" type="Panel"]
+custom_minimum_size = Vector2(200, 400)
+script = ExtResource("1_radar")

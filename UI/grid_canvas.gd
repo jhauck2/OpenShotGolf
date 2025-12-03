@@ -11,16 +11,17 @@ func _draw():
 	if not show_grid:
 		return
 
-	var padding_correction := Vector2(0, 0)  # Adjust Y as needed
-	var offset = global_position - global_position + padding_correction
 	var viewport_size = get_viewport_rect().size
-	var origin = Vector2(0, 0)  # if we need to offset the grid (x+10 for the top)
-	for x in range(0, viewport_size.x, GRID_SIZE.x):
-		var grid_x = x + offset.x + origin.x
-		draw_line(Vector2(grid_x, 0), Vector2(grid_x, viewport_size.y), Color.GRAY)
-	for y in range(0, viewport_size.y, GRID_SIZE.y):
-		var grid_y = y + offset.y + origin.y
-		draw_line(Vector2(0, grid_y), Vector2(viewport_size.x, grid_y), Color.GRAY)
+	# Draw vertical lines starting from GRID_ORIGIN.x
+	var x = GRID_ORIGIN.x
+	while x < viewport_size.x:
+		draw_line(Vector2(x, 0), Vector2(x, viewport_size.y), Color.GRAY)
+		x += GRID_SIZE.x
+	# Draw horizontal lines starting from GRID_ORIGIN.y
+	var y = GRID_ORIGIN.y
+	while y < viewport_size.y:
+		draw_line(Vector2(0, y), Vector2(viewport_size.x, y), Color.GRAY)
+		y += GRID_SIZE.y
 
 func _ready():
 	load_layout()
@@ -28,9 +29,9 @@ func _ready():
 	GlobalSettings.range_settings.range_units.setting_changed.connect(set_units)
 
 func snap_to_grid(panel: Control):
-	var global_snap_x = round((panel.global_position.x - GRID_ORIGIN.x) / GRID_SIZE.x) * GRID_SIZE.x + GRID_ORIGIN.x
-	var global_snap_y = round((panel.global_position.y - GRID_ORIGIN.y) / GRID_SIZE.y) * GRID_SIZE.y + GRID_ORIGIN.y
-	panel.global_position = Vector2(global_snap_x, global_snap_y)
+	var snap_x = round((panel.position.x - GRID_ORIGIN.x) / GRID_SIZE.x) * GRID_SIZE.x + GRID_ORIGIN.x
+	var snap_y = round((panel.position.y - GRID_ORIGIN.y) / GRID_SIZE.y) * GRID_SIZE.y + GRID_ORIGIN.y
+	panel.position = Vector2(snap_x, snap_y)
 
 func toggle_edit_mode():
 	_edit_mode = !_edit_mode
@@ -68,13 +69,22 @@ func _notification(what):
 		get_tree().quit()  # Actually close the game after saving
 		
 func set_units(value):
+	# Only update units if this GridCanvas node exists and is in the tree
+	if not is_node_ready():
+		return
+
+	var distance = get_node_or_null("Distance")
+	var carry = get_node_or_null("Carry")
+	var offline = get_node_or_null("Offline")
+	var apex = get_node_or_null("Apex")
+
 	if value == Enums.Units.IMPERIAL:
-		$Distance.set_units("yd")
-		$Carry.set_units("yd")
-		$Offline.set_units("yd")
-		$Apex.set_units("ft")
+		if distance: distance.set_units("yd")
+		if carry: carry.set_units("yd")
+		if offline: offline.set_units("yd")
+		if apex: apex.set_units("ft")
 	else:
-		$Distance.set_units("m")
-		$Carry.set_units("m")
-		$Offline.set_units("m")
-		$Apex.set_units("m")
+		if distance: distance.set_units("m")
+		if carry: carry.set_units("m")
+		if offline: offline.set_units("m")
+		if apex: apex.set_units("m")

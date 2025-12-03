@@ -13,7 +13,3 @@ func _process(_delta: float) -> void:
 
 func _on_settings_button_pressed() -> void:
 	visible = not visible
-
-
-func _on_exit_button_pressed() -> void:
-	SceneManager.change_scene("res://UI/MainMenu/main_menu.tscn")

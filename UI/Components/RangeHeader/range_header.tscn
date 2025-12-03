@@ -1,0 +1,84 @@
+[gd_scene load_steps=7 format=3 uid="uid://c8xk5nan3pq8s"]
+
+[ext_resource type="Script" uid="uid://cpnn52fi7c46m" path="res://UI/Components/RangeHeader/range_header.gd" id="1_header"]
+[ext_resource type="Texture2D" uid="uid://b6jm6nwnu5ijf" path="res://Resources/Icons/RangeIcons/cameraswitch.svg" id="2_yjkpv"]
+[ext_resource type="Texture2D" uid="uid://bl1w545r2pf2n" path="res://Resources/Icons/RangeIcons/mosaic.svg" id="3_raroy"]
+[ext_resource type="Texture2D" uid="uid://cstdjsjct7cjb" path="res://Resources/Icons/RangeIcons/settings.svg" id="4_wksm3"]
+[ext_resource type="Texture2D" uid="uid://cdxnkp27jg3aa" path="res://Resources/Icons/RangeIcons/exit.svg" id="5_wksm3"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wksm3"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.18039216, 0.18039216, 0.18039216, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[node name="RangeHeader" type="HBoxContainer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 50.0
+grow_horizontal = 2
+theme_override_constants/separation = 11
+script = ExtResource("1_header")
+
+[node name="PlayerName" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_font_sizes/font_size = 32
+text = "Player1"
+vertical_alignment = 1
+
+[node name="RecButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+tooltip_text = "Start Recording Range Session"
+text = "REC: Off"
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="CameraButton" type="Button" parent="PanelContainer/MarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_wksm3")
+icon = ExtResource("2_yjkpv")
+
+[node name="LayoutButton" type="Button" parent="PanelContainer/MarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_wksm3")
+icon = ExtResource("3_raroy")
+
+[node name="SettingsButton" type="Button" parent="PanelContainer/MarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_wksm3")
+icon = ExtResource("4_wksm3")
+
+[node name="ExitButton" type="Button" parent="PanelContainer/MarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_wksm3")
+icon = ExtResource("5_wksm3")
