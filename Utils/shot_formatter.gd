@@ -2,7 +2,8 @@ extends Object
 class_name ShotFormatter
 
 # Formats ball/shot data for UI display, with unit conversion and derived spin.
-static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: Enums.Units) -> Dictionary:
+# If show_distance is false, Distance is left unchanged from prev_data (or set to "---" if not provided).
+static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: Enums.Units, show_distance: bool, prev_data: Dictionary = {}) -> Dictionary:
 	var ball_data: Dictionary = {}
 	var m2yd := 1.09361
 	var has_backspin := raw_ball_data.has("BackSpin")
@@ -24,7 +25,10 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 			sidespin = total_spin * sin(deg_to_rad(spin_axis))
 	
 	if units == Enums.Units.IMPERIAL:
-		ball_data["Distance"] = str(int(player.get_distance()*m2yd))
+		if show_distance:
+			ball_data["Distance"] = str(int(player.get_distance()*m2yd))
+		else:
+			ball_data["Distance"] = prev_data.get("Distance", "---")
 		var carry_val = player.carry
 		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
 			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float / 1.0 # raw is assumed yards
@@ -38,7 +42,10 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 		ball_data["Offline"] = offline_text
 		ball_data["Speed"] = "%3.1f" % raw_ball_data.get("Speed", 0.0)
 	else:
-		ball_data["Distance"] = str(player.get_distance())
+		if show_distance:
+			ball_data["Distance"] = str(player.get_distance())
+		else:
+			ball_data["Distance"] = prev_data.get("Distance", "---")
 		var carry_val = player.carry
 		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
 			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float

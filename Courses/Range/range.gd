@@ -21,6 +21,7 @@ var ball_reset_time := 5.0
 var auto_reset_enabled := false
 var raw_ball_data: Dictionary = {}
 const ShotFormatterHelper = preload("res://Utils/shot_formatter.gd")
+var last_display: Dictionary = {}
 
 
 # Called when the node enters the scene tree for the first time.
@@ -40,6 +41,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 	raw_ball_data = data.duplicate()
 	_update_ball_display()
+
+
+func _process(_delta: float) -> void:
+	# Refresh UI during flight/rollout so carry/apex update live; distance updates only at rest.
+	if $Player.get_ball_state() != Enums.BallState.REST:
+		_update_ball_display()
 
 
 func _on_golf_ball_rest(_ball_data) -> void:
@@ -84,6 +91,8 @@ func _reset_display_data() -> void:
 
 
 func _update_ball_display() -> void:
-	ball_data = ShotFormatterHelper.format_ball_display(raw_ball_data, $Player, GlobalSettings.range_settings.range_units.value)
+	var show_distance: bool = $Player.get_ball_state() == Enums.BallState.REST
+	ball_data = ShotFormatterHelper.format_ball_display(raw_ball_data, $Player, GlobalSettings.range_settings.range_units.value, show_distance, ball_data)
+	last_display = ball_data.duplicate()
 	$RangeUI.set_data(ball_data)
 	
