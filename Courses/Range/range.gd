@@ -26,6 +26,8 @@ var raw_ball_data: Dictionary = {}
 func _ready() -> void:
 	$PhantomCamera3D.follow_target = $Player/Ball
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
+	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_changed)
+	_apply_surface_to_ball()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -97,6 +99,16 @@ func set_camera_follow_mode(value) -> void:
 		$PhantomCamera3D.follow_target = $Player/Ball
 	else:
 		$PhantomCamera3D.follow_mode = 0 # None
+
+
+func _apply_surface_to_ball() -> void:
+	if $Player.has_node("Ball"):
+		$Player/Ball.set_surface(GlobalSettings.range_settings.surface_type.value)
+
+
+func _on_surface_changed(value) -> void:
+	if $Player.has_node("Ball"):
+		$Player/Ball.set_surface(value)
 
 
 func _reset_display_data() -> void:

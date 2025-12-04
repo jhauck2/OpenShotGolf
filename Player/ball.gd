@@ -12,15 +12,17 @@ var mass = 0.04592623
 var radius = 0.021335
 var A = PI*radius*radius # Cross-sectional area
 var I = 0.4*mass*radius*radius # Moment of inertia
-var u_k = 0.4 # friction coefficient with the ground
-var u_kr = 0.2 # friction coefficient with the ground while rolling
+var u_k = 0.15 # kinetic friction; surface-driven
+var u_kr = 0.05 # rolling friction; surface-driven
 
 var airDensity = Coefficients.get_air_density(0.0, 75.0)
 var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(75.0)
 var nu = 0.00001470 # Air Kinematic Viscosity
-var nu_g = 0.0012 # Grass Viscosity (estimate somewhere between air and water)
+var nu_g = 0.0005 # Grass drag viscosity; surface-driven
 var drag_cf := 1.2 # Drag correction factor
 var lift_cf := 1.2 # lift correction factor
+var surface_type := Enums.Surface.FIRM
+const SurfaceHelper = preload("res://Utils/surface.gd")
 
 var state : Enums.BallState = Enums.BallState.REST
 
@@ -31,6 +33,9 @@ func _ready() -> void:
 	GlobalSettings.range_settings.range_units.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.temperature.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.altitude.setting_changed.connect(set_env)
+	GlobalSettings.range_settings.drag_scale.setting_changed.connect(_on_drag_scale_changed)
+	drag_cf = GlobalSettings.range_settings.drag_scale.value
+	_apply_surface(surface_type)
 
 
 func _process(_delta: float) -> void:
@@ -219,3 +224,19 @@ func reset():
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	state = Enums.BallState.REST
+
+
+func _on_drag_scale_changed(_value):
+	drag_cf = GlobalSettings.range_settings.drag_scale.value
+
+
+func set_surface(surface: int) -> void:
+	surface_type = surface as Enums.Surface
+	_apply_surface(surface_type)
+
+
+func _apply_surface(surface: int) -> void:
+	var params := SurfaceHelper.get_params(surface as Enums.Surface)
+	u_k = params["u_k"]
+	u_kr = params["u_kr"]
+	nu_g = params["nu_g"]

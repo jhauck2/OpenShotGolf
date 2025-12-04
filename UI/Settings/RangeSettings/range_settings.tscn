@@ -201,6 +201,50 @@ text = "ft"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="DragScale" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/DragScale"]
+layout_mode = 2
+text = "Drag Scale: "
+
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/DragScale"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.7
+
+[node name="DragSpinBox" type="SpinBox" parent="MarginContainer/VBoxContainer/DragScale"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer/DragScale"]
+layout_mode = 2
+text = "x"
+
+[node name="Control4" type="Control" parent="MarginContainer/VBoxContainer/DragScale"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SurfaceType" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SurfaceType"]
+layout_mode = 2
+text = "Surface: "
+
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/SurfaceType"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SurfaceOption" type="OptionButton" parent="MarginContainer/VBoxContainer/SurfaceType"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Control4" type="Control" parent="MarginContainer/VBoxContainer/SurfaceType"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="ExitButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
@@ -213,4 +257,6 @@ text = "Exit to Menu"
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox" to="." method="_on_reset_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox" to="." method="_on_temperature_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox" to="." method="_on_altitude_spin_box_value_changed"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/DragScale/DragSpinBox" to="." method="_on_drag_spin_box_value_changed"]
+[connection signal="item_selected" from="MarginContainer/VBoxContainer/SurfaceType/SurfaceOption" to="." method="_on_surface_option_item_selected"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ExitButton" to="." method="_on_exit_button_pressed"]
