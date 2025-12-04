@@ -1,0 +1,187 @@
+[gd_scene load_steps=11 format=3 uid="uid://cmpqqkaykk2ow"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_x8qra"]
+[ext_resource type="Texture2D" uid="uid://74etc2f46b7k" path="res://Resources/Icons/orange_circle.png" id="4_2ls2m"]
+[ext_resource type="Texture2D" uid="uid://ccuus4s6dakb7" path="res://Resources/Icons/diversity.png" id="4_3woec"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="5_2ls2m"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="6_0nw5q"]
+[ext_resource type="Texture2D" uid="uid://dicjjpgrkgn58" path="res://Resources/Icons/double_arrow.png" id="7_e2cqc"]
+[ext_resource type="Texture2D" uid="uid://bnow80shojrjt" path="res://Resources/Icons/person.png" id="8_ji358"]
+[ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="9_06mrp"]
+[ext_resource type="Script" uid="uid://b3qdb3mfgfoju" path="res://UI/MainMenu/Modals/add_player_modal_controller.gd" id="10_modal"]
+
+[node name="AddPlayerModal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("10_modal")
+
+[node name="ModalContent2" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 300.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ModalContent2"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ModalContent2/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_x8qra")
+theme_override_font_sizes/font_size = 32
+text = "Add player"
+uppercase = true
+
+[node name="Control" type="Control" parent="ModalContent2/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SavedOption" type="PanelContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TextureButton" type="TextureButton" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer/HBoxContainer"]
+layout_mode = 2
+texture_normal = ExtResource("4_2ls2m")
+
+[node name="TextureRect" type="TextureRect" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer/HBoxContainer/TextureButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.25
+offset_right = 20.0
+offset_bottom = 20.25
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_3woec")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Text" type="VBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Name" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer/HBoxContainer/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("5_2ls2m")
+text = "Load Saved Player"
+
+[node name="Info" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer/HBoxContainer/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("6_0nw5q")
+theme_override_font_sizes/font_size = 12
+text = "Select a player from your saved profiles"
+
+[node name="Button" type="Button" parent="ModalContent2/MarginContainer/VBoxContainer/SavedOption/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("7_e2cqc")
+
+[node name="GuestOption" type="PanelContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TextureButton" type="TextureButton" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer/HBoxContainer"]
+layout_mode = 2
+texture_normal = ExtResource("4_2ls2m")
+
+[node name="TextureRect" type="TextureRect" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer/HBoxContainer/TextureButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.25
+offset_right = 20.0
+offset_bottom = 20.25
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("8_ji358")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Text" type="VBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Name" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer/HBoxContainer/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("5_2ls2m")
+text = "Guest Player"
+
+[node name="Info" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer/HBoxContainer/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("6_0nw5q")
+theme_override_font_sizes/font_size = 12
+text = "Add a new temporary player with a custom name"
+
+[node name="Button" type="Button" parent="ModalContent2/MarginContainer/VBoxContainer/GuestOption/MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("7_e2cqc")
+
+[node name="CloseBtn" type="Button" parent="ModalContent2/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_type_variation = &"FlatButton"
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_colors/icon_hover_color = Color(0.42365062, 0.42365065, 0.42365062, 1)
+icon = ExtResource("9_06mrp")
+flat = true
+icon_alignment = 1

@@ -1,0 +1,66 @@
+[gd_scene load_steps=6 format=3 uid="uid://dving2psh4yv1"]
+
+[ext_resource type="Script" uid="uid://c3jrkyhtjl22p" path="res://UI/Components/MenuStatItem/menu_stat_item.gd" id="1_ga441"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="1_pixaa"]
+[ext_resource type="FontFile" uid="uid://85kln1sh8dbv" path="res://UI/Fonts/Montserrat-Bold.ttf" id="2_ga441"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j8hbg"]
+bg_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+corner_radius_top_left = 8
+corner_radius_bottom_left = 8
+expand_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grogm"]
+bg_color = Color(0.15294118, 0.17254902, 0.19607843, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 3.0
+expand_margin_top = 1.0
+expand_margin_bottom = 1.0
+
+[node name="MenuStatItem" type="HBoxContainer"]
+offset_right = 76.0
+offset_bottom = 66.0
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+script = ExtResource("1_ga441")
+
+[node name="Panel" type="Panel" parent="."]
+custom_minimum_size = Vector2(6, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_j8hbg")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_grogm")
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("1_pixaa")
+text = "TITLE"
+
+[node name="Value" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+theme_override_fonts/font = ExtResource("2_ga441")
+text = "300"
+
+[node name="Control" type="Control" parent="PanelContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2

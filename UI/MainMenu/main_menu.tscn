@@ -1,84 +1,411 @@
-[gd_scene load_steps=2 format=3 uid="uid://dgyd437dgyv0y"]
+[gd_scene load_steps=22 format=3 uid="uid://dgyd437dgyv0y"]
 
-[ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="1_jld46"]
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1"]
+[ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="2_2d5va"]
+[ext_resource type="Texture2D" uid="uid://w55ctbj16lbs" path="res://OSG_Logo.svg" id="3_bddxb"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="4_lnp6m"]
+[ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="5_bddxb"]
+[ext_resource type="Script" uid="uid://dhb4kbk5ts21e" path="res://UI/Components/animation_component.gd" id="8_6e3uo"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="9_2d5va"]
+[ext_resource type="Texture2D" uid="uid://ccuus4s6dakb7" path="res://Resources/Icons/diversity.png" id="10_2d5va"]
+[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="12_6e3uo"]
+[ext_resource type="Texture2D" uid="uid://ch5wl6dvgnn71" path="res://Resources/Icons/visibility.png" id="13_6e3uo"]
+[ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="14_8h8a5"]
+[ext_resource type="StyleBox" uid="uid://bqgcqpmhw7fu2" path="res://UI/MainMenu/main_menu.tres" id="14_xron6"]
+[ext_resource type="PackedScene" uid="uid://cmpqqkaykk2ow" path="res://UI/MainMenu/Modals/add_player_modal.tscn" id="15_dwn5o"]
+[ext_resource type="PackedScene" uid="uid://gydagppbidtg" path="res://UI/MainMenu/Modals/guest_player_modal.tscn" id="17_4kjws"]
+[ext_resource type="PackedScene" uid="uid://dboj7yjg6tnuw" path="res://UI/MainMenu/Modals/saved_player_modal.tscn" id="18_myei6"]
 
-[node name="Main Menu" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dwn5o"]
+bg_color = Color(0.32944736, 0.6842203, 0.9395439, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bddxb"]
+bg_color = Color(0.9019608, 0.49411765, 0.13333334, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lnp6m"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_euymq"]
+bg_color = Color(0.004019165, 0.004019165, 0.004019165, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="MainMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_jld46")
+theme = ExtResource("1")
+script = ExtResource("2_2d5va")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("5_bddxb")
+expand_mode = 5
+stretch_mode = 5
+metadata/_edit_lock_ = true
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer2" type="MarginContainer" parent="HBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="Sidebar" type="PanelContainer" parent="HBoxContainer/MarginContainer2"]
+z_index = 100
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/MarginContainer2/Sidebar"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleContainer" type="VBoxContainer" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="OpenLabel" type="Label" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/HBoxContainer/TitleContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_lnp6m")
+theme_override_font_sizes/font_size = 32
+text = "OPEN"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShotLabel" type="Label" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/HBoxContainer/TitleContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+theme_override_fonts/font = ExtResource("4_lnp6m")
+theme_override_font_sizes/font_size = 32
+text = "SHOT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GolfLabel" type="Label" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/HBoxContainer/TitleContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_lnp6m")
+theme_override_font_sizes/font_size = 32
+text = "GOLF"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+texture = ExtResource("3_bddxb")
+expand_mode = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="RangeBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+theme_override_font_sizes/font_size = 24
+text = "Driving Range"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/RangeBtn"]
+script = ExtResource("8_6e3uo")
+fade_animation = true
+
+[node name="CourseBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+theme_override_font_sizes/font_size = 24
+text = "Custom Courses"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/CourseBtn"]
+script = ExtResource("8_6e3uo")
+fade_animation = true
+
+[node name="SettingsBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+theme_override_font_sizes/font_size = 24
+text = "Settings"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/SettingsBtn"]
+script = ExtResource("8_6e3uo")
+fade_animation = true
+
+[node name="ExitBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+theme_override_colors/font_color = Color(0.9059, 0.298, 0.2353, 1)
+theme_override_colors/font_hover_color = Color(0.9592977, 0.45512462, 0.3885198, 1)
+theme_override_font_sizes/font_size = 24
+text = "Exit"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/ExitBtn"]
+script = ExtResource("8_6e3uo")
+fade_animation = true
+
+[node name="MainContent" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AnimationComponenta" type="Node" parent="HBoxContainer/MainContent"]
+script = ExtResource("8_6e3uo")
+fade_animation = true
+
+[node name="LobbyWidget" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -228.0
+offset_top = 40.0
+offset_right = -37.0
+offset_bottom = 231.0
+grow_horizontal = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="LobbyWidget"]
+layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="LobbyWidget/MarginContainer"]
 layout_mode = 2
-alignment = 1
+theme_override_constants/separation = 12
 
-[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="Header" type="HBoxContainer" parent="LobbyWidget/MarginContainer/VBoxContainer"]
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.5
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="LobbyWidget/MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-size_flags_vertical = 1
-size_flags_stretch_ratio = 0.0
-theme_override_font_sizes/font_size = 100
-text = "Open Shot Golf"
+theme_override_fonts/font = ExtResource("9_2d5va")
+theme_override_font_sizes/font_size = 12
+text = "ACTIVE SESSION"
+
+[node name="Control" type="Control" parent="LobbyWidget/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TextureRect" type="TextureRect" parent="LobbyWidget/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+texture = ExtResource("10_2d5va")
+expand_mode = 2
+
+[node name="PlayersContainer" type="VBoxContainer" parent="LobbyWidget/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Player1" type="HBoxContainer" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer"]
+layout_mode = 2
+
+[node name="Avatar" type="PanelContainer" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+theme_type_variation = &"Avatar"
+
+[node name="Label" type="Label" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1/Avatar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "P1"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="Name" type="Label" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.5
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("12_6e3uo")
+theme_override_font_sizes/font_size = 12
+text = "Tiger W."
 
-[node name="Range" type="Button" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 0)
+[node name="Control" type="Control" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Range"
 
-[node name="Courses" type="Button" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 0)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Courses"
-
-[node name="Settings" type="Button" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 0)
+[node name="ViewProfileBtn" type="Button" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Settings"
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.5804, 0.6392, 0.7176, 1)
+theme_override_constants/icon_max_width = 16
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = ExtResource("14_xron6")
+theme_override_styles/hover = SubResource("StyleBoxFlat_dwn5o")
+icon = ExtResource("13_6e3uo")
+icon_alignment = 1
 
-[node name="Exit" type="Button" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 0)
+[node name="DeleteBtn" type="Button" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.9059, 0.298, 0.2353, 1)
+theme_override_colors/icon_normal_color = Color(0.88235295, 0.29411766, 0.23529412, 1)
+theme_override_colors/icon_hover_color = Color(0.6180611, 0.188681, 0.14525244, 1)
+theme_override_constants/icon_max_width = 16
+theme_override_font_sizes/font_size = 12
+icon = ExtResource("14_8h8a5")
+flat = true
+icon_alignment = 1
+
+[node name="Player2" type="HBoxContainer" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer"]
+layout_mode = 2
+
+[node name="Avatar" type="PanelContainer" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bddxb")
+
+[node name="Label" type="Label" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player2/Avatar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "P2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("12_6e3uo")
+theme_override_font_sizes/font_size = 12
+text = "Guest"
+
+[node name="ViewProfileBtn" type="Button" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Exit"
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.5804, 0.6392, 0.7176, 1)
+theme_override_constants/icon_max_width = 16
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = ExtResource("14_xron6")
+theme_override_styles/hover = SubResource("StyleBoxFlat_dwn5o")
+icon = ExtResource("13_6e3uo")
+icon_alignment = 1
 
-[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="DeleteBtn2" type="Button" parent="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.5
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.9059, 0.298, 0.2353, 1)
+theme_override_colors/icon_normal_color = Color(0.88235295, 0.29411766, 0.23529412, 1)
+theme_override_colors/icon_hover_color = Color(0.6180611, 0.188681, 0.14525244, 1)
+theme_override_constants/icon_max_width = 16
+theme_override_font_sizes/font_size = 12
+icon = ExtResource("14_8h8a5")
+flat = true
+icon_alignment = 1
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Range" to="." method="_on_range_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Courses" to="." method="_on_courses_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Settings" to="." method="_on_settings_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Exit" to="." method="_on_exit_pressed"]
+[node name="AddPlayerBtn" type="Button" parent="LobbyWidget/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme = ExtResource("1")
+theme_type_variation = &"OutlineButton"
+theme_override_styles/normal = SubResource("StyleBoxFlat_lnp6m")
+theme_override_styles/hover = SubResource("StyleBoxFlat_euymq")
+text = "+ Add Player"
+
+[node name="AddPlayerModal" parent="." instance=ExtResource("15_dwn5o")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+
+[node name="GuestPlayerModal" parent="." instance=ExtResource("17_4kjws")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+
+[node name="SavedPlayerModal" parent="." instance=ExtResource("18_myei6")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+
+[connection signal="pressed" from="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/RangeBtn" to="." method="_on_range_pressed"]
+[connection signal="pressed" from="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/CourseBtn" to="." method="_on_courses_pressed"]
+[connection signal="pressed" from="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/SettingsBtn" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer/ExitBtn" to="." method="_on_exit_pressed"]
+[connection signal="pressed" from="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player1/ViewProfileBtn" to="." method="_on_view_profile_btn_pressed"]
+[connection signal="pressed" from="LobbyWidget/MarginContainer/VBoxContainer/PlayersContainer/Player2/ViewProfileBtn" to="." method="_on_view_profile_btn_pressed"]
+[connection signal="pressed" from="LobbyWidget/MarginContainer/VBoxContainer/AddPlayerBtn" to="." method="_on_add_player_btn_pressed"]
