@@ -41,30 +41,12 @@ static func get_dynamic_air_viscosity(temp: float) -> float:
 	return DYN_VISCOSITY_ZERO_DEGREE * pow((tempK / KELVIN_CELCIUS), 1.5) * (KELVIN_CELCIUS + SUTHERLAND_CONSTANT) / (tempK + SUTHERLAND_CONSTANT)
 
 static func get_Cd(Re: float) -> float:
-	# Piecewise interpolation based on World Journal of Mechanics 2018 (Jenkins et al.)
-	# Commercial balls: Cd ≈ 0.275 ± 0.022 for Re > 8e4, larger at low Re with a drop around 60–70k.
-	var cd_points := [
-		Vector2(30000.0, 0.45),
-		Vector2(50000.0, 0.38),
-		Vector2(70000.0, 0.30),
-		Vector2(90000.0, 0.275),
-		Vector2(130000.0, 0.29),
-		Vector2(200000.0, 0.30)
-	]
-	
-	if Re <= cd_points[0].x:
-		return cd_points[0].y
-	if Re >= cd_points[cd_points.size() - 1].x:
-		return cd_points[cd_points.size() - 1].y
-	
-	for i in range(cd_points.size() - 1):
-		var a = cd_points[i]
-		var b = cd_points[i + 1]
-		if Re >= a.x and Re <= b.x:
-			var t: float = (Re - a.x) / (b.x - a.x)
-			return lerpf(a.y, b.y, t)
-	
-	return cd_points[cd_points.size() - 1].y
+	if Re < 50000.0:
+		return 0.5
+	if Re > 200000.0:
+		return 0.2
+		
+	return 1.1948 - 0.0000209661*Re + 1.42472e-10*Re*Re - 3.14383e-16*Re*Re*Re
 
 static func get_Cl(Re: float, S: float) -> float:
 	# Low and high S

@@ -25,7 +25,10 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 	
 	if units == Enums.Units.IMPERIAL:
 		ball_data["Distance"] = str(int(player.get_distance()*m2yd))
-		ball_data["Carry"] = str(int(player.carry*m2yd))
+		var carry_val = player.carry
+		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
+			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float / 1.0 # raw is assumed yards
+		ball_data["Carry"] = str(int(carry_val*m2yd if not raw_ball_data.has("CarryDistance") else carry_val))
 		ball_data["Apex"] = str(int(player.apex*3.28084))
 		var offline = int(player.get_offline()*m2yd)
 		var offline_text := "R"
@@ -36,7 +39,10 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 		ball_data["Speed"] = "%3.1f" % raw_ball_data.get("Speed", 0.0)
 	else:
 		ball_data["Distance"] = str(player.get_distance())
-		ball_data["Carry"] = str(int(player.carry))
+		var carry_val = player.carry
+		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
+			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float
+		ball_data["Carry"] = str(int(carry_val))
 		ball_data["Apex"] = str(int(player.apex))
 		var offline = player.get_offline()
 		var offline_text := "R"
