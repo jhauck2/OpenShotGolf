@@ -12,16 +12,24 @@ func _process(_delta: float) -> void:
 
 
 func _on_range_pressed() -> void:
-	SceneManager.change_scene("res://Courses/Range/range.tscn")
+	SceneManager.change_scene("res://UI/MainMenu/Screens/range_mode_screen.tscn")
 
 
 func _on_courses_pressed() -> void:
-	SceneManager.change_scene("res://Courses/CourseSelector/course_selector.tscn")
+	SceneManager.change_scene("res://UI/MainMenu/Screens/course_select_screen.tscn")
 
 
 func _on_settings_pressed() -> void:
-	pass # Replace with function body.
+	SceneManager.change_scene("res://UI/MainMenu/Screens/settings_screen.tscn")
 
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
+
+
+func _on_view_profile_btn_pressed() -> void:
+	SceneManager.change_scene("res://UI/MainMenu/Screens/profile_screen.tscn")
+
+
+func _on_add_player_btn_pressed() -> void:
+	%AddPlayerModal.visible = not %AddPlayerModal.visible

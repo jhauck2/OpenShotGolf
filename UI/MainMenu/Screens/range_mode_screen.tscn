@@ -1,0 +1,333 @@
+[gd_scene load_steps=18 format=3 uid="uid://bsxpwx2jrjwx0"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_4v0hw"]
+[ext_resource type="Script" uid="uid://dviu8chqwqkf4" path="res://UI/MainMenu/Screens/range_mode_screen.gd" id="2_ekfrn"]
+[ext_resource type="Texture2D" uid="uid://cjp6n2vdsmhqj" path="res://UI/MainMenu/Screens/range.jpg" id="4_gjee7"]
+[ext_resource type="Texture2D" uid="uid://cf7wo8qtk1v3h" path="res://Resources/Icons/infinity.png" id="5_0vevp"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="6_3dml3"]
+[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="7_vdb42"]
+[ext_resource type="Texture2D" uid="uid://r32jtf30t8eg" path="res://UI/MainMenu/Screens/balls.jpg" id="8_4lejn"]
+[ext_resource type="Texture2D" uid="uid://wjk5p6e1xx4t" path="res://Resources/Icons/target.png" id="9_i1r67"]
+[ext_resource type="Texture2D" uid="uid://lt2ya7hqslq7" path="res://UI/MainMenu/Screens/clubs.jpg" id="10_yxog8"]
+[ext_resource type="Texture2D" uid="uid://h3nxf5a37a2d" path="res://Resources/Icons/waterfall_chart.png" id="11_1c8qi"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="12_gjee7"]
+[ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="13_gjee7"]
+[ext_resource type="Script" uid="uid://dhb4kbk5ts21e" path="res://UI/Components/animation_component.gd" id="14_s8n0j"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ekfrn"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0u814"]
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+bg_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[node name="RangeModeScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("2_ekfrn")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("13_gjee7")
+expand_mode = 5
+stretch_mode = 5
+metadata/_edit_lock_ = true
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_top = 40
+metadata/_edit_lock_ = true
+
+[node name="Title" type="Label" parent="VBoxContainer/MarginContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_4v0hw")
+theme_override_font_sizes/font_size = 40
+text = "SELECT PRACTICE MODE"
+horizontal_alignment = 1
+
+[node name="CenterContainer" type="CenterContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ModeContainer" type="HBoxContainer" parent="VBoxContainer/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="FreeRangeCard" type="PanelContainer" parent="VBoxContainer/CenterContainer/ModeContainer"]
+custom_minimum_size = Vector2(300, 450)
+layout_mode = 2
+
+[node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_ekfrn")
+flat = true
+
+[node name="AnimationComponent" type="Node" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button"]
+script = ExtResource("14_s8n0j")
+scale_animation = false
+fade_animation = true
+position_animation = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button"]
+layout_mode = 0
+offset_right = 298.0
+offset_bottom = 470.0
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+texture = ExtResource("4_gjee7")
+expand_mode = 5
+
+[node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer/TextureRect"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -52.0
+offset_top = 14.0
+offset_right = -10.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_colors/icon_disabled_color = Color(1, 1, 1, 1)
+theme_override_constants/icon_max_width = 24
+theme_override_styles/disabled = SubResource("StyleBoxFlat_0u814")
+disabled = true
+icon = ExtResource("5_0vevp")
+icon_alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 30
+
+[node name="Content" type="VBoxContainer" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="Control" type="Control" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer/MarginContainer/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer/MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_3dml3")
+theme_override_font_sizes/font_size = 24
+text = "Free Range"
+
+[node name="Description" type="Label" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button/VBoxContainer/MarginContainer/Content"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("7_vdb42")
+text = "Standard driving range. Hit balls freely with complete flight data analysis."
+autowrap_mode = 3
+
+[node name="TargetPracticeCard" type="PanelContainer" parent="VBoxContainer/CenterContainer/ModeContainer"]
+custom_minimum_size = Vector2(300, 450)
+layout_mode = 2
+
+[node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_ekfrn")
+flat = true
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button"]
+layout_mode = 0
+offset_right = 298.0
+offset_bottom = 470.0
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2"]
+layout_mode = 2
+size_flags_vertical = 3
+texture = ExtResource("8_4lejn")
+expand_mode = 5
+
+[node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2/TextureRect"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -52.0
+offset_top = 14.0
+offset_right = -10.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_colors/icon_disabled_color = Color(1, 1, 1, 1)
+theme_override_constants/icon_max_width = 24
+theme_override_styles/disabled = SubResource("StyleBoxFlat_0u814")
+disabled = true
+icon = ExtResource("9_i1r67")
+icon_alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 30
+
+[node name="Content" type="VBoxContainer" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="Control" type="Control" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2/MarginContainer/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2/MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_3dml3")
+theme_override_font_sizes/font_size = 24
+text = "Target Practice"
+
+[node name="Description" type="Label" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button/VBoxContainer2/MarginContainer/Content"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("7_vdb42")
+text = "Score points by hitting specific targets at varying distances. Great for accuracy."
+autowrap_mode = 3
+
+[node name="AnimationComponenta" type="Node" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button"]
+script = ExtResource("14_s8n0j")
+scale_animation = false
+fade_animation = true
+position_animation = true
+
+[node name="ClubFittingCard" type="PanelContainer" parent="VBoxContainer/CenterContainer/ModeContainer"]
+custom_minimum_size = Vector2(300, 450)
+layout_mode = 2
+
+[node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_ekfrn")
+flat = true
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button"]
+layout_mode = 0
+offset_right = 298.0
+offset_bottom = 470.0
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2"]
+layout_mode = 2
+size_flags_vertical = 3
+texture = ExtResource("10_yxog8")
+expand_mode = 5
+
+[node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2/TextureRect"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -52.0
+offset_top = 14.0
+offset_right = -10.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_colors/icon_disabled_color = Color(1, 1, 1, 1)
+theme_override_constants/icon_max_width = 24
+theme_override_styles/disabled = SubResource("StyleBoxFlat_0u814")
+disabled = true
+icon = ExtResource("11_1c8qi")
+icon_alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 30
+
+[node name="Content" type="VBoxContainer" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="Control" type="Control" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2/MarginContainer/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2/MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_3dml3")
+theme_override_font_sizes/font_size = 24
+text = "Club Fitting"
+
+[node name="Description" type="Label" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button/VBoxContainer2/MarginContainer/Content"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("7_vdb42")
+text = "Compare different clubs and analyze dispersion circles and carry gaps."
+autowrap_mode = 3
+
+[node name="AnimationComponent" type="Node" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button"]
+script = ExtResource("14_s8n0j")
+scale_animation = false
+fade_animation = true
+position_animation = true
+
+[node name="Control" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -60.0
+offset_right = 140.0
+offset_bottom = -20.0
+grow_vertical = 2
+theme_type_variation = &"BackBtn"
+theme_override_fonts/font = ExtResource("12_gjee7")
+text = "Back"
+
+[connection signal="pressed" from="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button" to="." method="_on_free_practice_pressed"]
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

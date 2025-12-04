@@ -1,0 +1,262 @@
+[gd_scene load_steps=9 format=3 uid="uid://c6sy1h7h6e07r"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="Script" uid="uid://csmvu68e2ttjm" path="res://UI/MainMenu/Screens/settings_screen.gd" id="2_0t22m"]
+[ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="2_1jas8"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="5_6bu0p"]
+[ext_resource type="Script" uid="uid://dhb4kbk5ts21e" path="res://UI/Components/animation_component.gd" id="5_uprso"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uprso"]
+bg_color = Color(0.6, 0.6, 0.6, 0.20784314)
+
+[node name="SettingsScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("2_0t22m")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_1jas8")
+expand_mode = 5
+stretch_mode = 5
+metadata/_edit_lock_ = true
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="SettingsNav" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="GraphicsTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+text = "Graphics"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav/GraphicsTab"]
+script = ExtResource("5_uprso")
+fade_animation = true
+
+[node name="AudioTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+text = "Audio"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav/AudioTab"]
+script = ExtResource("5_uprso")
+fade_animation = true
+
+[node name="GameplayTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+text = "Gameplay / Physics"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav/GameplayTab"]
+script = ExtResource("5_uprso")
+fade_animation = true
+
+[node name="InputTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
+layout_mode = 2
+theme_type_variation = &"NavBtn"
+text = "Input / Sensor"
+alignment = 0
+
+[node name="AnimationComponenta" type="Node" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav/InputTab"]
+script = ExtResource("5_uprso")
+fade_animation = true
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SettingsContent" type="ScrollContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 30
+
+[node name="VisualFidelity" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("5_6bu0p")
+theme_override_font_sizes/font_size = 24
+text = "VISUAL FIDELITY"
+
+[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_uprso")
+
+[node name="ResolutionRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/ResolutionRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "Resolution"
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/ResolutionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Select" type="OptionButton" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/ResolutionRow"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+item_count = 2
+popup/item_0/text = "3840 x 2160 (4K)"
+popup/item_0/id = 0
+popup/item_1/text = "1920 x 1080"
+popup/item_1/id = 1
+
+[node name="RenderRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/RenderRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "Render Scale"
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/RenderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Slider" type="HSlider" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/RenderRow"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+min_value = 50.0
+value = 100.0
+
+[node name="VsyncRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/VsyncRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "VSync"
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/VsyncRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Toggle" type="CheckButton" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/VisualFidelity/VsyncRow"]
+layout_mode = 2
+
+[node name="Environment" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("5_6bu0p")
+theme_override_font_sizes/font_size = 24
+text = "Environment"
+uppercase = true
+
+[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_uprso")
+
+[node name="GrassRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment/GrassRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "Grass Density"
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment/GrassRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Select" type="OptionButton" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment/GrassRow"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+item_count = 3
+popup/item_0/text = "Ultra"
+popup/item_0/id = 0
+popup/item_1/text = "High"
+popup/item_1/id = 1
+popup/item_2/text = "Medium"
+popup/item_2/id = 2
+
+[node name="CloudsRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment/CloudsRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "Volumetric Clouds"
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment/CloudsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Toggle" type="CheckButton" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/MarginContainer/SettingsContent/VBoxContainer/Environment/CloudsRow"]
+layout_mode = 2
+button_pressed = true
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"BackBtn"
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "Back"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
