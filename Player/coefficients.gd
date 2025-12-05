@@ -67,7 +67,7 @@ static func get_Cl(Re: float, S: float) -> float:
 		return .203 
 		
 	# Calculations (fixed interpolation with equality handled)
-	var Re_values: Array[float] = [50000.0, 60000.0, 65000.0, 70000.0, 75000.0]
+	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
 	var Re_high_index: int = Re_values.size() - 1
 	for val in Re_values:
 		if Re <= val:
@@ -80,8 +80,8 @@ static func get_Cl(Re: float, S: float) -> float:
 	# Get lower and upper bounds on Cl based on Re bounds and S
 	var Cl_low = ClCallables[Re_low_index].call(S)
 	var Cl_high = ClCallables[Re_high_index].call(S)
-	var Re_low = Re_values[Re_low_index]
-	var Re_high = Re_values[Re_high_index]
+	var Re_low: float = Re_values[Re_low_index]
+	var Re_high: float = Re_values[Re_high_index]
 	var weight : float = 0.0
 	if Re_high != Re_low:
 		weight = (Re - Re_low)/(Re_high - Re_low)
