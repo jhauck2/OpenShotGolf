@@ -1,0 +1,188 @@
+[gd_scene load_steps=11 format=3 uid="uid://ctpcr7sngirt7"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_ohb30"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="3_wsvvq"]
+[ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="4_spxwm"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="4_wsvvq"]
+[ext_resource type="Script" path="res://UI/Components/modal_controller.gd" id="6_modal"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spxwm"]
+bg_color = Color(0.84705883, 0.25490198, 0.19607843, 1)
+corner_radius_top_left = 8
+corner_radius_bottom_left = 8
+expand_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wru27"]
+bg_color = Color(0.16862746, 0.12156863, 0.13725491, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 3.0
+expand_margin_top = 1.0
+expand_margin_bottom = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t0iup"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.84571177, 0.2548087, 0.19730419, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xu62n"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.90911806, 0.3022673, 0.2379336, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[node name="DeleteConfirmModal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("6_modal")
+close_button_paths = [NodePath("ModalContent2/MarginContainer/CloseBtn"), NodePath("ModalContent2/MarginContainer/VBoxContainer/HBoxContainer/ConfirmBtn"), NodePath("ModalContent2/MarginContainer/VBoxContainer/HBoxContainer/ConfirmBtn2")]
+
+[node name="ModalContent2" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 162.0
+offset_bottom = 182.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ModalContent2"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ModalContent2/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.90588236, 0.29803923, 0.23529412, 1)
+theme_override_fonts/font = ExtResource("2_ohb30")
+theme_override_font_sizes/font_size = 32
+text = "Delete player"
+uppercase = true
+
+[node name="Control" type="Control" parent="ModalContent2/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InputGroup" type="VBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/InputGroup"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("3_wsvvq")
+theme_override_font_sizes/font_size = 16
+text = "Player Name"
+
+[node name="Input" type="LineEdit" parent="ModalContent2/MarginContainer/VBoxContainer/InputGroup"]
+layout_mode = 2
+placeholder_text = "Enter new player name"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Panel" type="Panel" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2"]
+custom_minimum_size = Vector2(6, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_spxwm")
+
+[node name="PanelContainer" type="PanelContainer" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_wru27")
+
+[node name="MarginContainer" type="MarginContainer" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 13
+
+[node name="Title" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_wsvvq")
+text = "Are you sure you want to delete this player?"
+autowrap_mode = 3
+
+[node name="Value" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5764706, 0.63529414, 0.7176471, 1)
+theme_override_fonts/font = ExtResource("3_wsvvq")
+text = "Player: Tiger Woods"
+
+[node name="Value3" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5764706, 0.63529414, 0.7176471, 1)
+theme_override_fonts/font = ExtResource("3_wsvvq")
+text = "This action cannot be undone. All player stats and history will be permanently removed."
+autowrap_mode = 3
+
+[node name="Control" type="Control" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer2/PanelContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ConfirmBtn" type="Button" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"OutlineButton"
+text = "CANCEL"
+
+[node name="ConfirmBtn2" type="Button" parent="ModalContent2/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PrimaryButton"
+theme_override_styles/normal = SubResource("StyleBoxFlat_t0iup")
+theme_override_styles/hover = SubResource("StyleBoxFlat_xu62n")
+text = "DELETE"
+
+[node name="CloseBtn" type="Button" parent="ModalContent2/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_type_variation = &"FlatButton"
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_colors/icon_hover_color = Color(0.42365062, 0.42365065, 0.42365062, 1)
+icon = ExtResource("4_spxwm")
+flat = true
+icon_alignment = 1

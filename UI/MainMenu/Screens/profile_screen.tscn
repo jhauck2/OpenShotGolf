@@ -1,0 +1,299 @@
+[gd_scene load_steps=17 format=3 uid="uid://p8yts6slbkut"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="Script" uid="uid://cmhlncl54b73n" path="res://UI/MainMenu/Screens/profile_screen.gd" id="2_dxdpw"]
+[ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="2_euu7i"]
+[ext_resource type="Texture2D" uid="uid://bnow80shojrjt" path="res://Resources/Icons/person.png" id="5_fm1de"]
+[ext_resource type="Texture2D" uid="uid://yaws51ysqjk6" path="res://Resources/Icons/edit.png" id="6_56t8c"]
+[ext_resource type="FontFile" uid="uid://85kln1sh8dbv" path="res://UI/Fonts/Montserrat-Bold.ttf" id="7_qpt42"]
+[ext_resource type="PackedScene" uid="uid://dving2psh4yv1" path="res://UI/Components/MenuStatItem/menu_stat_item.tscn" id="7_xc2yi"]
+[ext_resource type="Texture2D" uid="uid://x046rmfpjy6u" path="res://Resources/Icons/delete.png" id="8_qpt42"]
+[ext_resource type="Texture2D" uid="uid://h3nxf5a37a2d" path="res://Resources/Icons/waterfall_chart.png" id="10_1eaxn"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="12_2wrao"]
+[ext_resource type="PackedScene" uid="uid://ko6gpp72viw1" path="res://UI/Components/MenuHistoricItem/menu_historic_item.tscn" id="12_8cr4h"]
+[ext_resource type="PackedScene" uid="uid://ceysi83q7j7r1" path="res://UI/MainMenu/Modals/rename_modal.tscn" id="14_dxdpw"]
+[ext_resource type="PackedScene" uid="uid://ctpcr7sngirt7" path="res://UI/MainMenu/Modals/delete_confirm_modal.tscn" id="15_7bs7b"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3sr2n"]
+content_margin_bottom = 17.0
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.10980392)
+
+[node name="ProfileScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("2_dxdpw")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_euu7i")
+expand_mode = 5
+stretch_mode = 5
+metadata/_edit_lock_ = true
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="ProfileHeader" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader"]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="Avatar" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/Avatar"]
+layout_mode = 2
+texture = ExtResource("5_fm1de")
+expand_mode = 3
+stretch_mode = 3
+
+[node name="ProfileInfo" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 15
+
+[node name="NameSection" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/NameSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "Tiger Woods"
+
+[node name="EditBtn" type="Button" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/NameSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_colors/icon_hover_color = Color(0.20392157, 0.6, 0.8627451, 1)
+theme_override_constants/icon_max_width = 32
+icon = ExtResource("6_56t8c")
+flat = true
+icon_alignment = 1
+
+[node name="Status" type="Label" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 20
+text = "Professional"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo"]
+layout_mode = 2
+
+[node name="Stats" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 15
+columns = 3
+
+[node name="MenuStatItem" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Stats" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "Handicap"
+value = "+2"
+
+[node name="MenuStatItem2" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Stats" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "Total Rounds"
+value = "247"
+
+[node name="MenuStatItem3" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Stats" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "Avg Score"
+value = "68.5"
+
+[node name="Control" type="Control" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Actions" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer"]
+layout_mode = 2
+
+[node name="StatsBtn" type="Button" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Actions"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"PrimaryButton"
+theme_override_fonts/font = ExtResource("7_qpt42")
+theme_override_font_sizes/font_size = 18
+text = "Stats"
+icon = ExtResource("10_1eaxn")
+
+[node name="DeleteBtn" type="Button" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Actions"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_colors/icon_normal_color = Color(0.90588236, 0.29803923, 0.23529412, 1)
+theme_override_colors/icon_hover_color = Color(0.78703684, 0.22449592, 0.17148629, 1)
+icon = ExtResource("8_qpt42")
+flat = true
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ProfileContent" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="RecentRounds" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/RecentRounds"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("12_2wrao")
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_3sr2n")
+text = "RECENT ROUNDS"
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/RecentRounds"]
+layout_mode = 2
+theme_override_constants/margin_top = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/RecentRounds/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MenuHistoricItem2" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/RecentRounds/MarginContainer/VBoxContainer" instance=ExtResource("12_8cr4h")]
+layout_mode = 2
+title = "Pebble Beach - 18 Holes"
+value = "67"
+date = "Dec 1, 2025"
+
+[node name="MenuHistoricItem" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/RecentRounds/MarginContainer/VBoxContainer" instance=ExtResource("12_8cr4h")]
+layout_mode = 2
+title = "Augusta National - 18 Holes"
+value = "72"
+date = "Nov 28, 2025"
+
+[node name="MenuHistoricItem3" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/RecentRounds/MarginContainer/VBoxContainer" instance=ExtResource("12_8cr4h")]
+layout_mode = 2
+title = "St Andrews - 18 Holes"
+value = "67"
+date = "Sep 1, 2025"
+
+[node name="CareerStats" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("12_2wrao")
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_3sr2n")
+text = "CAREER STATS"
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats"]
+layout_mode = 2
+theme_override_constants/margin_top = 10
+
+[node name="Grid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats/MarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 15
+theme_override_constants/v_separation = 15
+columns = 2
+
+[node name="MenuStatItem2" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats/MarginContainer/Grid" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "Longest Drive"
+value = "352 yd"
+
+[node name="MenuStatItem" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats/MarginContainer/Grid" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "Best 9-Hole"
+value = "31"
+
+[node name="MenuStatItem3" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats/MarginContainer/Grid" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "GIR %"
+value = "78%"
+
+[node name="MenuStatItem4" parent="Panel/MarginContainer/VBoxContainer/ScrollContainer/ProfileContent/MarginContainer/VBoxContainer/CareerStats/MarginContainer/Grid" instance=ExtResource("7_xc2yi")]
+layout_mode = 2
+title = "Eagles"
+value = "12"
+
+[node name="BackButton" type="Button" parent="Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "Back"
+
+[node name="RenameModal" parent="." instance=ExtResource("14_dxdpw")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -824.0
+offset_right = 824.0
+
+[node name="DeleteConfirmModal" parent="." instance=ExtResource("15_7bs7b")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/NameSection/EditBtn" to="." method="_on_edit_btn_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Actions/StatsBtn" to="." method="_on_stats_btn_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Actions/DeleteBtn" to="." method="_on_delete_btn_pressed"]
+[connection signal="pressed" from="Panel/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

@@ -1,0 +1,429 @@
+[gd_scene load_steps=14 format=3 uid="uid://bghx47e4485tl"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="2_b7vy4"]
+[ext_resource type="Script" uid="uid://crclmf8owujc6" path="res://UI/MainMenu/Screens/course_select_screen.gd" id="2_qppm0"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="3_b7vy4"]
+[ext_resource type="Script" uid="uid://dhb4kbk5ts21e" path="res://UI/Components/animation_component.gd" id="4"]
+[ext_resource type="Texture2D" uid="uid://dn1bx841sdnjc" path="res://Resources/Icons/folder_open.png" id="6_joqlw"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="8_dssov"]
+[ext_resource type="Texture2D" uid="uid://ccuus4s6dakb7" path="res://Resources/Icons/diversity.png" id="9_88mwb"]
+[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="11_hycso"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qppm0"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.9019608, 0.49411765, 0.13333334, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+corner_detail = 5
+
+[node name="CourseSelectScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("2_qppm0")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_b7vy4")
+expand_mode = 5
+stretch_mode = 5
+metadata/_edit_lock_ = true
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="CourseGridArea" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="MarginContainer/HBoxContainer/CourseGridArea"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_b7vy4")
+theme_override_font_sizes/font_size = 32
+text = "Select Course"
+uppercase = true
+
+[node name="FilterBar" type="HBoxContainer" parent="MarginContainer/HBoxContainer/CourseGridArea"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AllBtn" type="Button" parent="MarginContainer/HBoxContainer/CourseGridArea/FilterBar"]
+layout_mode = 2
+theme = ExtResource("1_t17p2")
+theme_type_variation = &"RoundedBtn"
+text = "All Courses"
+
+[node name="FavoritesBtn" type="Button" parent="MarginContainer/HBoxContainer/CourseGridArea/FilterBar"]
+layout_mode = 2
+theme_type_variation = &"RoundedBtn"
+text = "Favorites"
+
+[node name="UserBtn" type="Button" parent="MarginContainer/HBoxContainer/CourseGridArea/FilterBar"]
+layout_mode = 2
+theme_type_variation = &"RoundedBtn"
+text = "User Imported"
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/HBoxContainer/CourseGridArea"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 4
+
+[node name="PebbleBeachCard" type="PanelContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard"]
+layout_mode = 2
+
+[node name="Thumbnail" type="ColorRect" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Info" type="VBoxContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Name" type="Label" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer/MarginContainer/Info"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Pebble Beach"
+
+[node name="Meta" type="HBoxContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer/MarginContainer/Info"]
+layout_mode = 2
+
+[node name="Holes" type="Label" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer/MarginContainer/Info/Meta"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "18 Holes"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer/MarginContainer/Info/Meta"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Par" type="Label" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard/VBoxContainer/MarginContainer/Info/Meta"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Par 72"
+
+[node name="AnimationComponent" type="Node" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/PebbleBeachCard"]
+script = ExtResource("4")
+scale_animation = false
+position_animation = true
+hover_offset = Vector2(0, -10)
+
+[node name="Import Course" type="PanelContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer"]
+layout_mode = 2
+
+[node name="AnimationComponent" type="Node" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course"]
+script = ExtResource("4")
+scale_animation = false
+position_animation = true
+hover_offset = Vector2(0, -10)
+
+[node name="CenterContainer" type="CenterContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course/CenterContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course/CenterContainer/MarginContainer"]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course/CenterContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+texture = ExtResource("6_joqlw")
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course/CenterContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.46666667, 0.46666667, 0.46666667, 1)
+text = "Import Course"
+horizontal_alignment = 1
+
+[node name="MatchSetupPanel" type="PanelContainer" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="PlayersCard" type="PanelContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("8_dssov")
+theme_override_font_sizes/font_size = 12
+text = "ACTIVE Players"
+uppercase = true
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+texture = ExtResource("9_88mwb")
+expand_mode = 2
+
+[node name="PlayersContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Player1" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Avatar" type="PanelContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+theme_type_variation = &"Avatar"
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player1/Avatar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "P1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("11_hycso")
+theme_override_font_sizes/font_size = 12
+text = "Tiger W."
+
+[node name="Player2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Avatar" type="PanelContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+theme_type_variation = &"Avatar"
+theme_override_styles/panel = SubResource("StyleBoxFlat_qppm0")
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player2/Avatar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "P2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("11_hycso")
+theme_override_font_sizes/font_size = 12
+text = "Guest"
+
+[node name="SettingsSection" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("1_t17p2")
+
+[node name="Header" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5372549, 0.6313726, 0.72156864, 1)
+theme_override_font_sizes/font_size = 16
+text = "MATCH SETTINGS"
+
+[node name="TeeRow" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/TeeRow"]
+layout_mode = 2
+text = "Tees"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/TeeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Select" type="OptionButton" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/TeeRow"]
+layout_mode = 2
+item_count = 2
+popup/item_0/text = "Pro (Black)"
+popup/item_0/id = 0
+popup/item_1/text = "Amateur (White)"
+popup/item_1/id = 1
+
+[node name="PinRow" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/PinRow"]
+layout_mode = 2
+text = "Pin Position"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/PinRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Select" type="OptionButton" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/PinRow"]
+layout_mode = 2
+item_count = 3
+popup/item_0/text = "Day 1 (Easy)"
+popup/item_0/id = 0
+popup/item_1/text = "Day 4 (Hard)"
+popup/item_1/id = 1
+popup/item_2/text = "Random"
+popup/item_2/id = 2
+
+[node name="GimmeRow" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/GimmeRow"]
+layout_mode = 2
+text = "Gimme Range"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/GimmeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Select" type="OptionButton" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/SettingsSection/GimmeRow"]
+layout_mode = 2
+item_count = 3
+popup/item_0/text = "3 ft"
+popup/item_0/id = 0
+popup/item_1/text = "6 ft"
+popup/item_1/id = 1
+popup/item_2/text = "No Gimmes"
+popup/item_2/id = 2
+
+[node name="ConditionsSection" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Header" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4862745, 0.57254905, 0.654902, 1)
+theme_override_font_sizes/font_size = 16
+text = "CONDITIONS"
+
+[node name="WindRow" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection/WindRow"]
+layout_mode = 2
+text = "Wind"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection/WindRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Toggle" type="CheckButton" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection/WindRow"]
+layout_mode = 2
+button_pressed = true
+
+[node name="GreenRow" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection/GreenRow"]
+layout_mode = 2
+text = "Green Speed"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection/GreenRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SpeedLabel" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/ConditionsSection/GreenRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.20392157, 0.6, 0.8627451, 1)
+text = "11 (Fast)"
+
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TeeOffButton" type="Button" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Tee Off"
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -60.0
+offset_right = 140.0
+offset_bottom = -20.0
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+theme_type_variation = &"BackBtn"
+text = "Back"
+
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

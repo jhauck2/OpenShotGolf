@@ -1,0 +1,84 @@
+[gd_scene load_steps=6 format=3 uid="uid://gydagppbidtg"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_v3pf8"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="3_8wo5f"]
+[ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="4_xh2sq"]
+[ext_resource type="Script" path="res://UI/Components/modal_controller.gd" id="5_modal"]
+
+[node name="GuestPlayerModal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("5_modal")
+close_button_paths = [NodePath("ModalContent2/MarginContainer/CloseBtn"), NodePath("ModalContent2/MarginContainer/VBoxContainer/ConfirmBtn")]
+
+[node name="ModalContent2" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 300.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="ModalContent2"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ModalContent2/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_v3pf8")
+theme_override_font_sizes/font_size = 32
+text = "Create guest player"
+uppercase = true
+
+[node name="Control" type="Control" parent="ModalContent2/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InputGroup" type="VBoxContainer" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ModalContent2/MarginContainer/VBoxContainer/InputGroup"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("3_8wo5f")
+theme_override_font_sizes/font_size = 16
+text = "Player Name"
+
+[node name="Input" type="LineEdit" parent="ModalContent2/MarginContainer/VBoxContainer/InputGroup"]
+layout_mode = 2
+placeholder_text = "Enter new player name"
+
+[node name="ConfirmBtn" type="Button" parent="ModalContent2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "ADD GUEST PLAYER"
+
+[node name="CloseBtn" type="Button" parent="ModalContent2/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_type_variation = &"FlatButton"
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_colors/icon_hover_color = Color(0.42365062, 0.42365065, 0.42365062, 1)
+icon = ExtResource("4_xh2sq")
+flat = true
+icon_alignment = 1
