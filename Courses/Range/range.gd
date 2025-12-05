@@ -49,8 +49,12 @@ func _process(_delta: float) -> void:
 
 
 func _on_golf_ball_rest(_ball_data) -> void:
+	raw_ball_data = _ball_data.duplicate()
 	# Show final shot numbers immediately on rest
 	_update_ball_display()
+	# Show final total distance once ball is fully at rest. Good indicator ball stopped.
+	if display_data.has("Distance"):
+		$RangeUI.set_total_distance("Total Distance " + str(display_data["Distance"]))
 	
 	if GlobalSettings.range_settings.auto_ball_reset.value:
 		await get_tree().create_timer(GlobalSettings.range_settings.ball_reset_timer.value).timeout
@@ -67,6 +71,13 @@ func set_camera_follow_mode(value) -> void:
 		$PhantomCamera3D.follow_target = $Player/Ball
 	else:
 		$PhantomCamera3D.follow_mode = 0 # None
+
+
+func _on_range_ui_hit_shot(data: Dictionary) -> void:
+	# For local injected shots, prime the display immediately with the payload data.
+	raw_ball_data = data.duplicate()
+	_update_ball_display()
+	$RangeUI.clear_total_distance()
 
 
 func _apply_surface_to_ball() -> void:
@@ -93,6 +104,7 @@ func _reset_display_data() -> void:
 	display_data["SideSpin"] = "---"
 	display_data["TotalSpin"] = "---"
 	display_data["SpinAxis"] = "---"
+	$RangeUI.clear_total_distance()
 
 
 func _update_ball_display() -> void:

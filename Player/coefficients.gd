@@ -10,6 +10,7 @@ const UNIVERSAL_GAS_CONSTANT = 8.314462618 # Unit: [J/(mol*K)]
 const GAS_CONSTANT_DRY_AIR = 287.058 # Unit: [J/(kg*K)]
 const DYN_VISCOSITY_ZERO_DEGREE = 1.716e-05 # Unit: [kg/(m*s)]
 const SUTHERLAND_CONSTANT = 198.72 # Unit: [K] Source: https://www.grc.nasa.gov/www/BGH/viscosity.html
+const FEET_TO_METERS = 0.3048
 
 static func FtoC(temp: float) -> float:
 	return (temp - 32)* 5/9
@@ -19,7 +20,7 @@ static func get_air_density(altitude: float, temp: float) -> float:
 	var altitudeMeters : float
 	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
 		tempK = FtoC(temp) + KELVIN_CELCIUS
-		altitudeMeters = altitude * 0.3048
+		altitudeMeters = altitude * FEET_TO_METERS
 	else:
 		tempK = temp + KELVIN_CELCIUS
 		altitudeMeters = altitude
@@ -50,6 +51,7 @@ static func get_Cd(Re: float) -> float:
 
 static func get_Cl(Re: float, S: float) -> float:
 	# Low and high S
+
 	if S < 0.05:
 		return 0.05
 	if S > .35:
@@ -61,27 +63,36 @@ static func get_Cl(Re: float, S: float) -> float:
 	# Low and high Reynolds number
 	if Re < 50000:
 		return 0.1
-	if Re > 75000:
+	if Re >= 75000:
 		return .203 
 		
-	# Calculations
+	# Calculations (fixed interpolation with equality handled)
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
-	var Re_low_index := 0
-	var Re_high_index := 0
-	# Get bounding values for Reynolds number
+	var Re_high_index: int = Re_values.size() - 1
 	for val in Re_values:
-		if Re > val:
-			Re_low_index = Re_values.find(val)
-		if Re < val:
+		if Re <= val:
 			Re_high_index = Re_values.find(val)
 			break
+	var Re_low_index: int = max(Re_high_index - 1, 0)
 	
 	var ClCallables : Array[Callable] = [Re50kToCl, Re60kToCl, Re65kToCl, Re70kToCl, Re75kToCl]
 	
 	# Get lower and upper bounds on Cl based on Re bounds and S
 	var Cl_low = ClCallables[Re_low_index].call(S)
 	var Cl_high = ClCallables[Re_high_index].call(S)
-	var weight : float = (Re - Re_values[Re_low_index])/(Re_values[Re_high_index] - Re_values[Re_low_index])
+	var Re_low: float = Re_values[Re_low_index]
+	var Re_high: float = Re_values[Re_high_index]
+	var weight : float = 0.0
+	if Re_high != Re_low:
+		weight = (Re - Re_low)/(Re_high - Re_low)
+	
+	# Debug prints to catch the buggy path, only enable when debugging/testing Reynolds interpolation.
+	# if Re_high_index == 0 and Re > Re_values[0]:
+	# 	print("BUG_RE_INTERP: Re=", Re, "low_idx=", Re_low_index, "high_idx=", Re_high_index, "low=", Re_values[Re_low_index], "high=", Re_values[Re_high_index], "weight=", weight, "S=", S)
+	# elif Re >= Re_values.back():
+	# 	print("Re near/above top table: Re=", Re, "low=", Re_values[Re_low_index], "high=", Re_values[Re_high_index], "weight=", weight, "S=", S)
+	# if abs(Re - 60000.0) < 200 or abs(Re - 75000.0) < 200:
+	# 	print("Re checkpoint", Re, "S", S, "Cl_low/high", Cl_low, Cl_high, "weight", weight)
 	
 	# Interpolate final Cl value from uper and lower Cl
 	return lerpf(Cl_low, Cl_high, weight)

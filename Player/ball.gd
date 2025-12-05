@@ -4,8 +4,7 @@ var omega := Vector3.ZERO
 var rolling = false
 var on_ground := false
 var floor_norm := Vector3(0.0, 1.0, 0.0)
-
-var temp := 25.0
+var temperature := 75.0 # Used for initial instantiation, then pulls from GlobalSettings.range_settings.temperature
 var altitude := 0.0
 
 var mass = 0.04592623
@@ -15,8 +14,8 @@ var I = 0.4*mass*radius*radius # Moment of inertia
 var u_k = 0.15 # kinetic friction; surface-driven
 var u_kr = 0.05 # rolling friction; surface-driven
 
-var airDensity = Coefficients.get_air_density(0.0, 75.0)
-var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(75.0)
+var airDensity = Coefficients.get_air_density(0.0, temperature)
+var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temperature)
 var nu = 0.00001470 # Air Kinematic Viscosity
 var nu_g = 0.0005 # Grass drag viscosity; surface-driven
 var drag_cf := 1.2 # Drag correction factor
@@ -34,6 +33,7 @@ func _ready() -> void:
 	GlobalSettings.range_settings.altitude.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.drag_scale.setting_changed.connect(_on_drag_scale_changed)
 	drag_cf = GlobalSettings.range_settings.drag_scale.value
+	set_env(null) # Sync air properties to current settings on startup
 	_apply_surface(surface_type)
 
 

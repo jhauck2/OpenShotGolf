@@ -87,3 +87,15 @@ func _on_shot_injector_inject(data: Variant) -> void:
 
 func toggle_shot_injector(value) -> void:
 	$ShotInjector.visible = value
+
+
+func set_total_distance(text: String) -> void:
+	if has_node("OverlayLayer/TotalDistanceOverlay"):
+		$OverlayLayer/TotalDistanceOverlay.text = text
+		$OverlayLayer/TotalDistanceOverlay.visible = true
+
+
+func clear_total_distance() -> void:
+	if has_node("OverlayLayer/TotalDistanceOverlay"):
+		$OverlayLayer/TotalDistanceOverlay.visible = false
+		$OverlayLayer/TotalDistanceOverlay.text = "Total Distance --"
