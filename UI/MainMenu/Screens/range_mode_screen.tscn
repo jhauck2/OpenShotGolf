@@ -330,4 +330,6 @@ theme_override_fonts/font = ExtResource("12_gjee7")
 text = "Back"
 
 [connection signal="pressed" from="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard/Button" to="." method="_on_free_practice_pressed"]
+[connection signal="pressed" from="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard/Button" to="." method="_on_target_practice_pressed"]
+[connection signal="pressed" from="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard/Button" to="." method="_on_club_fitting_pressed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]
