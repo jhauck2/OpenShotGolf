@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3 uid="uid://cr13ex7eio2o3"]
+[gd_scene load_steps=40 format=3 uid="uid://cr13ex7eio2o3"]
 
 [ext_resource type="Script" uid="uid://bqsi3m52o0w7u" path="res://Courses/Range/Modes/FreePractice/free_practice_controller.gd" id="1_sunpe"]
 [ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://TCP/tcp_server.gd" id="2_d1a0v"]
@@ -23,6 +23,8 @@
 [ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="19_gqfs3"]
 [ext_resource type="Texture2D" uid="uid://bm5ic1m84j5cd" path="res://Courses/Range/Range_Distances.png" id="20_hbh3r"]
 [ext_resource type="Script" uid="uid://c521mpxrgwa74" path="res://SessionRecorder/session_recorder.gd" id="21_6rpr1"]
+[ext_resource type="PackedScene" uid="uid://d3w3cy230isuu" path="res://UI/Components/ModeIndicator/mode_indicator.tscn" id="24_g44t1"]
+[ext_resource type="Texture2D" uid="uid://cf7wo8qtk1v3h" path="res://Resources/Icons/infinity.png" id="25_g44t1"]
 
 [sub_resource type="Gradient" id="Gradient_ocquq"]
 offsets = PackedFloat32Array(0.2, 1)
@@ -309,6 +311,27 @@ text = "250
 
 [node name="SessionRecorder" type="Node" parent="."]
 script = ExtResource("21_6rpr1")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_bottom = 20.0
+grow_horizontal = 2
+theme_override_constants/margin_top = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 238
+
+[node name="ModeIndicator" parent="MarginContainer/VBoxContainer" instance=ExtResource("24_g44t1")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+title = "Free practice"
+subtitle = "Infinite Shots"
+icon = ExtResource("25_g44t1")
+icon_tint = Color(1, 1, 1, 1)
 
 [connection signal="hit_ball" from="TCPServer" to="." method="_on_tcp_client_hit_ball"]
 [connection signal="hit_ball" from="TCPServer" to="Player" method="_on_tcp_client_hit_ball"]

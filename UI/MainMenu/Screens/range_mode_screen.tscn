@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://bsxpwx2jrjwx0"]
+[gd_scene load_steps=17 format=3 uid="uid://bsxpwx2jrjwx0"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
 [ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_4v0hw"]
@@ -96,9 +96,11 @@ alignment = 1
 [node name="FreeRangeCard" type="PanelContainer" parent="VBoxContainer/CenterContainer/ModeContainer"]
 custom_minimum_size = Vector2(300, 450)
 layout_mode = 2
+mouse_default_cursor_shape = 2
 
 [node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/FreeRangeCard"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_ekfrn")
 flat = true
 
@@ -169,9 +171,11 @@ autowrap_mode = 3
 [node name="TargetPracticeCard" type="PanelContainer" parent="VBoxContainer/CenterContainer/ModeContainer"]
 custom_minimum_size = Vector2(300, 450)
 layout_mode = 2
+mouse_default_cursor_shape = 2
 
 [node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/TargetPracticeCard"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_ekfrn")
 flat = true
 
@@ -242,9 +246,11 @@ position_animation = true
 [node name="ClubFittingCard" type="PanelContainer" parent="VBoxContainer/CenterContainer/ModeContainer"]
 custom_minimum_size = Vector2(300, 450)
 layout_mode = 2
+mouse_default_cursor_shape = 2
 
 [node name="Button" type="Button" parent="VBoxContainer/CenterContainer/ModeContainer/ClubFittingCard"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_ekfrn")
 flat = true
 
@@ -325,6 +331,7 @@ offset_top = -60.0
 offset_right = 140.0
 offset_bottom = -20.0
 grow_vertical = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"BackBtn"
 theme_override_fonts/font = ExtResource("12_gjee7")
 text = "Back"

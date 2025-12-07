@@ -20,6 +20,7 @@ PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_came
 SceneManager="*res://Utils/SceneManager.gd"
 EventBus="*res://Utils/EventBus.gd"
 GlobalSettings="*res://Utils/Settings/global_settings.gd"
+DatabaseManager="*res://Utils/DatabaseManager.gd"
 
 [display]
 

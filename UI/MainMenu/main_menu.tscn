@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://dgyd437dgyv0y"]
+[gd_scene load_steps=20 format=3 uid="uid://dgyd437dgyv0y"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1"]
 [ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="2_2d5va"]
@@ -163,6 +163,7 @@ theme_override_constants/separation = 0
 
 [node name="RangeBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
 layout_mode = 2
+mouse_default_cursor_shape = 8
 theme_type_variation = &"NavBtn"
 theme_override_font_sizes/font_size = 24
 text = "Driving Range"
@@ -174,6 +175,7 @@ fade_animation = true
 
 [node name="CourseBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
 layout_mode = 2
+mouse_default_cursor_shape = 8
 theme_type_variation = &"NavBtn"
 theme_override_font_sizes/font_size = 24
 text = "Custom Courses"
@@ -185,6 +187,7 @@ fade_animation = true
 
 [node name="SettingsBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"NavBtn"
 theme_override_font_sizes/font_size = 24
 text = "Settings"
@@ -196,6 +199,7 @@ fade_animation = true
 
 [node name="ExitBtn" type="Button" parent="HBoxContainer/MarginContainer2/Sidebar/MarginContainer/VBoxContainer/VBoxContainer"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"NavBtn"
 theme_override_colors/font_color = Color(0.9059, 0.298, 0.2353, 1)
 theme_override_colors/font_hover_color = Color(0.9592977, 0.45512462, 0.3885198, 1)
@@ -292,6 +296,7 @@ custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
+mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.5804, 0.6392, 0.7176, 1)
 theme_override_constants/icon_max_width = 16
 theme_override_font_sizes/font_size = 12
@@ -304,6 +309,7 @@ icon_alignment = 1
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 size_flags_vertical = 4
+mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.9059, 0.298, 0.2353, 1)
 theme_override_colors/icon_normal_color = Color(0.88235295, 0.29411766, 0.23529412, 1)
 theme_override_colors/icon_hover_color = Color(0.6180611, 0.188681, 0.14525244, 1)
@@ -366,6 +372,7 @@ icon_alignment = 1
 [node name="AddPlayerBtn" type="Button" parent="LobbyWidget/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme = ExtResource("1")
 theme_type_variation = &"OutlineButton"
 theme_override_styles/normal = SubResource("StyleBoxFlat_lnp6m")

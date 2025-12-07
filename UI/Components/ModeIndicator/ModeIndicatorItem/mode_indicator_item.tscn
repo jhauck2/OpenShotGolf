@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3 uid="uid://yjv6lm5wnt7l"]
+
+[ext_resource type="Script" uid="uid://ch8tc80ygg4t8" path="res://UI/Components/ModeIndicator/ModeIndicatorItem/mode_indicator_item.gd" id="1_7s3nm"]
+[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="2_xbaa6"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="3_vc08x"]
+
+[node name="ModeIndicatorItem" type="MarginContainer"]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_bottom = 4
+script = ExtResource("1_7s3nm")
+
+[node name="Info1" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Info1"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("2_xbaa6")
+theme_override_font_sizes/font_size = 10
+text = "Info Title"
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = true
+
+[node name="Value" type="Label" parent="Info1"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_vc08x")
+theme_override_font_sizes/font_size = 16
+text = "128"
+horizontal_alignment = 1

@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3 uid="uid://d2nhcqcdmxwhw"]
+[gd_scene load_steps=47 format=3 uid="uid://d2nhcqcdmxwhw"]
 
 [ext_resource type="Script" uid="uid://cowgre3t0ph0j" path="res://Courses/Range/Modes/TargetPractice/target_practice_controller.gd" id="1_sunpe"]
 [ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://TCP/tcp_server.gd" id="2_d1a0v"]
@@ -23,6 +23,13 @@
 [ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="19_gqfs3"]
 [ext_resource type="Texture2D" uid="uid://bm5ic1m84j5cd" path="res://Courses/Range/Range_Distances.png" id="20_hbh3r"]
 [ext_resource type="Script" uid="uid://c521mpxrgwa74" path="res://SessionRecorder/session_recorder.gd" id="21_6rpr1"]
+[ext_resource type="PackedScene" uid="uid://d3w3cy230isuu" path="res://UI/Components/ModeIndicator/mode_indicator.tscn" id="24_3h8fn"]
+[ext_resource type="Texture2D" uid="uid://wjk5p6e1xx4t" path="res://Resources/Icons/target.png" id="24_6p55w"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="25_7fdnl"]
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="26_jnj4t"]
+[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="26_rr56p"]
+[ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="28_qisos"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="30_apay7"]
 
 [sub_resource type="Gradient" id="Gradient_ocquq"]
 offsets = PackedFloat32Array(0.2, 1)
@@ -197,6 +204,18 @@ tonemap_white = 6.0
 [sub_resource type="Resource" id="Resource_hbh3r"]
 script = ExtResource("18_gqfs3")
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jnj4t"]
+bg_color = Color(0.07058824, 0.08627451, 0.10980392, 0.9411765)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qisos"]
+bg_color = Color(0.5803922, 0.6392157, 0.72156864, 0.16078432)
+border_width_bottom = 1
+border_color = Color(0.8, 0.8, 0.8, 0.22745098)
+
 [node name="Range" type="Node3D"]
 script = ExtResource("1_sunpe")
 
@@ -309,6 +328,223 @@ text = "250
 
 [node name="SessionRecorder" type="Node" parent="."]
 script = ExtResource("21_6rpr1")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_bottom = 20.0
+grow_horizontal = 2
+theme_override_constants/margin_top = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 313
+
+[node name="ModeIndicator" parent="MarginContainer/VBoxContainer" instance=ExtResource("24_3h8fn")]
+layout_mode = 2
+size_flags_vertical = 4
+title = "Target practice"
+icon = ExtResource("24_6p55w")
+icon_tint = Color(1, 1, 1, 1)
+
+[node name="ModeSettingsContainer" type="Control" parent="MarginContainer/VBoxContainer"]
+visible = false
+z_index = 101
+layout_mode = 2
+size_flags_horizontal = 4
+theme = ExtResource("26_jnj4t")
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer"]
+z_index = 100
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -158.5
+offset_right = 150.0
+offset_bottom = 158.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_jnj4t")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 13
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("25_7fdnl")
+theme_override_font_sizes/font_size = 18
+text = "session setup"
+uppercase = true
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseBtn" type="Button" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_colors/icon_hover_color = Color(0.42352942, 0.42352942, 0.42352942, 1)
+theme_override_constants/icon_max_width = 20
+icon = ExtResource("28_qisos")
+flat = true
+icon_alignment = 1
+
+[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 1.525)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_qisos")
+
+[node name="DistanceBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DistanceLabel" type="Label" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/DistanceBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("26_rr56p")
+theme_override_font_sizes/font_size = 12
+text = "target distance"
+uppercase = true
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/DistanceBox"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/DistanceBox/PanelContainer"]
+layout_mode = 2
+
+[node name="MinusBtn" type="Button" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/DistanceBox/PanelContainer/HBoxContainer"]
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "-"
+
+[node name="YardLabel" type="Label" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/DistanceBox/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "150y"
+horizontal_alignment = 1
+
+[node name="PlusBtn" type="Button" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/DistanceBox/PanelContainer/HBoxContainer"]
+layout_mode = 2
+mouse_default_cursor_shape = 2
+text = "+"
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SizeBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SizeLabel" type="Label" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/SizeBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("26_rr56p")
+theme_override_font_sizes/font_size = 12
+text = "target size"
+uppercase = true
+
+[node name="SizeSelect" type="OptionButton" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/SizeBox"]
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "Large"
+popup/item_0/id = 0
+popup/item_1/text = "Medium"
+popup/item_1/id = 1
+popup/item_2/text = "Pro"
+popup/item_2/id = 2
+
+[node name="ShotsBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ShotsLabel" type="Label" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/ShotsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("26_rr56p")
+theme_override_font_sizes/font_size = 12
+text = "required shots"
+uppercase = true
+
+[node name="ShotsSelect" type="OptionButton" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/ShotsBox"]
+layout_mode = 2
+tooltip_text = "The required amount of sucessfull shots in order to beat the mode"
+selected = 0
+item_count = 5
+popup/item_0/text = "1 Shot"
+popup/item_0/id = 4
+popup/item_1/text = "3 Shots"
+popup/item_1/id = 0
+popup/item_2/text = "5 Shots"
+popup/item_2/id = 1
+popup/item_3/text = "10 Shots"
+popup/item_3/id = 2
+popup/item_4/text = "Unlimited"
+popup/item_4/id = 3
+
+[node name="AttemptsBox2" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AttemptsLabel" type="Label" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/AttemptsBox2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("26_rr56p")
+theme_override_font_sizes/font_size = 12
+text = "attempts"
+uppercase = true
+
+[node name="AttemptsSelect" type="OptionButton" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer/AttemptsBox2"]
+layout_mode = 2
+selected = 4
+item_count = 5
+popup/item_0/text = "1 Shot"
+popup/item_0/id = 4
+popup/item_1/text = "3 Shots"
+popup/item_1/id = 0
+popup/item_2/text = "5 Shots"
+popup/item_2/id = 1
+popup/item_3/text = "10 Shots"
+popup/item_3/id = 2
+popup/item_4/text = "Unlimited"
+popup/item_4/id = 3
+
+[node name="ContinueToggle2" type="CheckButton" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("26_rr56p")
+theme_override_font_sizes/font_size = 14
+text = "Auto-Continue"
+
+[node name="RandomToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("26_rr56p")
+theme_override_font_sizes/font_size = 14
+text = "Randomize Next Distance"
+
+[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SubmitBtn" type="Button" parent="MarginContainer/VBoxContainer/ModeSettingsContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+theme_override_fonts/font = ExtResource("30_apay7")
+theme_override_font_sizes/font_size = 12
+text = "Apply Settings"
 
 [connection signal="hit_ball" from="TCPServer" to="." method="_on_tcp_client_hit_ball"]
 [connection signal="hit_ball" from="TCPServer" to="Player" method="_on_tcp_client_hit_ball"]
