@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://bghx47e4485tl"]
+[gd_scene load_steps=9 format=3 uid="uid://bghx47e4485tl"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
 [ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="2_b7vy4"]
@@ -8,19 +8,6 @@
 [ext_resource type="Texture2D" uid="uid://dn1bx841sdnjc" path="res://Resources/Icons/folder_open.png" id="6_joqlw"]
 [ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="8_dssov"]
 [ext_resource type="Texture2D" uid="uid://ccuus4s6dakb7" path="res://Resources/Icons/diversity.png" id="9_88mwb"]
-[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="11_hycso"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qppm0"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-bg_color = Color(0.9019608, 0.49411765, 0.13333334, 1)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-corner_detail = 5
 
 [node name="CourseSelectScreen" type="Control"]
 layout_mode = 3
@@ -90,17 +77,20 @@ theme_override_constants/separation = 10
 
 [node name="AllBtn" type="Button" parent="MarginContainer/HBoxContainer/CourseGridArea/FilterBar"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme = ExtResource("1_t17p2")
 theme_type_variation = &"RoundedBtn"
 text = "All Courses"
 
 [node name="FavoritesBtn" type="Button" parent="MarginContainer/HBoxContainer/CourseGridArea/FilterBar"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"RoundedBtn"
 text = "Favorites"
 
 [node name="UserBtn" type="Button" parent="MarginContainer/HBoxContainer/CourseGridArea/FilterBar"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"RoundedBtn"
 text = "User Imported"
 
@@ -165,6 +155,7 @@ hover_offset = Vector2(0, -10)
 
 [node name="Import Course" type="PanelContainer" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 
 [node name="AnimationComponent" type="Node" parent="MarginContainer/HBoxContainer/CourseGridArea/GridContainer/Import Course"]
 script = ExtResource("4")
@@ -237,59 +228,9 @@ texture = ExtResource("9_88mwb")
 expand_mode = 2
 
 [node name="PlayersContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
-
-[node name="Player1" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Avatar" type="PanelContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-theme_type_variation = &"Avatar"
-
-[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player1/Avatar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 10
-text = "P1"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Name" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player1"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("11_hycso")
-theme_override_font_sizes/font_size = 12
-text = "Tiger W."
-
-[node name="Player2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Avatar" type="PanelContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
-custom_minimum_size = Vector2(30, 30)
-layout_mode = 2
-theme_type_variation = &"Avatar"
-theme_override_styles/panel = SubResource("StyleBoxFlat_qppm0")
-
-[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player2/Avatar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 10
-text = "P2"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Name" type="Label" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer/PlayersCard/MarginContainer/VBoxContainer/PlayersContainer/Player2"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("11_hycso")
-theme_override_font_sizes/font_size = 12
-text = "Guest"
 
 [node name="SettingsSection" type="VBoxContainer" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -408,6 +349,7 @@ size_flags_vertical = 3
 
 [node name="TeeOffButton" type="Button" parent="MarginContainer/HBoxContainer/MatchSetupPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"PrimaryButton"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "Tee Off"
@@ -422,6 +364,7 @@ offset_top = -60.0
 offset_right = 140.0
 offset_bottom = -20.0
 grow_vertical = 2
+mouse_default_cursor_shape = 2
 theme = ExtResource("1_t17p2")
 theme_type_variation = &"BackBtn"
 text = "Back"

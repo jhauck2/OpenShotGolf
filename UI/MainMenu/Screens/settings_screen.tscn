@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://c6sy1h7h6e07r"]
+[gd_scene load_steps=7 format=3 uid="uid://c6sy1h7h6e07r"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
 [ext_resource type="Script" uid="uid://csmvu68e2ttjm" path="res://UI/MainMenu/Screens/settings_screen.gd" id="2_0t22m"]
@@ -75,6 +75,7 @@ theme_override_constants/separation = 0
 
 [node name="GraphicsTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"NavBtn"
 text = "Graphics"
 alignment = 0
@@ -85,6 +86,7 @@ fade_animation = true
 
 [node name="AudioTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"NavBtn"
 text = "Audio"
 alignment = 0
@@ -95,6 +97,7 @@ fade_animation = true
 
 [node name="GameplayTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"NavBtn"
 text = "Gameplay / Physics"
 alignment = 0
@@ -105,6 +108,7 @@ fade_animation = true
 
 [node name="InputTab" type="Button" parent="MarginContainer/VBoxContainer/PanelContainer/HBoxContainer/PanelContainer/MarginContainer/SettingsNav"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_type_variation = &"NavBtn"
 text = "Input / Sensor"
 alignment = 0
@@ -255,6 +259,7 @@ button_pressed = true
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 0
+mouse_default_cursor_shape = 2
 theme_type_variation = &"BackBtn"
 theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
 text = "Back"

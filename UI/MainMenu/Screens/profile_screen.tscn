@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://p8yts6slbkut"]
+[gd_scene load_steps=15 format=3 uid="uid://p8yts6slbkut"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
 [ext_resource type="Script" uid="uid://cmhlncl54b73n" path="res://UI/MainMenu/Screens/profile_screen.gd" id="2_dxdpw"]
@@ -88,6 +88,8 @@ theme_override_constants/separation = 30
 [node name="Avatar" type="PanelContainer" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
+theme = ExtResource("1_t17p2")
+theme_type_variation = &"Avatar"
 
 [node name="TextureRect" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/Avatar"]
 layout_mode = 2
@@ -111,6 +113,7 @@ text = "Tiger Woods"
 
 [node name="EditBtn" type="Button" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/NameSection"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
 theme_override_colors/icon_hover_color = Color(0.20392157, 0.6, 0.8627451, 1)
 theme_override_constants/icon_max_width = 32
@@ -157,6 +160,7 @@ layout_mode = 2
 [node name="StatsBtn" type="Button" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Actions"]
 layout_mode = 2
 size_flags_vertical = 4
+mouse_default_cursor_shape = 2
 theme_type_variation = &"PrimaryButton"
 theme_override_fonts/font = ExtResource("7_qpt42")
 theme_override_font_sizes/font_size = 18
@@ -165,6 +169,7 @@ icon = ExtResource("10_1eaxn")
 
 [node name="DeleteBtn" type="Button" parent="Panel/MarginContainer/VBoxContainer/ProfileHeader/MarginContainer/HBoxContainer/ProfileInfo/HBoxContainer/Actions"]
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
 theme_override_colors/icon_normal_color = Color(0.90588236, 0.29803923, 0.23529412, 1)
 theme_override_colors/icon_hover_color = Color(0.78703684, 0.22449592, 0.17148629, 1)

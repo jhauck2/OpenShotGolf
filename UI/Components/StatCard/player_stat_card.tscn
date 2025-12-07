@@ -1,0 +1,81 @@
+[gd_scene load_steps=6 format=3 uid="uid://c4hyohy26io0q"]
+
+[ext_resource type="Script" uid="uid://bwja8v541rs5b" path="res://UI/Components/StatCard/player_stat_card.gd" id="1_nfqsu"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="1_y762h"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="2_nfqsu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y762h"]
+bg_color = Color(0.07450981, 0.11372549, 0.15686275, 1)
+border_color = Color(0.06666667, 0.09803922, 0.12941177, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nfqsu"]
+bg_color = Color(0.1556746, 0.21879172, 0.2850216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="Button" type="Button"]
+custom_minimum_size = Vector2(100, 100)
+offset_right = 100.0
+offset_bottom = 100.0
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_y762h")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_nfqsu")
+theme_override_styles/hover = SubResource("StyleBoxFlat_nfqsu")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_nfqsu")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_y762h")
+theme_override_styles/focus = SubResource("StyleBoxFlat_nfqsu")
+toggle_mode = true
+script = ExtResource("1_nfqsu")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 15
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("1_y762h")
+theme_override_font_sizes/font_size = 14
+text = "Title"
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = true
+
+[node name="spacer" type="Control" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+theme_override_fonts/font = ExtResource("2_nfqsu")
+theme_override_font_sizes/font_size = 18
+text = "Value"
+horizontal_alignment = 1
+autowrap_mode = 3

@@ -4,7 +4,7 @@
 [ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_oey5h"]
 [ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="3_eotao"]
 [ext_resource type="PackedScene" uid="uid://bgc5q6m1mbtkj" path="res://UI/MainMenu/Components/select_player_card.tscn" id="3_u16h5"]
-[ext_resource type="Script" path="res://UI/Components/modal_controller.gd" id="5_modal"]
+[ext_resource type="Script" uid="uid://d1o5vh7ipl0uy" path="res://UI/MainMenu/Modals/saved_player_modal_controller.gd" id="5_modal"]
 
 [node name="SavedPlayerModal" type="Control"]
 layout_mode = 3
@@ -15,9 +15,10 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_t17p2")
 script = ExtResource("5_modal")
-close_button_paths = [NodePath("ModalContent2/MarginContainer/CloseBtn")]
+close_button_paths = Array[NodePath]([NodePath("ModalContent2/MarginContainer/CloseBtn")])
 
 [node name="ModalContent2" type="PanelContainer" parent="."]
+z_index = 100
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -30,6 +31,7 @@ offset_right = 300.0
 offset_bottom = 279.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_type_variation = &"PopupContainer"
 
 [node name="MarginContainer" type="MarginContainer" parent="ModalContent2"]
 layout_mode = 2
@@ -75,6 +77,7 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 0
+mouse_default_cursor_shape = 2
 theme_type_variation = &"FlatButton"
 theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
 theme_override_colors/icon_hover_color = Color(0.42365062, 0.42365065, 0.42365062, 1)
