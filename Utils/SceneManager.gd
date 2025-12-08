@@ -1,5 +1,8 @@
 extends Node
 
+# Loading Screens
+var default_loading_scene: String = "res://UI/LoadingScreens/progress_bar.tscn"
+
 # Reference to current scene
 var current_scene = null
 
@@ -31,6 +34,30 @@ func _deferred_change_scene(scene_path):
 	# Add the scene to the tree
 	get_tree().get_root().add_child(current_scene, true)
 	
+
+func change_scene_with_loading(target_scene_path: String, loading_screen_path: String = default_loading_scene):
+	call_deferred("_deferred_change_scene_with_loading", target_scene_path, loading_screen_path)
+
+
+func _deferred_change_scene_with_loading(target_scene_path: String, loading_screen_path: String):
+	# Remove current scene
+	if current_scene != null:
+		current_scene.queue_free()
+
+	# Load the loading screen scene
+	var loading_res = load(loading_screen_path)
+	if loading_res == null:
+		push_error("Could not load loading screen: " + loading_screen_path)
+		return
+
+	# Instantiate loading screen
+	current_scene = loading_res.instantiate()
+
+	# PASS THE PARAMETER
+	current_scene.target_scene_path = target_scene_path
+
+	# Add loading screen to tree
+	get_tree().root.add_child(current_scene)
 
 
 func close_scene():

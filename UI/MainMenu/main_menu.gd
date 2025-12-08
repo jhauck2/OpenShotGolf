@@ -12,7 +12,7 @@ func _process(_delta: float) -> void:
 
 
 func _on_range_pressed() -> void:
-	SceneManager.change_scene("res://Courses/Range/range.tscn")
+	SceneManager.change_scene_with_loading("res://Courses/Range/range.tscn")
 
 
 func _on_courses_pressed() -> void:
