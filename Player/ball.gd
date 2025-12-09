@@ -4,7 +4,7 @@ var omega := Vector3.ZERO
 var rolling = false
 var on_ground := false
 var floor_norm := Vector3(0.0, 1.0, 0.0)
-var temperature := 75.0 # Used for initial instantiation, then pulls from GlobalSettings.range_settings.temperature
+var temperature := 0.0 # Used for initial instantiation, then pulls from GlobalSettings.range_settings.temperature
 var altitude := 0.0
 
 var mass = 0.04592623
