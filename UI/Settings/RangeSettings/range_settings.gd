@@ -1,11 +1,25 @@
 extends PanelContainer
 
 
-var reset_spin_box : Control = null
-var temperature_spin_box : Control = null
-var altitude_spin_box : Control = null
-var drag_spin_box : Control = null
+var reset_spin_box : SpinBox = null
+var temperature_spin_box : SpinBox = null
+var altitude_spin_box : SpinBox = null
+var drag_spin_box : SpinBox = null
 var surface_option : OptionButton = null
+
+
+func _setup_spin_box(spin_box: SpinBox, setting: Setting, step: float) -> void:
+	spin_box.set_block_signals(true)
+	spin_box.step = step
+	if setting.min_value != null:
+		spin_box.min_value = setting.min_value
+	if setting.max_value != null:
+		spin_box.max_value = setting.max_value
+	spin_box.value = setting.value
+	spin_box.set_block_signals(false)
+	
+	if spin_box.value != setting.value:
+		setting.set_value(spin_box.value)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -16,29 +30,16 @@ func _ready() -> void:
 	surface_option = $MarginContainer/VBoxContainer/SurfaceType/SurfaceOption
 	
 	# Reset Timer Settings
-	reset_spin_box.step = 0.5
-	reset_spin_box.value = GlobalSettings.range_settings.ball_reset_timer.value
-	reset_spin_box.min_value = GlobalSettings.range_settings.ball_reset_timer.min_value
-	reset_spin_box.max_value = GlobalSettings.range_settings.ball_reset_timer.max_value
+	_setup_spin_box(reset_spin_box, GlobalSettings.range_settings.ball_reset_timer, 0.5)
 	
 	# Temperature Settings
-	temperature_spin_box.min_value = GlobalSettings.range_settings.temperature.min_value
-	temperature_spin_box.max_value = GlobalSettings.range_settings.temperature.max_value
-	temperature_spin_box.value = GlobalSettings.range_settings.temperature.value
-	
-	temperature_spin_box.step = 1.0
+	_setup_spin_box(temperature_spin_box, GlobalSettings.range_settings.temperature, 1.0)
 	
 	# Altitude Settings
-	altitude_spin_box.min_value = GlobalSettings.range_settings.altitude.min_value
-	altitude_spin_box.max_value = GlobalSettings.range_settings.altitude.max_value
-	altitude_spin_box.value = GlobalSettings.range_settings.altitude.value
-	altitude_spin_box.step = 10
+	_setup_spin_box(altitude_spin_box, GlobalSettings.range_settings.altitude, 10.0)
 
 	# Drag scale
-	drag_spin_box.min_value = GlobalSettings.range_settings.drag_scale.min_value
-	drag_spin_box.max_value = GlobalSettings.range_settings.drag_scale.max_value
-	drag_spin_box.step = 0.05
-	drag_spin_box.value = GlobalSettings.range_settings.drag_scale.value
+	_setup_spin_box(drag_spin_box, GlobalSettings.range_settings.drag_scale, 0.5)
 
 	# Surface type options
 	surface_option.clear()
@@ -98,7 +99,7 @@ func _on_drag_spin_box_value_changed(value: float) -> void:
 
 
 func _on_surface_option_item_selected(index: int) -> void:
-	var id := surface_option.get_item_id(index)
+	var id: int = surface_option.get_item_id(index)
 	GlobalSettings.range_settings.surface_type.set_value(id)
 
 func update_units(value) -> void:
@@ -117,6 +118,6 @@ func update_units(value) -> void:
 		temperature_spin_box.value = (GlobalSettings.range_settings.temperature.value - 32) * 5/9
 		GlobalSettings.range_settings.temperature.set_value(temperature_spin_box.value)
 		
-		$MarginContainer/VBoxContainer/Temperature/Label2.text = "m"
+		$MarginContainer/VBoxContainer/Altitude/Label2.text = "m"
 		altitude_spin_box.value = GlobalSettings.range_settings.altitude.value/m2ft
 		GlobalSettings.range_settings.altitude.set_value(altitude_spin_box.value)

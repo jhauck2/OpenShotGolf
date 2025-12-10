@@ -19,12 +19,12 @@ func reset_default():
 	emit_signal("setting_changed", value)
 
 func set_value(val: Variant):
-	if min_value and value < min_value:
-		value = min_value
-	elif max_value and value > max_value:
-		value = max_value
-	else:
-		value = val
+	var new_value: Variant = val
+	if min_value != null and new_value < min_value:
+		new_value = min_value
+	elif max_value != null and new_value > max_value:
+		new_value = max_value
+	value = new_value
 		
 	emit_signal("setting_changed", value)
 	
