@@ -27,6 +27,26 @@ layout_mode = 2
 size_flags_vertical = 0
 theme_override_constants/separation = 11
 
+[node name="OverlayLayer" type="CanvasLayer" parent="."]
+
+[node name="TotalDistanceOverlay" type="Label" parent="OverlayLayer"]
+layout_mode = 0
+anchor_left = 0.0
+anchor_top = 0.2
+anchor_right = 1.0
+anchor_bottom = 0.2
+offset_top = 0.0
+offset_bottom = 40.0
+grow_horizontal = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+theme_override_constants/shadow_size = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6)
+text = "Total Distance --"
+horizontal_alignment = 1
+vertical_alignment = 1
+visible = false
+
 [node name="PlayerName" type="Label" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 0
@@ -212,6 +232,13 @@ placeholder_text = "0.0"
 layout_mode = 2
 text = "Hit Shot"
 
+[node name="PayloadLabel" type="Label" parent="ShotInjector"]
+layout_mode = 2
+text = "Test Payload"
+
+[node name="PayloadOption" type="OptionButton" parent="ShotInjector"]
+layout_mode = 2
+
 [connection signal="pressed" from="HBoxContainer/RecButton" to="." method="_on_rec_button_pressed"]
 [connection signal="pressed" from="HBoxContainer/SettingsButton" to="HBoxContainer/RangeSettings" method="_on_settings_button_pressed"]
 [connection signal="dir_selected" from="SessionPopUp" to="." method="_on_session_pop_up_dir_selected"]
@@ -238,4 +265,5 @@ text = "Hit Shot"
 [connection signal="drag_ended" from="GridCanvas/SpinAxis" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/SpinAxis" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="inject" from="ShotInjector" to="." method="_on_shot_injector_inject"]
+[connection signal="item_selected" from="ShotInjector/PayloadOption" to="ShotInjector" method="_on_payload_option_item_selected"]
 [connection signal="pressed" from="ShotInjector/Button" to="ShotInjector" method="_on_button_pressed"]

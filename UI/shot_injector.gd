@@ -4,14 +4,36 @@ signal inject(data)
 
 @export var default_payload_path := "res://assets/data/drive_test_shot.json"
 
+@onready var payload_option: OptionButton = $PayloadOption
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass # Replace with function body.
+	_populate_payloads()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:
 	pass
+
+
+func _populate_payloads() -> void:
+	if not payload_option:
+		return
+	payload_option.clear()
+	var payloads := {
+		"Drive test shot": "res://assets/data/drive_test_shot.json",
+		"Wedge test shot": "res://assets/data/wedge_test_shot.json",
+	}
+	var selected := 0
+	var idx := 0
+	for label in payloads.keys():
+		var path: String = payloads[label]
+		payload_option.add_item(label)
+		payload_option.set_item_metadata(idx, path)
+		if path == default_payload_path:
+			selected = idx
+		idx += 1
+	payload_option.select(selected)
 
 
 func _on_button_pressed() -> void:
@@ -57,3 +79,9 @@ func _on_button_pressed() -> void:
 	print("Local shot injection payload: ", JSON.stringify(data))
 	
 	emit_signal("inject", data)
+
+
+func _on_payload_option_item_selected(index: int) -> void:
+	var metadata = payload_option.get_item_metadata(index)
+	if typeof(metadata) == TYPE_STRING:
+		default_payload_path = metadata
