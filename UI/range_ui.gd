@@ -89,6 +89,14 @@ func toggle_shot_injector(value) -> void:
 	$ShotInjector.visible = value
 
 
+func _on_toggle_settings_requested() -> void:
+	$SettingsLayer.visible = not $SettingsLayer.visible
+
+
+func _on_close_settings_requested() -> void:
+	$SettingsLayer.visible = false
+
+
 func set_total_distance(text: String) -> void:
 		$OverlayLayer/TotalDistanceOverlay.text = text
 		$OverlayLayer/TotalDistanceOverlay.visible = true

@@ -1,5 +1,7 @@
 extends PanelContainer
 
+signal toggle_settings_requested
+signal close_settings_requested
 
 var reset_spin_box : SpinBox = null
 var temperature_spin_box : SpinBox = null
@@ -62,16 +64,13 @@ func _process(_delta: float) -> void:
 
 
 func _on_settings_button_pressed() -> void:
-	# Toggle the SettingsLayer visibility (parent.parent.parent)
-	var settings_layer = get_parent().get_parent()
-	settings_layer.visible = not settings_layer.visible
+	toggle_settings_requested.emit()
 
 
 func _on_background_clicked(event: InputEvent) -> void:
 	# Close the menu when clicking on the background
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var settings_layer = get_parent().get_parent()
-		settings_layer.visible = false
+		close_settings_requested.emit()
 
 
 func _on_exit_button_pressed() -> void:
