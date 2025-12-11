@@ -44,14 +44,51 @@ text = "REC: Off"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RangeSettings" parent="HBoxContainer" instance=ExtResource("3_bxj45")]
-visible = false
-z_index = 1
-layout_mode = 2
-
 [node name="SettingsButton" type="TextureButton" parent="HBoxContainer"]
 layout_mode = 2
 texture_normal = ExtResource("3_omvf4")
+
+[node name="OverlayLayer" type="CanvasLayer" parent="."]
+
+[node name="TotalDistanceOverlay" type="Label" parent="OverlayLayer"]
+visible = false
+anchors_preset = -1
+anchor_top = 0.2
+anchor_right = 1.0
+anchor_bottom = 0.2
+offset_bottom = 40.0
+grow_horizontal = 2
+size_flags_horizontal = 3
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6)
+theme_override_font_sizes/font_size = 32
+text = "Total Distance --"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SettingsLayer" type="CanvasLayer" parent="."]
+visible = false
+
+[node name="Background" type="ColorRect" parent="SettingsLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Container" type="HBoxContainer" parent="SettingsLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+alignment = 2
+
+[node name="RangeSettings" parent="SettingsLayer/Container" instance=ExtResource("3_bxj45")]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
 
 [node name="SessionPopUp" parent="." instance=ExtResource("4_7kh1v")]
 layout_mode = 2
@@ -109,6 +146,46 @@ offset_bottom = 517.0
 label = "HLA"
 units = "deg"
 
+[node name="Speed" parent="GridCanvas" instance=ExtResource("1_q72xt")]
+layout_mode = 0
+offset_top = 472.0
+offset_right = 120.0
+offset_bottom = 565.0
+label = "Speed"
+units = "mph"
+
+[node name="BackSpin" parent="GridCanvas" instance=ExtResource("1_q72xt")]
+layout_mode = 0
+offset_top = 520.0
+offset_right = 120.0
+offset_bottom = 613.0
+label = "BackSpin"
+units = "rpm"
+
+[node name="SideSpin" parent="GridCanvas" instance=ExtResource("1_q72xt")]
+layout_mode = 0
+offset_top = 568.0
+offset_right = 120.0
+offset_bottom = 661.0
+label = "SideSpin"
+units = "rpm"
+
+[node name="TotalSpin" parent="GridCanvas" instance=ExtResource("1_q72xt")]
+layout_mode = 0
+offset_top = 616.0
+offset_right = 120.0
+offset_bottom = 709.0
+label = "TotalSpin"
+units = "rpm"
+
+[node name="SpinAxis" parent="GridCanvas" instance=ExtResource("1_q72xt")]
+layout_mode = 0
+offset_top = 664.0
+offset_right = 120.0
+offset_bottom = 757.0
+label = "SpinAxis"
+units = "deg"
+
 [node name="ClubSelector" parent="GridCanvas" instance=ExtResource("3_crlyb")]
 layout_mode = 0
 offset_top = 70.0
@@ -117,6 +194,7 @@ offset_bottom = 150.0
 rotation = -0.0004276121
 
 [node name="ShotInjector" type="VBoxContainer" parent="."]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
@@ -171,8 +249,18 @@ placeholder_text = "0.0"
 layout_mode = 2
 text = "Hit Shot"
 
+[node name="PayloadLabel" type="Label" parent="ShotInjector"]
+layout_mode = 2
+text = "Test Payload"
+
+[node name="PayloadOption" type="OptionButton" parent="ShotInjector"]
+layout_mode = 2
+
 [connection signal="pressed" from="HBoxContainer/RecButton" to="." method="_on_rec_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/SettingsButton" to="HBoxContainer/RangeSettings" method="_on_settings_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/SettingsButton" to="SettingsLayer/Container/RangeSettings" method="_on_settings_button_pressed"]
+[connection signal="gui_input" from="SettingsLayer/Background" to="SettingsLayer/Container/RangeSettings" method="_on_background_clicked"]
+[connection signal="close_settings_requested" from="SettingsLayer/Container/RangeSettings" to="." method="_on_close_settings_requested"]
+[connection signal="toggle_settings_requested" from="SettingsLayer/Container/RangeSettings" to="." method="_on_toggle_settings_requested"]
 [connection signal="dir_selected" from="SessionPopUp" to="." method="_on_session_pop_up_dir_selected"]
 [connection signal="drag_ended" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_started"]
@@ -186,5 +274,16 @@ text = "Hit Shot"
 [connection signal="drag_started" from="GridCanvas/VLA" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="drag_ended" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/HLA" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="drag_ended" from="GridCanvas/Speed" to="GridCanvas" method="_on_panel_drag_ended"]
+[connection signal="drag_started" from="GridCanvas/Speed" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="drag_ended" from="GridCanvas/BackSpin" to="GridCanvas" method="_on_panel_drag_ended"]
+[connection signal="drag_started" from="GridCanvas/BackSpin" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="drag_ended" from="GridCanvas/SideSpin" to="GridCanvas" method="_on_panel_drag_ended"]
+[connection signal="drag_started" from="GridCanvas/SideSpin" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="drag_ended" from="GridCanvas/TotalSpin" to="GridCanvas" method="_on_panel_drag_ended"]
+[connection signal="drag_started" from="GridCanvas/TotalSpin" to="GridCanvas" method="_on_panel_drag_started"]
+[connection signal="drag_ended" from="GridCanvas/SpinAxis" to="GridCanvas" method="_on_panel_drag_ended"]
+[connection signal="drag_started" from="GridCanvas/SpinAxis" to="GridCanvas" method="_on_panel_drag_started"]
 [connection signal="inject" from="ShotInjector" to="." method="_on_shot_injector_inject"]
 [connection signal="pressed" from="ShotInjector/Button" to="ShotInjector" method="_on_button_pressed"]
+[connection signal="item_selected" from="ShotInjector/PayloadOption" to="ShotInjector" method="_on_payload_option_item_selected"]

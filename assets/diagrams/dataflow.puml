@@ -1,0 +1,29 @@
+@startuml
+title OpenShotGolf Launch Data Flow
+
+actor "Launch Monitor" as LM
+participant "TCPServer\nTCP/tcp_server.gd" as TCP
+participant "Range Scene\nCourses/Range/range.tscn" as Range
+participant "Player\nPlayer/player.gd" as Player
+participant "Ball\nPlayer/ball.gd" as Ball
+participant "Range UI\nUI/range_ui.gd" as UI
+participant "SessionRecorder\nSessionRecorder/session_recorder.gd" as Rec
+
+LM -> TCP : TCP JSON on port 49152\n(ShotDataOptions.ContainsBallData,\nBallData: Speed, VLA, HLA, SpinAxis, TotalSpin…)
+TCP -> TCP : Parse JSON\non receive bytes
+TCP -> Range : emit hit_ball(BallData)
+TCP -> Player : emit hit_ball(BallData)
+
+Range -> Range : ball_data = BallData
+Range -> UI : set_data(ball_data)\n(shows VLA/HLA, Distance, Apex, etc.)
+
+Player -> Player : validate_data(BallData)\nshot_data = duplicate
+Player -> Ball : hit_from_data(BallData)\n(track points, trail)
+
+Ball -> Ball : state=FLIGHT; position set\nvelocity = Speed→m/s rotated by VLA (Z) then HLA (Y)\nomega set from SpinAxis & TotalSpin
+
+Ball -> Player : rest(shot_data)\n(TotalDistance, Carry, Apex, Offline)
+Player -> Rec : record_shot(shot_data) [when recording]
+Range -> Range : auto reset ball & clear VLA/HLA\n(if enabled)
+
+@enduml

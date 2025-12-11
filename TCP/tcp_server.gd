@@ -48,6 +48,7 @@ func _process(_delta: float) -> void:
 				var error := json.parse(tcp_string)
 				if error == OK:
 					shot_data = json.data
+					print("Launch monitor payload: ", tcp_string)
 					if shot_data["ShotDataOptions"]["ContainsBallData"]:
 						emit_signal("hit_ball", shot_data["BallData"])
 				else:

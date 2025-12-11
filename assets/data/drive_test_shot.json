@@ -1,17 +1,17 @@
 {
-    "DeviceID": "GSPro LM 1.1",
+    "DeviceID": "PiTrac LM 0.1",
     "Units": "Yards",
     "ShotNumber": 13,
     "APIversion": "1",
-    "BallData" : {
-        "Speed": 147.5,
-        "SpinAxis": -13.2,
-        "TotalSpin": 3250.0,
-        "BackSpin": 2500.0,
-        "SideSpin": -800.0,
-        "HLA": 2.3,
-        "VLA": 14.3,
-        "CarryDistance": 256.5
+    "BallData": {
+    "Speed": 120.0,
+    "SpinAxis": -9.9,
+    "TotalSpin": 2335.0,
+    "BackSpin": 2300.0,
+    "SideSpin": -400.0,
+    "HLA": 1.5,
+    "VLA": 12.5,
+    "CarryDistance": 0.0
     },
     "ClubData": {
         "Speed": 0.0,

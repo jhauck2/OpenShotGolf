@@ -4,23 +4,22 @@ var omega := Vector3.ZERO
 var rolling = false
 var on_ground := false
 var floor_norm := Vector3(0.0, 1.0, 0.0)
-
-var temp := 25.0
-var altitude := 0.0
+var temperature: float = GlobalSettings.range_settings.temperature.value # Using global settings
 
 var mass = 0.04592623
 var radius = 0.021335
 var A = PI*radius*radius # Cross-sectional area
 var I = 0.4*mass*radius*radius # Moment of inertia
-var u_k = 0.4 # friction coefficient with the ground
-var u_kr = 0.2 # friction coefficient with the ground while rolling
+var u_k = 0.15 # kinetic friction; surface-driven
+var u_kr = 0.05 # rolling friction; surface-driven
 
-var airDensity = Coefficients.get_air_density(0.0, 75.0)
-var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(75.0)
+var airDensity = Coefficients.get_air_density(0.0, temperature)
+var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temperature)
 var nu = 0.00001470 # Air Kinematic Viscosity
-var nu_g = 0.0012 # Grass Viscosity (estimate somewhere between air and water)
+var nu_g = 0.0005 # Grass drag viscosity; surface-driven
 var drag_cf := 1.2 # Drag correction factor
 var lift_cf := 1.2 # lift correction factor
+var surface_type: int = Enums.Surface.FIRM
 
 var state : Enums.BallState = Enums.BallState.REST
 
@@ -31,6 +30,10 @@ func _ready() -> void:
 	GlobalSettings.range_settings.range_units.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.temperature.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.altitude.setting_changed.connect(set_env)
+	GlobalSettings.range_settings.drag_scale.setting_changed.connect(_on_drag_scale_changed)
+	drag_cf = GlobalSettings.range_settings.drag_scale.value
+	set_env(null) # Sync air properties to current settings on startup
+	_apply_surface(surface_type)
 
 
 func _process(_delta: float) -> void:
@@ -190,12 +193,40 @@ func hit():
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
 	
 func hit_from_data(data : Dictionary):
+	var speed_mps: float = (data.get("Speed", 0.0) as float)*0.44704
+	var vla_deg: float = data.get("VLA", 0.0) as float
+	var hla_deg: float = data.get("HLA", 0.0) as float
+	var has_backspin := data.has("BackSpin")
+	var has_sidespin := data.has("SideSpin")
+	var has_total := data.has("TotalSpin")
+	var has_axis := data.has("SpinAxis")
+	var backspin: float = (data.get("BackSpin", 0.0) as float)
+	var sidespin: float = (data.get("SideSpin", 0.0) as float)
+	var total_spin: float = (data.get("TotalSpin", 0.0) as float)
+	var spin_axis: float = (data.get("SpinAxis", 0.0) as float)
+
+	# Derive totals/axis only when missing (do not treat 0.0 as missing).
+	if total_spin == 0.0 and (has_backspin or has_sidespin):
+		total_spin = sqrt(backspin*backspin + sidespin*sidespin)
+	if not has_axis and (has_backspin or has_sidespin):
+		spin_axis = rad_to_deg(atan2(sidespin, backspin))
+	# If components are missing but total+axis are present, derive them for consistency.
+	if has_total and has_axis:
+		if not has_backspin:
+			backspin = total_spin * cos(deg_to_rad(spin_axis))
+		if not has_sidespin:
+			sidespin = total_spin * sin(deg_to_rad(spin_axis))
+
 	state = Enums.BallState.FLIGHT
 	position = Vector3(0.0, 0.05, 0.0)
-	velocity = Vector3(data["Speed"]*0.44704, 0, 0).rotated(
-					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
-						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
-	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180)
+	velocity = Vector3(speed_mps, 0, 0).rotated(
+					Vector3(0.0, 0.0, 1.0), vla_deg*PI/180.0).rotated(
+						Vector3(0.0, 1.0, 0.0), -hla_deg*PI/180.0)
+	if total_spin == 0.0:
+		# Use component spins (rpm -> rad/s)
+		omega = Vector3(sidespin*0.10472, 0.0, backspin*0.10472)
+	else:
+		omega = Vector3(0.0, 0.0, total_spin*0.10472).rotated(Vector3(1.0, 0.0, 0.0), spin_axis*PI/180)
 	
 func set_env(_value):
 	airDensity = Coefficients.get_air_density(GlobalSettings.range_settings.altitude.value,
@@ -207,3 +238,19 @@ func reset():
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	state = Enums.BallState.REST
+
+
+func _on_drag_scale_changed(_value):
+	drag_cf = GlobalSettings.range_settings.drag_scale.value
+
+
+func set_surface(surface: int) -> void:
+	surface_type = surface as Enums.Surface
+	_apply_surface(surface_type)
+
+
+func _apply_surface(surface: int) -> void:
+	var params := SurfaceUtil.get_params(surface as Enums.Surface)
+	u_k = params["u_k"]
+	u_kr = params["u_kr"]
+	nu_g = params["nu_g"]

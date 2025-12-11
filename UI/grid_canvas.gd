@@ -71,10 +71,10 @@ func set_units(value):
 	if value == Enums.Units.IMPERIAL:
 		$Distance.set_units("yd")
 		$Carry.set_units("yd")
-		$Offline.set_units("yd")
+		$Side.set_units("yd")
 		$Apex.set_units("ft")
 	else:
 		$Distance.set_units("m")
 		$Carry.set_units("m")
-		$Offline.set_units("m")
+		$Side.set_units("m")
 		$Apex.set_units("m")

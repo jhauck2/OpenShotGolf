@@ -7,7 +7,7 @@ signal hit_shot(data)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass
+	GlobalSettings.range_settings.shot_injector_enabled.setting_changed.connect(toggle_shot_injector)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -21,6 +21,16 @@ func set_data(data: Dictionary) -> void:
 		$GridCanvas/Carry.set_data(data["Carry"])
 		$GridCanvas/Side.set_data(data["Offline"])
 		$GridCanvas/Apex.set_data(data["Apex"])
+		$GridCanvas/Speed.set_units("mph")
+		$GridCanvas/Speed.set_data(str(data["Speed"]))
+		$GridCanvas/BackSpin.set_units("rpm")
+		$GridCanvas/BackSpin.set_data(str(data["BackSpin"]))
+		$GridCanvas/SideSpin.set_units("rpm")
+		$GridCanvas/SideSpin.set_data(str(data["SideSpin"]))
+		$GridCanvas/TotalSpin.set_units("rpm")
+		$GridCanvas/TotalSpin.set_data(str(data["TotalSpin"]))
+		$GridCanvas/SpinAxis.set_units("deg")
+		$GridCanvas/SpinAxis.set_data(str(data["SpinAxis"]))
 		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
 		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
 	else:
@@ -28,6 +38,16 @@ func set_data(data: Dictionary) -> void:
 		$GridCanvas/Carry.set_data(data["Carry"])
 		$GridCanvas/Side.set_data(data["Offline"])
 		$GridCanvas/Apex.set_data(data["Apex"])
+		$GridCanvas/Speed.set_units("m/s")
+		$GridCanvas/Speed.set_data(str(data["Speed"]))
+		$GridCanvas/BackSpin.set_units("rpm")
+		$GridCanvas/BackSpin.set_data(str(data["BackSpin"]))
+		$GridCanvas/SideSpin.set_units("rpm")
+		$GridCanvas/SideSpin.set_data(str(data["SideSpin"]))
+		$GridCanvas/TotalSpin.set_units("rpm")
+		$GridCanvas/TotalSpin.set_data(str(data["TotalSpin"]))
+		$GridCanvas/SpinAxis.set_units("deg")
+		$GridCanvas/SpinAxis.set_data(str(data["SpinAxis"]))
 		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
 		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
 
@@ -64,3 +84,24 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
+
+func toggle_shot_injector(value) -> void:
+	$ShotInjector.visible = value
+
+
+func _on_toggle_settings_requested() -> void:
+	$SettingsLayer.visible = not $SettingsLayer.visible
+
+
+func _on_close_settings_requested() -> void:
+	$SettingsLayer.visible = false
+
+
+func set_total_distance(text: String) -> void:
+		$OverlayLayer/TotalDistanceOverlay.text = text
+		$OverlayLayer/TotalDistanceOverlay.visible = true
+
+
+func clear_total_distance() -> void:
+		$OverlayLayer/TotalDistanceOverlay.visible = false
+		$OverlayLayer/TotalDistanceOverlay.text = "Total Distance --"
