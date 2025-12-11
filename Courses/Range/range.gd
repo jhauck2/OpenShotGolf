@@ -30,17 +30,15 @@ func _ready() -> void:
 
 
 func _setup_camera_system() -> void:
-	if has_node("PhantomCamera3D"):
-		$PhantomCamera3D.queue_free()
+	$PhantomCamera3D.follow_target = $Player/Ball
 
-	camera_controller = CameraController.new()
+	camera_controller = CameraController.new($PhantomCamera3D)
 	camera_controller.name = "CameraController"
 	add_child(camera_controller)
 
 	if has_node("Player/Ball"):
 		camera_controller.set_ball_target($Player/Ball)
 
-	camera_controller.camera_changed.connect(_on_camera_changed)
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_changed)
 	_apply_surface_to_ball()
@@ -50,32 +48,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("reset"):
 		_reset_display_data()
 		$RangeUI.set_data(display_data)
-
-	_handle_camera_input()
-
-
-func _handle_camera_input() -> void:
-	if not camera_controller:
-		return
-
-	if Input.is_action_just_pressed("ui_1"):
-		_reset_camera_toggle()
-		camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
-	elif Input.is_action_just_pressed("ui_2"):
-		_reset_camera_toggle()
-		camera_controller.set_camera_mode(CameraController.CameraMode.DOWN_THE_LINE)
-	elif Input.is_action_just_pressed("ui_3"):
-		_reset_camera_toggle()
-		camera_controller.set_camera_mode(CameraController.CameraMode.FACE_ON)
-	elif Input.is_action_just_pressed("ui_4"):
-		_reset_camera_toggle()
-		camera_controller.set_camera_mode(CameraController.CameraMode.BIRDS_EYE)
-	elif Input.is_action_just_pressed("ui_5"):
-		_reset_camera_toggle(true)
-		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
-	elif Input.is_action_just_pressed("ui_c"):
-		_reset_camera_toggle()
-		camera_controller.next_camera()
 
 
 func _on_tcp_client_hit_ball(data: Dictionary) -> void:
@@ -116,16 +88,8 @@ func _on_golf_ball_rest(_ball_data) -> void:
 	# No auto reset: leave final numbers visible
 
 
-func _reset_camera_toggle(toggled_on: bool = false) -> void:
-	GlobalSettings.range_settings.camera_follow_mode.set_value(toggled_on)
-
-
-func _on_camera_changed(_camera_name: String) -> void:
-	pass
-
-
-func set_camera_follow_mode(_value) -> void:
-	if GlobalSettings.range_settings.camera_follow_mode.value:
+func set_camera_follow_mode(value) -> void:
+	if value:
 		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
 	else:
 		camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
