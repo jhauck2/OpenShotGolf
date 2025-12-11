@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://crnild41crwjq"
-path="res://.godot/imported/Oswald-VariableFont_wght.ttf-da4d7b24d0dcceb0c4fb70d4ad8196b3.fontdata"
+uid="uid://8il8rjk0d46o"
+path="res://.godot/imported/Montserrat-Regular.ttf-38cc895470fa3095ef1f4d1d368325a4.fontdata"
 
 [deps]
 
-source_file="res://UI/Fonts/Oswald-VariableFont_wght.ttf"
-dest_files=["res://.godot/imported/Oswald-VariableFont_wght.ttf-da4d7b24d0dcceb0c4fb70d4ad8196b3.fontdata"]
+source_file="res://UI/Fonts/Montserrat/Montserrat-Regular.ttf"
+dest_files=["res://.godot/imported/Montserrat-Regular.ttf-38cc895470fa3095ef1f4d1d368325a4.fontdata"]
 
 [params]
 

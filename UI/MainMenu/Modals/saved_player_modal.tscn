@@ -1,10 +1,10 @@
 [gd_scene load_steps=6 format=3 uid="uid://dboj7yjg6tnuw"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
-[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_oey5h"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald/Oswald-Bold.ttf" id="2_oey5h"]
 [ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="3_eotao"]
 [ext_resource type="PackedScene" uid="uid://bgc5q6m1mbtkj" path="res://UI/MainMenu/Components/select_player_card.tscn" id="3_u16h5"]
-[ext_resource type="Script" path="res://UI/Components/modal_controller.gd" id="5_modal"]
+[ext_resource type="Script" uid="uid://cpxc73lkes5c4" path="res://UI/Components/modal_controller.gd" id="5_modal"]
 
 [node name="SavedPlayerModal" type="Control"]
 layout_mode = 3

@@ -2,9 +2,9 @@
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_gfxp2"]
 [ext_resource type="Texture2D" uid="uid://bnow80shojrjt" path="res://Resources/Icons/person.png" id="3_jgdft"]
-[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="4_2e3oi"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat/Montserrat-SemiBold.ttf" id="4_2e3oi"]
 [ext_resource type="Texture2D" uid="uid://dicjjpgrkgn58" path="res://Resources/Icons/double_arrow.png" id="5_gfxp2"]
-[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="5_rjr4k"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat/Montserrat-Regular.ttf" id="5_rjr4k"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qlcf8"]
 content_margin_left = 0.0

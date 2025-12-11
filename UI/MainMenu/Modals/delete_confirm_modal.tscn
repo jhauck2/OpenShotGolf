@@ -1,11 +1,11 @@
 [gd_scene load_steps=11 format=3 uid="uid://ctpcr7sngirt7"]
 
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
-[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_ohb30"]
-[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="3_wsvvq"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald/Oswald-Bold.ttf" id="2_ohb30"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat/Montserrat-Regular.ttf" id="3_wsvvq"]
 [ext_resource type="Texture2D" uid="uid://dwflggf7tselj" path="res://Resources/Icons/close.png" id="4_spxwm"]
-[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="4_wsvvq"]
-[ext_resource type="Script" path="res://UI/Components/modal_controller.gd" id="6_modal"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat/Montserrat-SemiBold.ttf" id="4_wsvvq"]
+[ext_resource type="Script" uid="uid://cpxc73lkes5c4" path="res://UI/Components/modal_controller.gd" id="6_modal"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spxwm"]
 bg_color = Color(0.84705883, 0.25490198, 0.19607843, 1)
