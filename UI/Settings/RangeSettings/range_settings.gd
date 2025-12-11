@@ -6,6 +6,7 @@ var temperature_spin_box : SpinBox = null
 var altitude_spin_box : SpinBox = null
 var drag_spin_box : SpinBox = null
 var surface_option : OptionButton = null
+var tracer_count_spin_box : SpinBox = null
 
 
 func _setup_spin_box(spin_box: SpinBox, setting: Setting, step: float) -> void:
@@ -28,18 +29,22 @@ func _ready() -> void:
 	altitude_spin_box = $MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox
 	drag_spin_box = $MarginContainer/VBoxContainer/DragScale/DragSpinBox
 	surface_option = $MarginContainer/VBoxContainer/SurfaceType/SurfaceOption
-	
+	tracer_count_spin_box = $MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox
+
 	# Reset Timer Settings
 	_setup_spin_box(reset_spin_box, GlobalSettings.range_settings.ball_reset_timer, 0.5)
-	
+
 	# Temperature Settings
 	_setup_spin_box(temperature_spin_box, GlobalSettings.range_settings.temperature, 1.0)
-	
+
 	# Altitude Settings
 	_setup_spin_box(altitude_spin_box, GlobalSettings.range_settings.altitude, 10.0)
 
 	# Drag scale
 	_setup_spin_box(drag_spin_box, GlobalSettings.range_settings.drag_scale, 0.5)
+
+	# Tracer count
+	_setup_spin_box(tracer_count_spin_box, GlobalSettings.range_settings.shot_tracer_count, 1.0)
 
 	# Surface type options
 	surface_option.clear()
@@ -47,7 +52,7 @@ func _ready() -> void:
 	surface_option.add_item("Rough", Enums.Surface.ROUGH)
 	surface_option.add_item("Firm", Enums.Surface.FIRM)
 	surface_option.select(GlobalSettings.range_settings.surface_type.value)
-	
+
 	GlobalSettings.range_settings.range_units.setting_changed.connect(update_units)
 
 
@@ -101,6 +106,11 @@ func _on_drag_spin_box_value_changed(value: float) -> void:
 func _on_surface_option_item_selected(index: int) -> void:
 	var id: int = surface_option.get_item_id(index)
 	GlobalSettings.range_settings.surface_type.set_value(id)
+
+
+func _on_tracer_count_spin_box_value_changed(value: float) -> void:
+	GlobalSettings.range_settings.shot_tracer_count.set_value(int(value))
+
 
 func update_units(value) -> void:
 	const m2ft = 3.28084

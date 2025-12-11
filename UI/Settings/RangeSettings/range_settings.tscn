@@ -245,6 +245,27 @@ size_flags_horizontal = 3
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="TracerCount" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TracerCount"]
+layout_mode = 2
+text = "Shot Tracers: "
+
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer/TracerCount"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.4
+
+[node name="TracerCountSpinBox" type="SpinBox" parent="MarginContainer/VBoxContainer/TracerCount"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Control4" type="Control" parent="MarginContainer/VBoxContainer/TracerCount"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="ExitButton" type="Button" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
@@ -259,4 +280,5 @@ text = "Exit to Menu"
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox" to="." method="_on_altitude_spin_box_value_changed"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/DragScale/DragSpinBox" to="." method="_on_drag_spin_box_value_changed"]
 [connection signal="item_selected" from="MarginContainer/VBoxContainer/SurfaceType/SurfaceOption" to="." method="_on_surface_option_item_selected"]
+[connection signal="value_changed" from="MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox" to="." method="_on_tracer_count_spin_box_value_changed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/ExitButton" to="." method="_on_exit_button_pressed"]

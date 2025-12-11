@@ -4,8 +4,8 @@
     "ShotNumber": 13,
     "APIversion": "1",
     "BallData" : {
-    "Speed": 62.0,
-    "SpinAxis": -13.2,
+    "Speed": 85.0,
+    "SpinAxis": -23.2,
     "TotalSpin": 0,
     "BackSpin": 2500.0,
     "SideSpin": -800.0,
