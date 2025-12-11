@@ -26,38 +26,38 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 	
 	if units == Enums.Units.IMPERIAL:
 		if show_distance:
-			ball_data["Distance"] = str(int(player.get_distance()*m2yd))
+			ball_data["Distance"] = "%.1f" % (player.get_distance()*m2yd)
 		else:
 			ball_data["Distance"] = prev_data.get("Distance", "---")
 		var carry_val = player.carry
 		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
 			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float / 1.0 # raw is assumed yards
-		ball_data["Carry"] = str(int(carry_val*m2yd if not raw_ball_data.has("CarryDistance") else carry_val))
-		ball_data["Apex"] = str(int(player.apex*3.28084))
-		var side_distance = int(player.get_side_distance()*m2yd)
+		ball_data["Carry"] = "%.1f" % (carry_val*m2yd if not raw_ball_data.has("CarryDistance") else carry_val)
+		ball_data["Apex"] = "%.1f" % (player.apex*3.28084)
+		var side_distance = player.get_side_distance()*m2yd
 		var side_text := "R"
 		if side_distance < 0:
 			side_text = "L"
-		side_text += str(abs(side_distance))
+		side_text += ("%.1f" % abs(side_distance))
 		ball_data["Offline"] = side_text
-		ball_data["Speed"] = "%3.1f" % raw_ball_data.get("Speed", 0.0)
+		ball_data["Speed"] = "%.1f" % raw_ball_data.get("Speed", 0.0)
 	else:
 		if show_distance:
-			ball_data["Distance"] = str(player.get_distance())
+			ball_data["Distance"] = "%.1f" % player.get_distance()
 		else:
 			ball_data["Distance"] = prev_data.get("Distance", "---")
 		var carry_val = player.carry
 		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
 			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float
-		ball_data["Carry"] = str(int(carry_val))
-		ball_data["Apex"] = str(int(player.apex))
+		ball_data["Carry"] = "%.1f" % carry_val
+		ball_data["Apex"] = "%.1f" % player.apex
 		var side_distance = player.get_side_distance()
 		var side_text := "R"
 		if side_distance < 0:
 			side_text = "L"
-		side_text += str(abs(side_distance))
+		side_text += ("%.1f" % abs(side_distance))
 		ball_data["Offline"] = side_text
-		ball_data["Speed"] = "%3.1f" % (raw_ball_data.get("Speed", 0.0) * 0.44704)
+		ball_data["Speed"] = "%.1f" % (raw_ball_data.get("Speed", 0.0) * 0.44704)
 	
 	ball_data["BackSpin"] = str(int(backspin))
 	ball_data["SideSpin"] = str(int(sidespin))

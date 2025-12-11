@@ -17,11 +17,12 @@ var airDensity = Coefficients.get_air_density(0.0, temperature)
 var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temperature)
 var nu = 0.00001470 # Air Kinematic Viscosity
 var nu_g = 0.0005 # Grass drag viscosity; surface-driven
-var drag_cf := 1.2 # Drag correction factor
-var lift_cf := 1.2 # lift correction factor
+var drag_cf := 1.0 # Drag correction factor
+var lift_cf := 1.6 # lift correction factor
 var surface_type: int = Enums.Surface.FIRM
 
 var state : Enums.BallState = Enums.BallState.REST
+var debug_frame_count := 0
 
 signal rest
 
@@ -31,7 +32,9 @@ func _ready() -> void:
 	GlobalSettings.range_settings.temperature.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.altitude.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.drag_scale.setting_changed.connect(_on_drag_scale_changed)
+	GlobalSettings.range_settings.lift_scale.setting_changed.connect(_on_lift_scale_changed)
 	drag_cf = GlobalSettings.range_settings.drag_scale.value
+	lift_cf = GlobalSettings.range_settings.lift_scale.value
 	set_env(null) # Sync air properties to current settings on startup
 	_apply_surface(surface_type)
 
@@ -63,10 +66,10 @@ func _physics_process(delta: float) -> void:
 		b_vel = b_vel + velocity
 		if b_vel.length() < 0.05: # rolling without slipping
 			b_vel = velocity.normalized()
-			F_f = b_vel*(-u_k*mass*9.81)
+			F_f = b_vel*(-u_kr*mass*9.81)  # Use rolling friction
 		else: # ball slipping
 			b_vel = b_vel.normalized()
-			F_f = b_vel*(-u_k*mass*9.81)
+			F_f = b_vel*(-u_k*mass*9.81)  # Use kinetic friction
 			T_f = (floor_norm*-radius).cross(F_f)
 			
 		# Viscous Torque
@@ -83,6 +86,13 @@ func _physics_process(delta: float) -> void:
 		var Cl = Coefficients.get_Cl(Re, spin)*lift_cf
 		var Cd = Coefficients.get_Cd(Re)*drag_cf
 		var Cm = 6.0*PI*nu*radius
+
+		# Diagnostic logging (first 100 frames, every 20 frames)
+		if debug_frame_count < 100 and debug_frame_count % 20 == 0:
+			print("Frame %d: Re=%.0f, S=%.3f, Cl_base=%.3f, Cl_actual=%.3f (×%.2f), Cd_base=%.3f, Cd_actual=%.3f, speed=%.1f m/s" % [
+				debug_frame_count, Re, spin, Coefficients.get_Cl(Re, spin), Cl, lift_cf, Coefficients.get_Cd(Re), Cd, speed
+			])
+		debug_frame_count += 1
 		
 		# Magnus force
 		var om_x_vel = omega.cross(velocity)
@@ -108,6 +118,27 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		emit_signal("rest")
 	
+	# Safety check: prevent ball from falling through ground
+	if position.y < -0.5:
+		# Ball fell through ground - place it on the surface at current horizontal position
+		print("WARNING: Ball fell through ground at position: ", position, " - resetting to y=0.0")
+		position.y = 0.0
+		velocity = Vector3.ZERO
+		omega = Vector3.ZERO
+		state = Enums.BallState.REST
+		emit_signal("rest")
+		return
+
+	# Safety check: prevent ball from going too far out of bounds
+	if abs(position.x) > 1000.0 or abs(position.z) > 1000.0:
+		# Ball went way out of bounds - stop it where it is
+		print("WARNING: Ball went out of bounds at position: ", position)
+		velocity = Vector3.ZERO
+		omega = Vector3.ZERO
+		state = Enums.BallState.REST
+		emit_signal("rest")
+		return
+
 	# Collisions
 	var collision = move_and_collide(velocity*delta)
 	if collision:
@@ -115,7 +146,7 @@ func _physics_process(delta: float) -> void:
 			velocity = bounce(velocity, collision.get_normal())
 		else:
 			velocity.y = 0
-			
+
 		if velocity.length() < 0.1 and state != Enums.BallState.REST:
 			state = Enums.BallState.REST
 			velocity = Vector3.ZERO
@@ -174,6 +205,7 @@ func bounce(vel, normal) -> Vector3:
 	
 
 func hit():
+	debug_frame_count = 0  # Reset diagnostic counter for new shot
 	# 8 iron test shot - 100 mph, 20.8 deg launch, 1.7 deg horz launch, 7494 rpm, 2.7 degree spin axis offset
 	var data : Dictionary = {
 		"Speed": 100.0,
@@ -193,6 +225,7 @@ func hit():
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
 	
 func hit_from_data(data : Dictionary):
+	debug_frame_count = 0  # Reset diagnostic counter for new shot
 	var speed_mps: float = (data.get("Speed", 0.0) as float)*0.44704
 	var vla_deg: float = data.get("VLA", 0.0) as float
 	var hla_deg: float = data.get("HLA", 0.0) as float
@@ -242,6 +275,10 @@ func reset():
 
 func _on_drag_scale_changed(_value):
 	drag_cf = GlobalSettings.range_settings.drag_scale.value
+
+
+func _on_lift_scale_changed(_value):
+	lift_cf = GlobalSettings.range_settings.lift_scale.value
 
 
 func set_surface(surface: int) -> void:

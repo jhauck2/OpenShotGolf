@@ -7,6 +7,7 @@ var reset_spin_box : SpinBox = null
 var temperature_spin_box : SpinBox = null
 var altitude_spin_box : SpinBox = null
 var drag_spin_box : SpinBox = null
+var lift_spin_box : SpinBox = null
 var surface_option : OptionButton = null
 var tracer_count_spin_box : SpinBox = null
 
@@ -30,6 +31,8 @@ func _ready() -> void:
 	temperature_spin_box = $MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox
 	altitude_spin_box = $MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox
 	drag_spin_box = $MarginContainer/VBoxContainer/DragScale/DragSpinBox
+	if has_node("MarginContainer/VBoxContainer/LiftScale/LiftSpinBox"):
+		lift_spin_box = $MarginContainer/VBoxContainer/LiftScale/LiftSpinBox
 	surface_option = $MarginContainer/VBoxContainer/SurfaceType/SurfaceOption
 	tracer_count_spin_box = $MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox
 
@@ -44,6 +47,10 @@ func _ready() -> void:
 
 	# Drag scale
 	_setup_spin_box(drag_spin_box, GlobalSettings.range_settings.drag_scale, 0.5)
+
+	# Lift scale
+	if lift_spin_box != null:
+		_setup_spin_box(lift_spin_box, GlobalSettings.range_settings.lift_scale, 0.1)
 
 	# Tracer count
 	_setup_spin_box(tracer_count_spin_box, GlobalSettings.range_settings.shot_tracer_count, 1.0)
@@ -109,6 +116,10 @@ func _on_altitude_spin_box_value_changed(value: float) -> void:
 
 func _on_drag_spin_box_value_changed(value: float) -> void:
 	GlobalSettings.range_settings.drag_scale.set_value(value)
+
+
+func _on_lift_spin_box_value_changed(value: float) -> void:
+	GlobalSettings.range_settings.lift_scale.set_value(value)
 
 
 func _on_surface_option_item_selected(index: int) -> void:
