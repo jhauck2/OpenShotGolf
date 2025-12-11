@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://cnbpshmwvaw1c"
-path="res://.godot/imported/Montserrat-SemiBold.ttf-915b258b6ac9a7f775fbaa9a28d399dd.fontdata"
+uid="uid://ia14e2pq4s4r"
+path="res://.godot/imported/Oswald-Bold.ttf-0b441f2f2d69c6c870616e1e7ac169f6.fontdata"
 
 [deps]
 
-source_file="res://UI/Fonts/Montserrat-SemiBold.ttf"
-dest_files=["res://.godot/imported/Montserrat-SemiBold.ttf-915b258b6ac9a7f775fbaa9a28d399dd.fontdata"]
+source_file="res://UI/Fonts/Oswald/Oswald-Bold.ttf"
+dest_files=["res://.godot/imported/Oswald-Bold.ttf-0b441f2f2d69c6c870616e1e7ac169f6.fontdata"]
 
 [params]
 

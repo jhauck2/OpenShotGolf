@@ -3,7 +3,7 @@
 [ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
 [ext_resource type="Script" uid="uid://csmvu68e2ttjm" path="res://UI/MainMenu/Screens/settings_screen.gd" id="2_0t22m"]
 [ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="2_1jas8"]
-[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="5_6bu0p"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald/Oswald-Bold.ttf" id="5_6bu0p"]
 [ext_resource type="Script" uid="uid://dhb4kbk5ts21e" path="res://UI/Components/animation_component.gd" id="5_uprso"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uprso"]

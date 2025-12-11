@@ -1,7 +1,7 @@
 [gd_resource type="Theme" load_steps=31 format=4 uid="uid://cgf8jxjkwhfhq"]
 
-[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="1_3835y"]
-[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="2_7wml1"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat/Montserrat-Regular.ttf" id="1_3835y"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat/Montserrat-SemiBold.ttf" id="2_7wml1"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3by77"]
 content_margin_left = 0.0

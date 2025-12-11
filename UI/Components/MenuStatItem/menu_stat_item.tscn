@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3 uid="uid://dving2psh4yv1"]
 
 [ext_resource type="Script" uid="uid://c3jrkyhtjl22p" path="res://UI/Components/MenuStatItem/menu_stat_item.gd" id="1_ga441"]
-[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat-Regular.ttf" id="1_pixaa"]
-[ext_resource type="FontFile" uid="uid://85kln1sh8dbv" path="res://UI/Fonts/Montserrat-Bold.ttf" id="2_ga441"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat/Montserrat-Regular.ttf" id="1_pixaa"]
+[ext_resource type="FontFile" uid="uid://85kln1sh8dbv" path="res://UI/Fonts/Montserrat/Montserrat-Bold.ttf" id="2_ga441"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j8hbg"]
 bg_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
