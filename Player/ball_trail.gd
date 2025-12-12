@@ -83,17 +83,17 @@ func create_ribbon_mesh():
 		colors.append(vertex_color)
 		colors.append(vertex_color)
 
-	# Create triangles for the ribbon
-	for i in range(points.size() - 1):
-		var base := i * 2
-		# First triangle
-		indices.append(base)
-		indices.append(base + 1)
-		indices.append(base + 2)
-		# Second triangle
-		indices.append(base + 1)
-		indices.append(base + 3)
-		indices.append(base + 2)
+		# Create triangles connecting to previous segment
+		if i > 0:
+			var base := i * 2
+			# First triangle
+			indices.append(base)
+			indices.append(base - 2)
+			indices.append(base - 1)
+			# Second triangle
+			indices.append(base - 1)
+			indices.append(base + 1)
+			indices.append(base)
 
 	# Create the mesh
 	var arrays := []
