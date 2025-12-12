@@ -141,12 +141,10 @@ func _physics_process(delta: float) -> void:
 		# Handle first impact bounce (transitions to ROLLOUT)
 		if collision:
 			var normal = collision.get_normal()
-			if velocity.y < -0.5:
-				velocity = bounce(velocity, normal)
-				# bounce() sets state = ROLLOUT, next frame will use ground forces
-			else:
-				# Light contact during flight - just zero out y velocity
-				velocity.y = 0
+			# Apply bounce physics for ANY collision during flight
+			# Previously had velocity.y < -0.5 threshold which caused low shots to skip
+			velocity = bounce(velocity, normal)
+			# bounce() sets state = ROLLOUT, next frame will use ground forces
 	else:
 		# In ROLLOUT or REST - use proper ground detection
 		if collision:
