@@ -78,19 +78,19 @@ static func get_Cd(Re: float, S: float) -> float:
 			if cd_high_index == cd_low_index:
 				return cd_lookup_table[cd_high_index][1]
 			
-			var cd_low = cd_lookup_table[cd_high_index][1]
-			var cd_high = cd_lookup_table[cd_low_index][1]
-			var S_low = cd_lookup_table[cd_high_index][0]
-			var S_high = cd_lookup_table[cd_low_index][0]
+			var cd_low = cd_lookup_table[cd_low_index][1]
+			var cd_high = cd_lookup_table[cd_high_index][1]
+			var S_low = cd_lookup_table[cd_low_index][0]
+			var S_high = cd_lookup_table[cd_high_index][0]
 			var weight = (S - S_low)/(S_high - S_low)
 			return lerpf(cd_low, cd_high, weight)
 			
 		else: # Re > 238000
-			return 0.27
+			return 0.2
 	
 	else: # S > 0.47
 		if Re < 12057:
-			return 0.8 # TODO: needs checking
+			return 0.55 # TODO: needs checking
 		if Re < 15332: # Right S/Re combo for ILT-DS2
 			return 0.66 # TODO: Implement iterpolated lookup tables from dataset 2
 		else:
@@ -100,7 +100,7 @@ static func get_Cd(Re: float, S: float) -> float:
 static func get_Cl(Re: float, S: float) -> float:
 	if S < 0.47:
 		if Re < 50000:
-			return 0.36 # TODO: This needs work
+			return 0.1 # TODO: This needs work
 		if Re < 238000:
 			# Re and S are in the range for LT-DS1
 			# Cd lookup table valid for 0 < S < 0.47, 5e4 < Re < 2.38e5
@@ -132,10 +132,10 @@ static func get_Cl(Re: float, S: float) -> float:
 			if cl_high_index == cl_low_index:
 				return cl_lookup_table[cl_high_index][1]
 			
-			var cl_low = cl_lookup_table[cl_high_index][1]
-			var cl_high = cl_lookup_table[cl_low_index][1]
-			var S_low = cl_lookup_table[cl_high_index][0]
-			var S_high = cl_lookup_table[cl_low_index][0]
+			var cl_low = cl_lookup_table[cl_low_index][1]
+			var cl_high = cl_lookup_table[cl_high_index][1]
+			var S_low = cl_lookup_table[cl_low_index][0]
+			var S_high = cl_lookup_table[cl_high_index][0]
 			var weight = (S - S_low)/(S_high - S_low)
 			return lerpf(cl_low, cl_high, weight)
 			
