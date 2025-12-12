@@ -10,7 +10,7 @@ var temperature := Setting.new(75, -40, 120)
 var altitude := Setting.new(0.0, -1000.0, 10000.0)
 var drag_scale := Setting.new(1.0, 0.5, 1.5)
 var surface_type := Setting.new(Enums.Surface.FAIRWAY)
-var shot_tracer_count := Setting.new(2, 2, 4)
+var shot_tracer_count := Setting.new(2, 0, 4)
 
 func _init():
 	settings = {

@@ -44,11 +44,6 @@ text = "REC: Off"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RangeSettings" parent="HBoxContainer" instance=ExtResource("3_bxj45")]
-visible = false
-z_index = 1
-layout_mode = 2
-
 [node name="SettingsButton" type="TextureButton" parent="HBoxContainer"]
 layout_mode = 2
 texture_normal = ExtResource("3_omvf4")
@@ -69,6 +64,35 @@ theme_override_font_sizes/font_size = 32
 text = "Total Distance --"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="SettingsLayer" type="CanvasLayer" parent="."]
+visible = false
+
+[node name="Background" type="ColorRect" parent="SettingsLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Container" type="Container" parent="SettingsLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="RangeSettings" parent="SettingsLayer/Container" instance=ExtResource("3_bxj45")]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -394.0
+offset_top = 15.0
+offset_right = -15.0
+grow_horizontal = 0
 
 [node name="SessionPopUp" parent="." instance=ExtResource("4_7kh1v")]
 layout_mode = 2
@@ -236,8 +260,9 @@ text = "Test Payload"
 [node name="PayloadOption" type="OptionButton" parent="ShotInjector"]
 layout_mode = 2
 
+[connection signal="gui_input" from="SettingsLayer/Background" to="SettingsLayer/Container/RangeSettings" method="_on_background_clicked"]
 [connection signal="pressed" from="HBoxContainer/RecButton" to="." method="_on_rec_button_pressed"]
-[connection signal="pressed" from="HBoxContainer/SettingsButton" to="HBoxContainer/RangeSettings" method="_on_settings_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/SettingsButton" to="SettingsLayer/Container/RangeSettings" method="_on_settings_button_pressed"]
 [connection signal="dir_selected" from="SessionPopUp" to="." method="_on_session_pop_up_dir_selected"]
 [connection signal="drag_ended" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_ended"]
 [connection signal="drag_started" from="GridCanvas/Distance" to="GridCanvas" method="_on_panel_drag_started"]

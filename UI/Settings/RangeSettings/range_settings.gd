@@ -62,7 +62,16 @@ func _process(_delta: float) -> void:
 
 
 func _on_settings_button_pressed() -> void:
-	visible = not visible
+	# Toggle the SettingsLayer visibility (parent.parent.parent)
+	var settings_layer = get_parent().get_parent()
+	settings_layer.visible = not settings_layer.visible
+
+
+func _on_background_clicked(event: InputEvent) -> void:
+	# Close the menu when clicking on the background
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var settings_layer = get_parent().get_parent()
+		settings_layer.visible = false
 
 
 func _on_exit_button_pressed() -> void:

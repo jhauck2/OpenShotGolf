@@ -9,7 +9,8 @@ var carry := 0.0
 var side_distance := 0.0
 var shot_data: Dictionary = {}
 
-var max_tracers : int = 2
+var max_tracers : int = 4
+var min_tracers : int = 0
 var tracers : Array = []
 var current_tracer : MeshInstance3D = null
 var BallTrailScript = preload("res://Player/ball_trail.gd")
@@ -20,9 +21,6 @@ signal rest(data: Dictionary)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	# Hide the original BallTrail node - we'll create new ones dynamically
-	$BallTrail.visible = false
-
 	# Set initial value and connect to setting changes
 	max_tracers = GlobalSettings.range_settings.shot_tracer_count.value
 	GlobalSettings.range_settings.shot_tracer_count.setting_changed.connect(_on_tracer_count_changed)
@@ -35,6 +33,11 @@ func _on_tracer_count_changed(value) -> void:
 		oldest.queue_free()
 
 func create_new_tracer() -> MeshInstance3D:
+	# Don't create tracer if max_tracers is 0
+	if max_tracers == 0:
+		current_tracer = null
+		return null
+
 	# Remove oldest tracer if we've hit the limit
 	if tracers.size() >= max_tracers:
 		var oldest = tracers.pop_front()
@@ -57,7 +60,8 @@ func _process(_delta: float) -> void:
 		track_points = false
 		create_new_tracer()
 		$Ball.call_deferred("hit")
-		current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
+		if current_tracer != null:
+			current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
 		track_points = true
 		trail_timer = 0.0
 	if Input.is_action_just_pressed("reset"):
@@ -145,7 +149,8 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 	side_distance = 0.0
 	create_new_tracer()
 	$Ball.call_deferred("hit_from_data", data)
-	current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
+	if current_tracer != null:
+		current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
 	track_points = true
 	trail_timer = 0.0
 
@@ -160,7 +165,8 @@ func _on_range_ui_hit_shot(data: Variant) -> void:
 	side_distance = 0.0
 	create_new_tracer()
 	$Ball.call_deferred("hit_from_data", data)
-	current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
+	if current_tracer != null:
+		current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
 	track_points = true
 	trail_timer = 0.0
 	
