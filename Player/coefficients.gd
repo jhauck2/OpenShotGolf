@@ -68,7 +68,7 @@ static func get_Cd(Re: float, S: float) -> float:
 			]
 			var cd_low_index := 0
 			var cd_high_index := 0
-			for i in range(cd_lookup_table.size()):
+			for i in cd_lookup_table.size():
 				if S < cd_lookup_table[i][0]:
 					cd_high_index = i
 					cd_low_index = max(0, i-1)
@@ -122,7 +122,7 @@ static func get_Cl(Re: float, S: float) -> float:
 			]
 			var cl_low_index := 0
 			var cl_high_index := 0
-			for i in range(cl_lookup_table.size()):
+			for i in cl_lookup_table.size():
 				if S < cl_lookup_table[i][0]:
 					cl_high_index = i
 					cl_low_index = max(0, i-1)
