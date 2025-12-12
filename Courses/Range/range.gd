@@ -22,10 +22,23 @@ var auto_reset_enabled := false
 var raw_ball_data: Dictionary = {}
 var last_display: Dictionary = {}
 
+var camera_controller: CameraController = null
 
-# Called when the node enters the scene tree for the first time.
+
 func _ready() -> void:
+	_setup_camera_system()
+
+
+func _setup_camera_system() -> void:
 	$PhantomCamera3D.follow_target = $Player/Ball
+
+	camera_controller = CameraController.new($PhantomCamera3D)
+	camera_controller.name = "CameraController"
+	add_child(camera_controller)
+
+	if has_node("Player/Ball"):
+		camera_controller.set_ball_target($Player/Ball)
+
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_changed)
 	_apply_surface_to_ball()
@@ -43,7 +56,7 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
+		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
 
 
 func _process(_delta: float) -> void:
@@ -74,33 +87,21 @@ func _on_golf_ball_rest(_ball_data) -> void:
 
 	# No auto reset: leave final numbers visible
 
+
 func set_camera_follow_mode(value) -> void:
 	if value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
-		$PhantomCamera3D.follow_target = $Player/Ball
+		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
 	else:
-		$PhantomCamera3D.follow_mode = 0 # None
+		camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
+
 
 func reset_camera_to_start() -> void:
-	# Temporarily disable follow mode
-	$PhantomCamera3D.follow_mode = 0 # None
-
-	# Tween camera back to starting position
-	var start_pos := Vector3(-2.5, 1.5, 0)  # Starting camera offset from ball at origin
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property($PhantomCamera3D, "global_position", start_pos, 1.5)
-
-	await tween.finished
-
-	# Reset ball to starting position so it's visible for next shot
+	camera_controller.set_camera_mode(CameraController.CameraMode.BEHIND_BALL)
+	await get_tree().create_timer(1.5).timeout
 	$Player/Ball.position = Vector3(0.0, 0.05, 0.0)
 	$Player/Ball.velocity = Vector3.ZERO
 	$Player/Ball.omega = Vector3.ZERO
 	$Player/Ball.state = Enums.BallState.REST
-
-	# Keep follow mode disabled - it will re-enable when the next shot starts
 
 
 func _on_range_ui_hit_shot(data: Dictionary) -> void:
@@ -111,7 +112,7 @@ func _on_range_ui_hit_shot(data: Dictionary) -> void:
 
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
+		camera_controller.set_camera_mode(CameraController.CameraMode.FOLLOW_BALL)
 
 
 func _apply_surface_to_ball() -> void:
