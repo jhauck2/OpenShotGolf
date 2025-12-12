@@ -65,6 +65,9 @@ func _physics_process(delta: float) -> void:
 		else: # ball slipping - kinetic friction
 			var slip_dir = v_contact.normalized()
 			F_f = slip_dir * (-u_k * mass * 9.81)  # Use kinetic friction
+
+		# Friction torque (applies in both rolling and slipping cases)
+		if F_f.length() > 0.001:
 			T_f = (-floor_norm * radius).cross(F_f)
 			
 		# Viscous Torque
