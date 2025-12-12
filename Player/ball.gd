@@ -54,17 +54,18 @@ func _physics_process(delta: float) -> void:
 		# Force of viscous drag from grass
 		F_gd = velocity*(-6*PI*radius*nu_g)
 		F_gd.y = 0.0
-		
-		# velocity of the bottom of the ball relative to the ground with spin included
-		var b_vel : Vector3 = floor_norm.cross(omega)*radius
-		b_vel = b_vel + velocity
-		if b_vel.length() < 0.05: # rolling without slipping
-			b_vel = velocity.normalized()
-			F_f = b_vel*(-u_kr*mass*9.81)  # Use rolling friction
-		else: # ball slipping
-			b_vel = b_vel.normalized()
-			F_f = b_vel*(-u_k*mass*9.81)  # Use kinetic friction
-			T_f = (floor_norm*-radius).cross(F_f)
+
+		# Contact point velocity: v_contact = v_center + omega × r_contact
+		# where r_contact = -floor_norm * radius (from center to ground contact)
+		var v_contact : Vector3 = velocity + omega.cross(-floor_norm * radius)
+
+		if v_contact.length() < 0.05: # rolling without slipping
+			var friction_dir = velocity.normalized() if velocity.length() > 0.01 else Vector3.ZERO
+			F_f = friction_dir * (-u_kr * mass * 9.81)  # Use rolling friction
+		else: # ball slipping - kinetic friction
+			var slip_dir = v_contact.normalized()
+			F_f = slip_dir * (-u_k * mass * 9.81)  # Use kinetic friction
+			T_f = (-floor_norm * radius).cross(F_f)
 			
 		# Viscous Torque
 		T_g = -6.0*PI*nu_g*radius*omega
