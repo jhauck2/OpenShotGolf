@@ -38,18 +38,21 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	on_ground = position.y < 0.03
-	
+	# Track previous state for bounce detection
+	var was_on_ground := on_ground
+	var prev_velocity := velocity
+
 	var F_g := Vector3(0.0, -9.81*mass, 0) # force of gravity
 	var F_m := Vector3.ZERO # Magnus force
 	var F_d := Vector3.ZERO # Drag force
 	var F_f := Vector3.ZERO # Frictional force
 	var F_gd := Vector3.ZERO # Drag force from grass
-	
+
 	var T_d := Vector3.ZERO # Viscous torque
 	var T_f := Vector3.ZERO # Frictional torque
 	var T_g := Vector3.ZERO # Grass drag torque
-	
+
+	# Use ground state from PREVIOUS frame for force calculations
 	if on_ground:
 		# Force of viscous drag from grass
 		F_gd = velocity*(-6*PI*radius*nu_g)
@@ -103,22 +106,6 @@ func _physics_process(delta: float) -> void:
 	
 	velocity = velocity + F/mass*delta
 	omega = omega + T/I*delta
-	
-	if velocity.length() < 0.1 and state != Enums.BallState.REST:
-		state = Enums.BallState.REST
-		velocity = Vector3.ZERO
-		emit_signal("rest")
-	
-	# Safety check: prevent ball from falling through ground
-	if position.y < -0.5:
-		# Ball fell through ground - place it on the surface at current horizontal position
-		print("WARNING: Ball fell through ground at position: ", position, " - resetting to y=0.0")
-		position.y = 0.0
-		velocity = Vector3.ZERO
-		omega = Vector3.ZERO
-		state = Enums.BallState.REST
-		emit_signal("rest")
-		return
 
 	# Safety check: prevent ball from going too far out of bounds
 	if abs(position.x) > 1000.0 or abs(position.z) > 1000.0:
@@ -130,18 +117,71 @@ func _physics_process(delta: float) -> void:
 		emit_signal("rest")
 		return
 
-	# Collisions
-	var collision = move_and_collide(velocity*delta)
-	if collision:
-		if velocity.y < -0.5:
-			velocity = bounce(velocity, collision.get_normal())
-		else:
-			velocity.y = 0
+	# Safety check: prevent ball from falling through ground
+	if position.y < -0.5:
+		# Ball fell through ground - place it on the surface at current horizontal position
+		print("WARNING: Ball fell through ground at position: ", position, " - resetting to y=0.0")
+		position.y = 0.0
+		velocity = Vector3.ZERO
+		omega = Vector3.ZERO
+		state = Enums.BallState.REST
+		emit_signal("rest")
+		return
 
-		if velocity.length() < 0.1 and state != Enums.BallState.REST:
-			state = Enums.BallState.REST
-			velocity = Vector3.ZERO
-			emit_signal("rest")
+	# Move and detect collision
+	var collision = move_and_collide(velocity * delta)
+
+	# Update ground state based on ACTUAL collision detection
+	# CRITICAL: During initial FLIGHT, ignore ground contact to preserve air physics (Magnus lift)
+	if state == Enums.BallState.FLIGHT:
+		# In flight - use air forces only, even if collision detected
+		on_ground = false
+		floor_norm = Vector3(0.0, 1.0, 0.0)
+
+		# Handle first impact bounce (transitions to ROLLOUT)
+		if collision:
+			var normal = collision.get_normal()
+			if velocity.y < -0.5:
+				velocity = bounce(velocity, normal)
+				# bounce() sets state = ROLLOUT, next frame will use ground forces
+			else:
+				# Light contact during flight - just zero out y velocity
+				velocity.y = 0
+	else:
+		# In ROLLOUT or REST - use proper ground detection
+		if collision:
+			var normal = collision.get_normal()
+
+			# Check if this is a floor collision (normal points upward)
+			if normal.dot(Vector3.UP) > 0.7:
+				on_ground = true
+				floor_norm = normal
+
+				# Handle subsequent bounces
+				if not was_on_ground and prev_velocity.y < -0.5:
+					velocity = bounce(velocity, floor_norm)
+				# Prevent sinking into ground
+				elif velocity.y < 0:
+					velocity.y = 0
+			else:
+				# Hit a wall or ceiling, not ground
+				on_ground = false
+				floor_norm = Vector3(0.0, 1.0, 0.0)
+		else:
+			# No collision this frame
+			# If we were on ground last frame and still very close, stay on ground (rolling continuity)
+			if was_on_ground and position.y < 0.05:
+				on_ground = true
+				# Keep previous floor_norm for continuity
+			else:
+				on_ground = false
+				floor_norm = Vector3(0.0, 1.0, 0.0)
+
+	# Rest detection
+	if velocity.length() < 0.1 and state != Enums.BallState.REST:
+		state = Enums.BallState.REST
+		velocity = Vector3.ZERO
+		emit_signal("rest")
 			
 	
 
@@ -207,8 +247,9 @@ func hit():
 		"Temp": 25.0,
 		"Altitude": 0.0
 	}
-	
+
 	state = Enums.BallState.FLIGHT
+	on_ground = false  # Critical: reset ground state for flight
 	position = Vector3(0.0, 0.05, 0.0)
 	velocity = Vector3(data["Speed"]*0.44704, 0, 0).rotated(
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
@@ -241,6 +282,7 @@ func hit_from_data(data : Dictionary):
 			sidespin = total_spin * sin(deg_to_rad(spin_axis))
 
 	state = Enums.BallState.FLIGHT
+	on_ground = false  # Critical: reset ground state for flight
 	position = Vector3(0.0, 0.05, 0.0)
 	velocity = Vector3(speed_mps, 0, 0).rotated(
 					Vector3(0.0, 0.0, 1.0), vla_deg*PI/180.0).rotated(
@@ -261,6 +303,7 @@ func reset():
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	state = Enums.BallState.REST
+	on_ground = false  # Reset ground state
 
 
 func _on_drag_scale_changed(_value):
