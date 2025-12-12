@@ -18,3 +18,5 @@ mono_crash.*.json
 
 # IDE Specific, used for code analytics outside of Godot IDE. 
 .vscode
+
+*addons/terrain_3d/bin/*
