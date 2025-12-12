@@ -1,0 +1,373 @@
+[gd_scene load_steps=5 format=3 uid="uid://bvu5enggwru8e"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_t17p2"]
+[ext_resource type="Script" uid="uid://cx0lnsrb1xw6i" path="res://UI/MainMenu/Screens/stats_screen.gd" id="2_c3883"]
+[ext_resource type="Texture2D" uid="uid://bu0e0656tahbv" path="res://UI/MainMenu/background.png" id="3_c3883"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c3883"]
+bg_color = Color(0.05882353, 0.06666667, 0.08235294, 1)
+
+[node name="StatsScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_t17p2")
+script = ExtResource("2_c3883")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_c3883")
+expand_mode = 5
+stretch_mode = 5
+metadata/_edit_lock_ = true
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_lock_ = true
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_c3883")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/Header/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "Stats & Analytics"
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/Header/VBoxContainer"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Track your performance and improve your game"
+autowrap_mode = 3
+
+[node name="Control" type="Control" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BackBtn" type="Button" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_type_variation = &"BackBtn"
+text = "Back"
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 40
+theme_override_constants/v_separation = 20
+columns = 3
+
+[node name="ClubFilter" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer/ClubFilter"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Club"
+
+[node name="Select" type="OptionButton" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer/ClubFilter"]
+layout_mode = 2
+item_count = 5
+popup/item_0/text = "All Clubs"
+popup/item_0/id = 0
+popup/item_1/text = "Driver"
+popup/item_1/id = 1
+popup/item_2/text = "Woods"
+popup/item_2/id = 2
+popup/item_3/text = "Irons"
+popup/item_3/id = 3
+popup/item_4/text = "Wedges"
+popup/item_4/id = 4
+
+[node name="DateFilter" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer/DateFilter"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Date Range"
+
+[node name="Select" type="OptionButton" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer/DateFilter"]
+layout_mode = 2
+item_count = 5
+popup/item_0/text = "Last 7 Days"
+popup/item_0/id = 0
+popup/item_1/text = "Last 30 Days"
+popup/item_1/id = 1
+popup/item_2/text = "Last 90 Days"
+popup/item_2/id = 2
+popup/item_3/text = "Last Year"
+popup/item_3/id = 3
+popup/item_4/text = "All Time"
+popup/item_4/id = 4
+
+[node name="DateFilter2" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer/DateFilter2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Date Range"
+
+[node name="Select" type="OptionButton" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/MarginContainer/GridContainer/DateFilter2"]
+layout_mode = 2
+item_count = 5
+popup/item_0/text = "Last 7 Days"
+popup/item_0/id = 0
+popup/item_1/text = "Last 30 Days"
+popup/item_1/id = 1
+popup/item_2/text = "Last 90 Days"
+popup/item_2/id = 2
+popup/item_3/text = "Last Year"
+popup/item_3/id = 3
+popup/item_4/text = "All Time"
+popup/item_4/id = 4
+
+[node name="StatsGrid" type="GridContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 15
+theme_override_constants/v_separation = 15
+columns = 3
+
+[node name="StatCard1" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard1"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard1/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Total Shots"
+
+[node name="Value" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard1/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "1,247"
+
+[node name="StatCard2" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard2"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard2/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Sessions"
+
+[node name="Value" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard2/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "42"
+
+[node name="StatCard3" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard3"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard3/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Avg Score"
+
+[node name="Value" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard3/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "127"
+
+[node name="StatCard4" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard4"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard4/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Avg Score"
+
+[node name="Value" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard4/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "127"
+
+[node name="StatCard5" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard5"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard5/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Avg Score"
+
+[node name="Value" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard5/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "127"
+
+[node name="StatCard6" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard6"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard6/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Avg Score"
+
+[node name="Value" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/StatsGrid/StatCard6/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "127"
+
+[node name="TabsContainer" type="PanelContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer"]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer"]
+layout_mode = 2
+current_tab = 1
+
+[node name="Club Performance" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 0
+
+[node name="DriverRow" type="HBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance/DriverRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Driver"
+
+[node name="AvgCarry" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance/DriverRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "245y"
+
+[node name="AvgTotal" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance/DriverRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "268y"
+
+[node name="IronRow" type="HBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance/IronRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "7 Iron"
+
+[node name="AvgCarry" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance/IronRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "155y"
+
+[node name="AvgTotal" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Club Performance/IronRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+text = "162y"
+
+[node name="Sessions" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 1
+
+[node name="SessionRow1" type="HBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Sessions"]
+layout_mode = 2
+
+[node name="Info" type="VBoxContainer" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Sessions/SessionRow1"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Mode" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Sessions/SessionRow1/Info"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "Target Practice"
+
+[node name="Date" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Sessions/SessionRow1/Info"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_font_sizes/font_size = 12
+text = "Nov 24, 2025"
+
+[node name="Score" type="Label" parent="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/TabsContainer/VBoxContainer/TabContainer/Sessions/SessionRow1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "165 pts"
+
+[connection signal="pressed" from="MarginContainer/PanelContainer/MarginContainer/VBoxContainer/Header/BackBtn" to="." method="_on_back_btn_pressed"]
