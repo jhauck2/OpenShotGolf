@@ -47,6 +47,10 @@ reset={
 ]
 }
 
+[physics]
+
+common/physics_interpolation=true
+
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true

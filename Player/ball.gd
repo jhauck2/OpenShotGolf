@@ -1,7 +1,6 @@
 extends CharacterBody3D
 
 var omega := Vector3.ZERO
-var rolling = false
 var on_ground := false
 var floor_norm := Vector3(0.0, 1.0, 0.0)
 var temperature: float = GlobalSettings.range_settings.temperature.value # Using global settings
@@ -17,8 +16,8 @@ var airDensity = Coefficients.get_air_density(0.0, temperature)
 var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temperature)
 var nu = 0.00001470 # Air Kinematic Viscosity
 var nu_g = 0.0005 # Grass drag viscosity; surface-driven
-var drag_cf := 1.2 # Drag correction factor
-var lift_cf := 1.2 # lift correction factor
+var drag_cf := 1.0 # Drag correction factor
+var lift_cf := 1.6 # lift correction factor
 var surface_type: int = Enums.Surface.FIRM
 
 var state : Enums.BallState = Enums.BallState.REST
@@ -31,15 +30,13 @@ func _ready() -> void:
 	GlobalSettings.range_settings.temperature.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.altitude.setting_changed.connect(set_env)
 	GlobalSettings.range_settings.drag_scale.setting_changed.connect(_on_drag_scale_changed)
+	GlobalSettings.range_settings.lift_scale.setting_changed.connect(_on_lift_scale_changed)
 	drag_cf = GlobalSettings.range_settings.drag_scale.value
+	lift_cf = GlobalSettings.range_settings.lift_scale.value
 	set_env(null) # Sync air properties to current settings on startup
 	_apply_surface(surface_type)
 
 
-func _process(_delta: float) -> void:
-	pass
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
 func _physics_process(delta: float) -> void:
 	on_ground = position.y < 0.03
 	
@@ -63,10 +60,10 @@ func _physics_process(delta: float) -> void:
 		b_vel = b_vel + velocity
 		if b_vel.length() < 0.05: # rolling without slipping
 			b_vel = velocity.normalized()
-			F_f = b_vel*(-u_k*mass*9.81)
+			F_f = b_vel*(-u_kr*mass*9.81)  # Use rolling friction
 		else: # ball slipping
 			b_vel = b_vel.normalized()
-			F_f = b_vel*(-u_k*mass*9.81)
+			F_f = b_vel*(-u_k*mass*9.81)  # Use kinetic friction
 			T_f = (floor_norm*-radius).cross(F_f)
 			
 		# Viscous Torque
@@ -83,7 +80,7 @@ func _physics_process(delta: float) -> void:
 		var Cl = Coefficients.get_Cl(Re, spin)*lift_cf
 		var Cd = Coefficients.get_Cd(Re)*drag_cf
 		var Cm = 6.0*PI*nu*radius
-		
+
 		# Magnus force
 		var om_x_vel = omega.cross(velocity)
 		var omega_len = omega.length()
@@ -108,6 +105,27 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		emit_signal("rest")
 	
+	# Safety check: prevent ball from falling through ground
+	if position.y < -0.5:
+		# Ball fell through ground - place it on the surface at current horizontal position
+		print("WARNING: Ball fell through ground at position: ", position, " - resetting to y=0.0")
+		position.y = 0.0
+		velocity = Vector3.ZERO
+		omega = Vector3.ZERO
+		state = Enums.BallState.REST
+		emit_signal("rest")
+		return
+
+	# Safety check: prevent ball from going too far out of bounds
+	if abs(position.x) > 1000.0 or abs(position.z) > 1000.0:
+		# Ball went way out of bounds - stop it where it is
+		print("WARNING: Ball went out of bounds at position: ", position)
+		velocity = Vector3.ZERO
+		omega = Vector3.ZERO
+		state = Enums.BallState.REST
+		emit_signal("rest")
+		return
+
 	# Collisions
 	var collision = move_and_collide(velocity*delta)
 	if collision:
@@ -115,7 +133,7 @@ func _physics_process(delta: float) -> void:
 			velocity = bounce(velocity, collision.get_normal())
 		else:
 			velocity.y = 0
-			
+
 		if velocity.length() < 0.1 and state != Enums.BallState.REST:
 			state = Enums.BallState.REST
 			velocity = Vector3.ZERO
@@ -131,29 +149,29 @@ func bounce(vel, normal) -> Vector3:
 	# component of velocity parallel to floor normal
 	var vel_norm : Vector3 = vel.project(normal)
 	var speed_norm : float = vel_norm.length()
-	# component of velocity orthoganal to normal
+	# component of velocity orthogonal to normal
 	var vel_orth : Vector3 = vel - vel_norm
 	var speed_orth : float = vel_orth.length()
-	#component of angular velocity parallel to normal
+	# component of angular velocity parallel to normal
 	var omg_norm : Vector3 = omega.project(normal)
-	# component of angular velocity orthoganal to normal
+	# component of angular velocity orthogonal to normal
 	var omg_orth : Vector3 = omega - omg_norm
 	
 	var speed : float = velocity.length()
 	var theta_1 : float = velocity.angle_to(normal)
 	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
 	
-	# final orthoganal speed
+	# final orthogonal speed
 	var v2_orth = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*radius*omg_norm.length()/7.0
-	# orthoganal restitution
+	# orthogonal restitution
 	if speed_orth < 0.01:
 		vel_orth = Vector3.ZERO
 	else:
 		vel_orth = vel_orth.limit_length(v2_orth)
 		
-	# final orthoganal angular velocity
+	# final orthogonal angular velocity
 	var w2h : float = v2_orth/radius
-	# orthoganal angular restitution
+	# orthogonal angular restitution
 	if omg_orth.length() < 0.1:
 		omg_orth = Vector3.ZERO
 	else:
@@ -242,6 +260,10 @@ func reset():
 
 func _on_drag_scale_changed(_value):
 	drag_cf = GlobalSettings.range_settings.drag_scale.value
+
+
+func _on_lift_scale_changed(_value):
+	lift_cf = GlobalSettings.range_settings.lift_scale.value
 
 
 func set_surface(surface: int) -> void:

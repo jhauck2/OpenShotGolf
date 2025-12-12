@@ -7,7 +7,7 @@ static func get_params(surface: int) -> Dictionary:
 		Enums.Surface.FAIRWAY:
 			return {"u_k": 0.15, "u_kr": 0.05, "nu_g": 0.0005}
 		Enums.Surface.ROUGH:
-			return {"u_k": 0.35, "u_kr": 0.15, "nu_g": 0.0015}
+			return {"u_k": 0.42, "u_kr": 0.18, "nu_g": 0.0020}
 		Enums.Surface.FIRM:
 			return {"u_k": 0.08, "u_kr": 0.02, "nu_g": 0.0002}
 		_:

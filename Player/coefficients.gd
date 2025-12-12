@@ -34,7 +34,7 @@ static func get_air_density(altitude: float, temp: float) -> float:
 static func get_dynamic_air_viscosity(temp: float) -> float:
 	var tempK : float
 	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
-		tempK= FtoC(temp) + KELVIN_CELCIUS
+		tempK = FtoC(temp) + KELVIN_CELCIUS
 	else:
 		tempK = temp + KELVIN_CELCIUS
 	
@@ -50,21 +50,16 @@ static func get_Cd(Re: float) -> float:
 	return 1.1948 - 0.0000209661*Re + 1.42472e-10*Re*Re - 3.14383e-16*Re*Re*Re
 
 static func get_Cl(Re: float, S: float) -> float:
-	# Low and high S
-
+	# Low S
 	if S < 0.05:
 		return 0.05
-	if S > .35:
-		if Re > 12.5e4:
-			return .3
-		else:
-			return -1.34786 + 0.0000354549*Re - 1.847e-10*Re*Re
-	
+
 	# Low and high Reynolds number
 	if Re < 50000:
 		return 0.1
-	if Re >= 75000:
-		return .203 
+	if Re >= 60000:
+		# Use linear model for Re >= 60k to avoid polynomial collapse, clamped to reasonable range
+		return min(0.4, max(0.05, Re75kToCl(S))) 
 		
 	# Calculations (fixed interpolation with equality handled)
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
@@ -86,20 +81,20 @@ static func get_Cl(Re: float, S: float) -> float:
 	if Re_high != Re_low:
 		weight = (Re - Re_low)/(Re_high - Re_low)
 
-	# Interpolate final Cl value from uper and lower Cl
+	# Interpolate final Cl value from upper and lower Cl
 	return lerpf(Cl_low, Cl_high, weight)
 
 static func Re50kToCl(S: float) -> float:
 	return 0.0472121 + 2.84795*S - 23.4342*S*S + 45.4849*S*S*S
 	
 static func Re60kToCl(S: float) -> float:
-	return 0.320524 - 4.7032*S + 14.0613*S*S
+	return max(0.05, 0.320524 - 4.7032*S + 14.0613*S*S)
 
 static func Re65kToCl(S: float) -> float:
-	return 0.266667 - 4*S + 13.3333*S*S
-	
+	return max(0.05, 0.266667 - 4*S + 13.3333*S*S)
+
 static func Re70kToCl(S: float) -> float:
-	return 0.0496189 + 0.00211396*S + 2.34201*S*S
+	return max(0.05, 0.0496189 + 0.00211396*S + 2.34201*S*S)
 	
 static func Re75kToCl(S: float) -> float:
 	return 1.1*S + 0.01
