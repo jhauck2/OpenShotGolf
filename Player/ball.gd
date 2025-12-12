@@ -1,7 +1,6 @@
 extends CharacterBody3D
 
 var omega := Vector3.ZERO
-var rolling = false
 var on_ground := false
 var floor_norm := Vector3(0.0, 1.0, 0.0)
 var temperature: float = GlobalSettings.range_settings.temperature.value # Using global settings
@@ -22,7 +21,6 @@ var lift_cf := 1.6 # lift correction factor
 var surface_type: int = Enums.Surface.FIRM
 
 var state : Enums.BallState = Enums.BallState.REST
-var debug_frame_count := 0
 
 signal rest
 
@@ -39,10 +37,6 @@ func _ready() -> void:
 	_apply_surface(surface_type)
 
 
-func _process(_delta: float) -> void:
-	pass
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
 func _physics_process(delta: float) -> void:
 	on_ground = position.y < 0.03
 	
@@ -87,13 +81,6 @@ func _physics_process(delta: float) -> void:
 		var Cd = Coefficients.get_Cd(Re)*drag_cf
 		var Cm = 6.0*PI*nu*radius
 
-		# Diagnostic logging (first 100 frames, every 20 frames)
-		if debug_frame_count < 100 and debug_frame_count % 20 == 0:
-			print("Frame %d: Re=%.0f, S=%.3f, Cl_base=%.3f, Cl_actual=%.3f (×%.2f), Cd_base=%.3f, Cd_actual=%.3f, speed=%.1f m/s" % [
-				debug_frame_count, Re, spin, Coefficients.get_Cl(Re, spin), Cl, lift_cf, Coefficients.get_Cd(Re), Cd, speed
-			])
-		debug_frame_count += 1
-		
 		# Magnus force
 		var om_x_vel = omega.cross(velocity)
 		var omega_len = omega.length()
@@ -162,29 +149,29 @@ func bounce(vel, normal) -> Vector3:
 	# component of velocity parallel to floor normal
 	var vel_norm : Vector3 = vel.project(normal)
 	var speed_norm : float = vel_norm.length()
-	# component of velocity orthoganal to normal
+	# component of velocity orthogonal to normal
 	var vel_orth : Vector3 = vel - vel_norm
 	var speed_orth : float = vel_orth.length()
-	#component of angular velocity parallel to normal
+	# component of angular velocity parallel to normal
 	var omg_norm : Vector3 = omega.project(normal)
-	# component of angular velocity orthoganal to normal
+	# component of angular velocity orthogonal to normal
 	var omg_orth : Vector3 = omega - omg_norm
 	
 	var speed : float = velocity.length()
 	var theta_1 : float = velocity.angle_to(normal)
 	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
 	
-	# final orthoganal speed
+	# final orthogonal speed
 	var v2_orth = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*radius*omg_norm.length()/7.0
-	# orthoganal restitution
+	# orthogonal restitution
 	if speed_orth < 0.01:
 		vel_orth = Vector3.ZERO
 	else:
 		vel_orth = vel_orth.limit_length(v2_orth)
 		
-	# final orthoganal angular velocity
+	# final orthogonal angular velocity
 	var w2h : float = v2_orth/radius
-	# orthoganal angular restitution
+	# orthogonal angular restitution
 	if omg_orth.length() < 0.1:
 		omg_orth = Vector3.ZERO
 	else:
@@ -205,7 +192,6 @@ func bounce(vel, normal) -> Vector3:
 	
 
 func hit():
-	debug_frame_count = 0  # Reset diagnostic counter for new shot
 	# 8 iron test shot - 100 mph, 20.8 deg launch, 1.7 deg horz launch, 7494 rpm, 2.7 degree spin axis offset
 	var data : Dictionary = {
 		"Speed": 100.0,
@@ -225,7 +211,6 @@ func hit():
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
 	
 func hit_from_data(data : Dictionary):
-	debug_frame_count = 0  # Reset diagnostic counter for new shot
 	var speed_mps: float = (data.get("Speed", 0.0) as float)*0.44704
 	var vla_deg: float = data.get("VLA", 0.0) as float
 	var hla_deg: float = data.get("HLA", 0.0) as float
