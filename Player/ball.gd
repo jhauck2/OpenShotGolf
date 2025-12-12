@@ -157,23 +157,24 @@ func bounce(vel, normal) -> Vector3:
 	var omg_norm : Vector3 = omega.project(normal)
 	# component of angular velocity orthogonal to normal
 	var omg_orth : Vector3 = omega - omg_norm
-	
-	var speed : float = velocity.length()
-	var theta_1 : float = velocity.angle_to(normal)
+
+	var speed : float = vel.length()
+	var theta_1 : float = vel.angle_to(normal)
 	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
-	
+
 	# final orthogonal speed
 	var v2_orth = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*radius*omg_norm.length()/7.0
-	# orthogonal restitution
-	if speed_orth < 0.01:
+
+	# orthogonal restitution - handle negative v2_orth (high spin case)
+	if speed_orth < 0.01 or v2_orth <= 0.0:
 		vel_orth = Vector3.ZERO
 	else:
 		vel_orth = vel_orth.limit_length(v2_orth)
-		
+
 	# final orthogonal angular velocity
-	var w2h : float = v2_orth/radius
-	# orthogonal angular restitution
-	if omg_orth.length() < 0.1:
+	var w2h : float = v2_orth / radius
+	# orthogonal angular restitution - handle negative w2h
+	if omg_orth.length() < 0.1 or w2h <= 0.0:
 		omg_orth = Vector3.ZERO
 	else:
 		omg_orth = omg_orth.limit_length(w2h)
