@@ -23,6 +23,7 @@ func _populate_payloads() -> void:
 	var payloads := {
 		"Drive test shot": "res://assets/data/drive_test_shot.json",
 		"Wedge test shot": "res://assets/data/wedge_test_shot.json",
+		"Bump test shot": "res://assets/data/bump_test_shot.json",
 	}
 	var selected := 0
 	var idx := 0
