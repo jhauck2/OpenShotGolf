@@ -25,9 +25,9 @@ var last_display: Dictionary = {}
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	$PhantomCamera3D.follow_target = $Player/Ball
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_changed)
+	set_camera_follow_mode(GlobalSettings.range_settings.camera_follow_mode.value)
 	_apply_surface_to_ball()
 
 
@@ -43,7 +43,7 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
+		set_camera_follow_mode(true)
 
 
 func _process(_delta: float) -> void:
@@ -76,14 +76,14 @@ func _on_golf_ball_rest(_ball_data) -> void:
 
 func set_camera_follow_mode(value) -> void:
 	if value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
+		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.FRAMED
 		$PhantomCamera3D.follow_target = $Player/Ball
 	else:
-		$PhantomCamera3D.follow_mode = 0 # None
+		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
 
 func reset_camera_to_start() -> void:
 	# Temporarily disable follow mode
-	$PhantomCamera3D.follow_mode = 0 # None
+	$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
 
 	# Tween camera back to starting position
 	var start_pos := Vector3(-2.5, 1.5, 0)  # Starting camera offset from ball at origin
@@ -111,7 +111,7 @@ func _on_range_ui_hit_shot(data: Dictionary) -> void:
 
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
-		$PhantomCamera3D.follow_mode = 5 # Framed
+		set_camera_follow_mode(true)
 
 
 func _apply_surface_to_ball() -> void:

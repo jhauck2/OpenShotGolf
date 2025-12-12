@@ -64,6 +64,20 @@ func _ready() -> void:
 
 	GlobalSettings.range_settings.range_units.setting_changed.connect(update_units)
 
+	# Initialize toggle button states
+	$MarginContainer/VBoxContainer/Units/CheckButton.set_pressed_no_signal(
+		GlobalSettings.range_settings.range_units.value == Enums.Units.METRIC
+	)
+	$MarginContainer/VBoxContainer/CameraFollow/CheckButton.set_pressed_no_signal(
+		GlobalSettings.range_settings.camera_follow_mode.value
+	)
+	$MarginContainer/VBoxContainer/AutoBallReset/CheckButton.set_pressed_no_signal(
+		GlobalSettings.range_settings.auto_ball_reset.value
+	)
+	$MarginContainer/VBoxContainer/ShotInjector/CheckButton.set_pressed_no_signal(
+		GlobalSettings.range_settings.shot_injector_enabled.value
+	)
+
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:
