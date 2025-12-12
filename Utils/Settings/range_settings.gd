@@ -10,7 +10,7 @@ var temperature := Setting.new(75, -40, 120)
 var altitude := Setting.new(0.0, -1000.0, 10000.0)
 var drag_scale := Setting.new(1.0, 0.5, 1.5)
 var lift_scale := Setting.new(1.6, 0.8, 2.0)
-var surface_type := Setting.new(Enums.Surface.FAIRWAY)
+var surface_type := Setting.new(Enums.Surface.ROUGH)
 var shot_tracer_count := Setting.new(4, 0, 4)
 
 func _init():
@@ -33,10 +33,10 @@ func reset_defaults():
 	camera_follow_mode.value = true
 	shot_injector_enabled.value = false
 	auto_ball_reset.value = false
-	ball_reset_timer.value = 7.0
+	ball_reset_timer.value = 5.0
 	temperature.value = 75
 	altitude.value = 0.0
 	drag_scale.value = 1.0
 	lift_scale.value = 1.6
-	surface_type.value = Enums.Surface.FAIRWAY
+	surface_type.value = Enums.Surface.ROUGH
 	shot_tracer_count.value = 4
