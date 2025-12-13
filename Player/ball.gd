@@ -320,17 +320,18 @@ func hit_from_data(data : Dictionary):
 	else:
 		omega = Vector3(0.0, 0.0, total_spin*0.10472).rotated(Vector3(1.0, 0.0, 0.0), spin_axis*PI/180)
 
-	print("=== SHOT DEBUG ===")
-	print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
-	print("VLA: %.2f°, HLA: %.2f°" % [vla_deg, hla_deg])
-	print("Spin: %.0f rpm, Axis: %.2f°" % [total_spin, spin_axis])
-	print("drag_cf: %.2f, lift_cf: %.2f" % [drag_cf, lift_cf])
-	print("Air density: %.4f kg/m³" % airDensity)
-	print("Dynamic viscosity: ", dynamicAirViscosity)
-	print("Initial velocity: ", velocity)
-	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
-	print("Shot dir (flat): ", shot_dir)
-	print("===================")
+	# Leave these in. We'll revisit again--I am sure. 
+	#print("=== SHOT DEBUG ===")
+	#print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
+	#print("VLA: %.2f°, HLA: %.2f°" % [vla_deg, hla_deg])
+	#print("Spin: %.0f rpm, Axis: %.2f°" % [total_spin, spin_axis])
+	#print("drag_cf: %.2f, lift_cf: %.2f" % [drag_cf, lift_cf])
+	#print("Air density: %.4f kg/m³" % airDensity)
+	#print("Dynamic viscosity: ", dynamicAirViscosity)
+	#print("Initial velocity: ", velocity)
+	#print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
+	#print("Shot dir (flat): ", shot_dir)
+	#print("===================")
 
 
 func set_env(_value):
