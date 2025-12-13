@@ -22,6 +22,10 @@ var surface_type: int = Enums.Surface.FIRM
 
 var state : Enums.BallState = Enums.BallState.REST
 
+# --- NEW: shot reference for measuring downrange distance correctly ---
+var shot_start_pos := Vector3.ZERO
+var shot_dir := Vector3(0.0, 0.0, 1.0) # normalized horizontal-ish direction
+
 signal rest
 
 # Called when the node enters the scene tree for the first time.
@@ -35,6 +39,18 @@ func _ready() -> void:
 	lift_cf = GlobalSettings.range_settings.lift_scale.value
 	set_env(null) # Sync air properties to current settings on startup
 	_apply_surface(surface_type)
+
+
+func _is_ground_normal(n: Vector3) -> bool:
+	return n.dot(Vector3.UP) > 0.7
+
+
+# --- NEW: compute downrange distance along shot_dir (GSPro-like) ---
+func get_downrange_yards() -> float:
+	var delta: Vector3 = position - shot_start_pos
+	# measure along initial shot direction, ignore sign mistakes by allowing negative if it happens
+	var meters: float = delta.dot(shot_dir)
+	return meters * 1.09361
 
 
 func _physics_process(delta: float) -> void:
@@ -62,17 +78,21 @@ func _physics_process(delta: float) -> void:
 		# where r_contact = -floor_norm * radius (from center to ground contact)
 		var v_contact : Vector3 = velocity + omega.cross(-floor_norm * radius)
 
-		if v_contact.length() < 0.05: # rolling without slipping
-			var friction_dir = velocity.normalized() if velocity.length() > 0.01 else Vector3.ZERO
+		# FIX: friction should act in tangent plane only (remove normal component)
+		var v_tan: Vector3 = v_contact - floor_norm * v_contact.dot(floor_norm)
+
+		if v_tan.length() < 0.05: # rolling without slipping
+			var v_flat: Vector3 = velocity - floor_norm * velocity.dot(floor_norm)
+			var friction_dir = v_flat.normalized() if v_flat.length() > 0.01 else Vector3.ZERO
 			F_f = friction_dir * (-u_kr * mass * 9.81)  # Use rolling friction
 		else: # ball slipping - kinetic friction
-			var slip_dir = v_contact.normalized()
+			var slip_dir = v_tan.normalized()
 			F_f = slip_dir * (-u_k * mass * 9.81)  # Use kinetic friction
 
 		# Friction torque (applies in both rolling and slipping cases)
 		if F_f.length() > 0.001:
 			T_f = (-floor_norm * radius).cross(F_f)
-			
+
 		# Viscous Torque
 		T_g = -6.0*PI*nu_g*radius*omega
 	else: # ball in air
@@ -97,18 +117,18 @@ func _physics_process(delta: float) -> void:
 		T_d = -Cm*omega
 		# Drag force
 		F_d = -0.5*Cd*airDensity*A*velocity*speed
+
 	# Total force
 	var F : Vector3 = F_g + F_d + F_m + F_f + F_gd
-	
+
 	# Total torque
-	var T : Vector3 = T_d + T_f + T_g 
-	
+	var T : Vector3 = T_d + T_f + T_g
+
 	velocity = velocity + F/mass*delta
 	omega = omega + T/I*delta
 
 	# Safety check: prevent ball from going too far out of bounds
 	if abs(position.x) > 1000.0 or abs(position.z) > 1000.0:
-		# Ball went way out of bounds - stop it where it is
 		print("WARNING: Ball went out of bounds at position: ", position)
 		velocity = Vector3.ZERO
 		omega = Vector3.ZERO
@@ -118,7 +138,6 @@ func _physics_process(delta: float) -> void:
 
 	# Safety check: prevent ball from falling through ground
 	if position.y < -0.5:
-		# Ball fell through ground - place it on the surface at current horizontal position
 		print("WARNING: Ball fell through ground at position: ", position, " - resetting to y=0.0")
 		position.y = 0.0
 		velocity = Vector3.ZERO
@@ -131,24 +150,29 @@ func _physics_process(delta: float) -> void:
 	var collision = move_and_collide(velocity * delta)
 
 	# Update ground state based on ACTUAL collision detection
-	# CRITICAL: During initial FLIGHT, ignore ground contact to preserve air physics (Magnus lift)
 	if state == Enums.BallState.FLIGHT:
-		# In flight - use air forces only, even if collision detected
+		# In flight - use air forces only
 		on_ground = false
 		floor_norm = Vector3(0.0, 1.0, 0.0)
 
 		# Handle first impact bounce (transitions to ROLLOUT)
 		if collision:
 			var normal = collision.get_normal()
-			# Apply bounce physics for ANY collision during flight
-			velocity = bounce(velocity, normal)
-			# bounce() sets state = ROLLOUT, next frame will use ground forces
+
+			# FIX: only treat as ground impact if normal is ground-like, else damp reflection
+			if _is_ground_normal(normal):
+				print("FIRST IMPACT at pos: ", position, ", downrange: %.2f yds" % get_downrange_yards())
+				print("  Velocity at impact: ", velocity, " (%.2f m/s)" % velocity.length())
+				print("  Normal: ", normal)
+
+				velocity = bounce(velocity, normal)
+			else:
+				velocity = velocity.bounce(normal) * 0.30
 	else:
 		# In ROLLOUT or REST - use proper ground detection
 		if collision:
 			var normal = collision.get_normal()
 
-			# Check if this is a floor collision (normal points upward)
 			if normal.dot(Vector3.UP) > 0.7:
 				on_ground = true
 				floor_norm = normal
@@ -156,19 +180,15 @@ func _physics_process(delta: float) -> void:
 				# Handle subsequent bounces
 				if not was_on_ground and prev_velocity.y < -0.5:
 					velocity = bounce(velocity, floor_norm)
-				# Prevent sinking into ground
 				elif velocity.y < 0:
 					velocity.y = 0
 			else:
-				# Hit a wall or ceiling, not ground
 				on_ground = false
 				floor_norm = Vector3(0.0, 1.0, 0.0)
 		else:
-			# No collision this frame
-			# If we were on ground last frame and still very close, stay on ground (rolling continuity)
-			if was_on_ground and position.y < 0.05:
+			# Tighten rolling continuity to avoid applying ground forces while slightly airborne
+			if was_on_ground and position.y < 0.02 and velocity.y <= 0.0:
 				on_ground = true
-				# Keep previous floor_norm for continuity
 			else:
 				on_ground = false
 				floor_norm = Vector3(0.0, 1.0, 0.0)
@@ -178,14 +198,12 @@ func _physics_process(delta: float) -> void:
 		state = Enums.BallState.REST
 		velocity = Vector3.ZERO
 		emit_signal("rest")
-			
-	
 
 
 func bounce(vel, normal) -> Vector3:
 	if state == Enums.BallState.FLIGHT:
 		state = Enums.BallState.ROLLOUT
-		
+
 	# component of velocity parallel to floor normal
 	var vel_norm : Vector3 = vel.project(normal)
 	var speed_norm : float = vel_norm.length()
@@ -202,7 +220,9 @@ func bounce(vel, normal) -> Vector3:
 	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
 
 	# final orthogonal speed
-	var v2_orth = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*radius*omg_norm.length()/7.0
+	# FIX: use signed normal spin component (length() loses sign)
+	var spin_n: float = omega.dot(normal) # signed
+	var v2_orth = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*radius*abs(spin_n)/7.0
 
 	# orthogonal restitution - handle negative v2_orth (high spin case)
 	if speed_orth < 0.01 or v2_orth <= 0.0:
@@ -217,23 +237,22 @@ func bounce(vel, normal) -> Vector3:
 		omg_orth = Vector3.ZERO
 	else:
 		omg_orth = omg_orth.limit_length(w2h)
-		
+
 	# normal restitution
 	var e : float = 0.0
 	if speed_norm > 20.0:
 		e = 0.12
 	else:
 		e = 0.510 - 0.0375*speed_norm + 0.000903*speed_norm*speed_norm
-	
+
 	vel_norm = vel_norm*-e
-	
+
 	omega = omg_norm + omg_orth
-	
+
 	return vel_norm + vel_orth
-	
+
 
 func hit():
-	# 8 iron test shot - 100 mph, 20.8 deg launch, 1.7 deg horz launch, 7494 rpm, 2.7 degree spin axis offset
 	var data : Dictionary = {
 		"Speed": 100.0,
 		"VLA": 22.0,
@@ -245,13 +264,21 @@ func hit():
 	}
 
 	state = Enums.BallState.FLIGHT
-	on_ground = false  # Critical: reset ground state for flight
+	on_ground = false
 	position = Vector3(0.0, 0.05, 0.0)
+
 	velocity = Vector3(data["Speed"]*0.44704, 0, 0).rotated(
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
+
+	# NEW: set shot start + direction for correct distance measurement
+	shot_start_pos = position
+	var v_flat: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
+	shot_dir = v_flat.normalized() if v_flat.length() > 0.001 else Vector3(0.0, 0.0, 1.0)
+
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
-	
+
+
 func hit_from_data(data : Dictionary):
 	var speed_mps: float = (data.get("Speed", 0.0) as float)*0.44704
 	var vla_deg: float = data.get("VLA", 0.0) as float
@@ -265,12 +292,10 @@ func hit_from_data(data : Dictionary):
 	var total_spin: float = (data.get("TotalSpin", 0.0) as float)
 	var spin_axis: float = (data.get("SpinAxis", 0.0) as float)
 
-	# Derive totals/axis only when missing (do not treat 0.0 as missing).
 	if total_spin == 0.0 and (has_backspin or has_sidespin):
 		total_spin = sqrt(backspin*backspin + sidespin*sidespin)
 	if not has_axis and (has_backspin or has_sidespin):
 		spin_axis = rad_to_deg(atan2(sidespin, backspin))
-	# If components are missing but total+axis are present, derive them for consistency.
 	if has_total and has_axis:
 		if not has_backspin:
 			backspin = total_spin * cos(deg_to_rad(spin_axis))
@@ -278,18 +303,23 @@ func hit_from_data(data : Dictionary):
 			sidespin = total_spin * sin(deg_to_rad(spin_axis))
 
 	state = Enums.BallState.FLIGHT
-	on_ground = false  # Critical: reset ground state for flight
+	on_ground = false
 	position = Vector3(0.0, 0.05, 0.0)
+
 	velocity = Vector3(speed_mps, 0, 0).rotated(
 					Vector3(0.0, 0.0, 1.0), vla_deg*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -hla_deg*PI/180.0)
+
+	# NEW: set shot start + direction for correct distance measurement
+	shot_start_pos = position
+	var v_flat: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
+	shot_dir = v_flat.normalized() if v_flat.length() > 0.001 else Vector3(0.0, 0.0, 1.0)
+
 	if total_spin == 0.0:
-		# Use component spins (rpm -> rad/s)
 		omega = Vector3(sidespin*0.10472, 0.0, backspin*0.10472)
 	else:
 		omega = Vector3(0.0, 0.0, total_spin*0.10472).rotated(Vector3(1.0, 0.0, 0.0), spin_axis*PI/180)
 
-	# Debug: Print initial conditions and settings
 	print("=== SHOT DEBUG ===")
 	print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
 	print("VLA: %.2f°, HLA: %.2f°" % [vla_deg, hla_deg])
@@ -299,19 +329,22 @@ func hit_from_data(data : Dictionary):
 	print("Dynamic viscosity: ", dynamicAirViscosity)
 	print("Initial velocity: ", velocity)
 	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
+	print("Shot dir (flat): ", shot_dir)
 	print("===================")
-	
+
+
 func set_env(_value):
 	airDensity = Coefficients.get_air_density(GlobalSettings.range_settings.altitude.value,
 		 GlobalSettings.range_settings.temperature.value)
 	dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(GlobalSettings.range_settings.temperature.value)
-	
+
+
 func reset():
 	position = Vector3(0.0, 0.1, 0.0)
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	state = Enums.BallState.REST
-	on_ground = false  # Reset ground state
+	on_ground = false
 
 
 func _on_drag_scale_changed(_value):

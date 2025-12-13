@@ -94,5 +94,6 @@ static func Re70kToCl(S: float) -> float:
 	
 static func ReHighToCl(S: float) -> float:
 	# Linear model for high Reynolds numbers (Re >= 60k)
-	# Represents asymptotic behavior where Cl scales linearly with spin parameter
-	return 1.1*S + 0.01
+	# Adjusted to match golf ball aerodynamics at typical shot speeds (Re ~ 100k-200k)
+	# Based on experimental data showing Cl ~ 0.18-0.25 at S ~ 0.08-0.10
+	return 1.8*S + 0.05
