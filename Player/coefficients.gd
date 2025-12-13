@@ -50,11 +50,7 @@ static func get_Cd(Re: float) -> float:
 	return 1.1948 - 0.0000209661*Re + 1.42472e-10*Re*Re - 3.14383e-16*Re*Re*Re
 
 static func get_Cl(Re: float, S: float) -> float:
-	# Low S
-	if S < 0.05:
-		return 0.05
-
-	# Low and high Reynolds number
+	# Low Reynolds number
 	if Re < 50000:
 		return 0.1
 	if Re >= 60000:

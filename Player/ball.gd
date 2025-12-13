@@ -80,9 +80,9 @@ func _physics_process(delta: float) -> void:
 		var spin := 0.0
 		if speed > 0.5:
 			spin = omega.length()*radius/speed
-		
+
 		var Re : float = airDensity*speed*radius*2.0/dynamicAirViscosity
-		
+
 		# Magnus, drag, and coefficients
 		var Cl = Coefficients.get_Cl(Re, spin)*lift_cf
 		var Cd = Coefficients.get_Cd(Re)*drag_cf
@@ -97,7 +97,6 @@ func _physics_process(delta: float) -> void:
 		T_d = -Cm*omega
 		# Drag force
 		F_d = -0.5*Cd*airDensity*A*velocity*speed
-		
 	# Total force
 	var F : Vector3 = F_g + F_d + F_m + F_f + F_gd
 	
@@ -142,7 +141,6 @@ func _physics_process(delta: float) -> void:
 		if collision:
 			var normal = collision.get_normal()
 			# Apply bounce physics for ANY collision during flight
-			# Previously had velocity.y < -0.5 threshold which caused low shots to skip
 			velocity = bounce(velocity, normal)
 			# bounce() sets state = ROLLOUT, next frame will use ground forces
 	else:
@@ -290,6 +288,18 @@ func hit_from_data(data : Dictionary):
 		omega = Vector3(sidespin*0.10472, 0.0, backspin*0.10472)
 	else:
 		omega = Vector3(0.0, 0.0, total_spin*0.10472).rotated(Vector3(1.0, 0.0, 0.0), spin_axis*PI/180)
+
+	# Debug: Print initial conditions and settings
+	print("=== SHOT DEBUG ===")
+	print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
+	print("VLA: %.2f°, HLA: %.2f°" % [vla_deg, hla_deg])
+	print("Spin: %.0f rpm, Axis: %.2f°" % [total_spin, spin_axis])
+	print("drag_cf: %.2f, lift_cf: %.2f" % [drag_cf, lift_cf])
+	print("Air density: %.4f kg/m³" % airDensity)
+	print("Dynamic viscosity: ", dynamicAirViscosity)
+	print("Initial velocity: ", velocity)
+	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
+	print("===================")
 	
 func set_env(_value):
 	airDensity = Coefficients.get_air_density(GlobalSettings.range_settings.altitude.value,
