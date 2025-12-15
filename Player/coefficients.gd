@@ -83,7 +83,7 @@ static func get_Cd(Re: float, S: float) -> float:
 			var S_low = cd_lookup_table[cd_low_index][0]
 			var S_high = cd_lookup_table[cd_high_index][0]
 			var weight = (S - S_low)/(S_high - S_low)
-			return lerpf(cd_low, cd_high, weight) - 0.02
+			return lerpf(cd_low, cd_high, weight) - 0.04
 			
 		else: # Re > 238000
 			return 0.2

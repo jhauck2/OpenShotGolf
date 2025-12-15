@@ -186,7 +186,7 @@ func hit():
 	}
 	
 	state = Enums.BallState.FLIGHT
-	position = Vector3(0.0, 0.05, 0.0)
+	position = Vector3(0.0, 0.02, 0.0)
 	velocity = Vector3(data["Speed"]*0.44704, 0, 0).rotated(
 					Vector3(0.0, 0.0, 1.0), data["VLA"]*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -data["HLA"]*PI/180.0)
@@ -218,7 +218,7 @@ func hit_from_data(data : Dictionary):
 			sidespin = total_spin * sin(deg_to_rad(spin_axis))
 
 	state = Enums.BallState.FLIGHT
-	position = Vector3(0.0, 0.05, 0.0)
+	position = Vector3(0.0, 0.02, 0.0)
 	velocity = Vector3(speed_mps, 0, 0).rotated(
 					Vector3(0.0, 0.0, 1.0), vla_deg*PI/180.0).rotated(
 						Vector3(0.0, 1.0, 0.0), -hla_deg*PI/180.0)
