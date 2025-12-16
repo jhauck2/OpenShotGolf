@@ -11,14 +11,17 @@ var A = PI*radius*radius # Cross-sectional area
 var I = 0.4*mass*radius*radius # Moment of inertia
 var u_k = 0.15 # kinetic friction; surface-driven
 var u_kr = 0.05 # rolling friction; surface-driven
+var theta_c = 0.30 # critical bounce angle in radians (~17°); surface-driven
 
 var airDensity = Coefficients.get_air_density(0.0, temperature)
 var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temperature)
-var nu = 0.00001470 # Air Kinematic Viscosity
+# Spin decay time constant (seconds) - tuned to match GSPro behavior
+# Note: Combined with lift_scale, lower tau compensates for lift model differences
+var spin_decay_tau = 3.0
 var nu_g = 0.0005 # Grass drag viscosity; surface-driven
 var drag_cf: float # Drag correction factor (set from GlobalSettings)
 var lift_cf: float # Lift correction factor (set from GlobalSettings)
-var surface_type: int = Enums.Surface.FIRM
+var surface_type: int = Enums.Surface.FAIRWAY
 
 var state : Enums.BallState = Enums.BallState.REST
 
@@ -106,15 +109,15 @@ func _physics_process(delta: float) -> void:
 		# Magnus, drag, and coefficients
 		var Cl = Coefficients.get_Cl(Re, spin)*lift_cf
 		var Cd = Coefficients.get_Cd(Re)*drag_cf
-		var Cm = 6.0*PI*nu*radius
 
 		# Magnus force
 		var om_x_vel = omega.cross(velocity)
 		var omega_len = omega.length()
 		if omega_len > 0.1:
 			F_m = 0.5*Cl*airDensity*A*om_x_vel*velocity.length()/omega.length()
-		# Viscous Torque
-		T_d = -Cm*omega
+		# Spin decay torque (empirical exponential decay model)
+		# T = -I * omega / tau gives exponential decay with time constant tau
+		T_d = -I * omega / spin_decay_tau
 		# Drag force
 		F_d = -0.5*Cd*airDensity*A*velocity*speed
 
@@ -217,7 +220,7 @@ func bounce(vel, normal) -> Vector3:
 
 	var speed : float = vel.length()
 	var theta_1 : float = vel.angle_to(normal)
-	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
+	# theta_c is the critical angle (surface-dependent, set via _apply_surface)
 
 	# final orthogonal speed
 	# FIX: use signed normal spin component (length() loses sign)
@@ -368,3 +371,4 @@ func _apply_surface(surface: int) -> void:
 	u_k = params["u_k"]
 	u_kr = params["u_kr"]
 	nu_g = params["nu_g"]
+	theta_c = params["theta_c"]

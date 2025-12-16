@@ -82,15 +82,15 @@ func _physics_process(delta: float) -> void:
 		apex = max(apex, $Ball.position.y)
 		side_distance = $Ball.position.z
 		if $Ball.state == Enums.BallState.FLIGHT:
-			carry = Vector2($Ball.position.x, $Ball.position.z).length()
+			carry = $Ball.get_downrange_yards() / 1.09361  # Convert yards back to meters for consistency
 		trail_timer += delta
 		if trail_timer >= trail_resolution:
 			current_tracer.add_point($Ball.position)
 			trail_timer = 0.0
 
 func get_distance() -> int:
-	# Returns the distance in physics units of meters
-	return int(Vector2($Ball.position.x, $Ball.position.z).length())
+	# Returns the downrange distance in meters
+	return int($Ball.get_downrange_yards() / 1.09361)
 	
 func get_side_distance() -> int:
 	return int($Ball.position.z)
@@ -122,7 +122,7 @@ func reset_shot_data() -> void:
 
 func _on_ball_rest() -> void:
 	track_points = false
-	shot_data["TotalDistance"] = int(Vector2($Ball.position.x, $Ball.position.z).length())
+	shot_data["TotalDistance"] = int($Ball.get_downrange_yards() / 1.09361)  # Downrange distance in meters
 	shot_data["CarryDistance"] = int(carry)
 	shot_data["Apex"] = int(apex)
 	shot_data["SideDistance"] = int(side_distance)
