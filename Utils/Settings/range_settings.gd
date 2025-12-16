@@ -9,7 +9,7 @@ var ball_reset_timer := Setting.new(5.0, 1.0, 15.0)
 var temperature := Setting.new(75, -40, 120)
 var altitude := Setting.new(0.0, -1000.0, 10000.0)
 var drag_scale := Setting.new(1.0, 0.5, 1.5)
-var lift_scale := Setting.new(1.6, 0.8, 2.0)
+var lift_scale := Setting.new(1.33, 0.8, 2.0)
 var surface_type := Setting.new(Enums.Surface.FAIRWAY)
 var shot_tracer_count := Setting.new(4, 0, 4)
 

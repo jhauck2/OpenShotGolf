@@ -53,11 +53,16 @@ static func get_Cl(Re: float, S: float) -> float:
 	# Low Reynolds number
 	if Re < 50000:
 		return 0.1
-	if Re >= 60000:
-		# Use linear model for Re >= 60k to avoid polynomial collapse, clamped to reasonable range
-		return min(0.4, max(0.05, ReHighToCl(S))) 
-		
-	# Calculations (fixed interpolation with equality handled)
+
+	# Very high Reynolds number - use linear model to avoid extrapolation issues
+	if Re >= 200000:
+		return min(0.4, max(0.05, ReHighToCl(S)))
+
+	# For Re > 75k, use ReHighToCl directly (avoid extrapolation beyond polynomial range)
+	if Re > 75000:
+		return ReHighToCl(S)
+
+	# Interpolation between polynomial models for 50k <= Re <= 75k
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
 	var Re_high_index: int = Re_values.size() - 1
 	for val in Re_values:
@@ -65,9 +70,9 @@ static func get_Cl(Re: float, S: float) -> float:
 			Re_high_index = Re_values.find(val)
 			break
 	var Re_low_index: int = max(Re_high_index - 1, 0)
-	
+
 	var ClCallables : Array[Callable] = [Re50kToCl, Re60kToCl, Re65kToCl, Re70kToCl, ReHighToCl]
-	
+
 	# Get lower and upper bounds on Cl based on Re bounds and S
 	var Cl_low = ClCallables[Re_low_index].call(S)
 	var Cl_high = ClCallables[Re_high_index].call(S)
