@@ -56,9 +56,6 @@ func _on_golf_ball_rest(_ball_data) -> void:
 	raw_ball_data = _ball_data.duplicate()
 	# Show final shot numbers immediately on rest
 	_update_ball_display()
-	# Show final total distance once ball is fully at rest. Good indicator ball stopped.
-	if display_data.has("Distance"):
-		$RangeUI.set_total_distance("Total Distance " + str(display_data["Distance"]))
 
 	# Return camera to starting position if follow mode is enabled
 	if GlobalSettings.range_settings.camera_follow_mode.value:
@@ -107,7 +104,6 @@ func _on_range_ui_hit_shot(data: Dictionary) -> void:
 	# For local injected shots, prime the display immediately with the payload data.
 	raw_ball_data = data.duplicate()
 	_update_ball_display()
-	$RangeUI.clear_total_distance()
 
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
@@ -138,7 +134,6 @@ func _reset_display_data() -> void:
 	display_data["SideSpin"] = "---"
 	display_data["TotalSpin"] = "---"
 	display_data["SpinAxis"] = "---"
-	$RangeUI.clear_total_distance()
 
 
 func _update_ball_display() -> void:

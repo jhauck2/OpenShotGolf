@@ -252,11 +252,15 @@ func bounce(vel, normal) -> Vector3:
 		omg_orth = omg_orth.limit_length(w2h)
 
 	# normal restitution (coefficient of restitution)
+	# Reduced low-speed COR to prevent extended bouncing (ball appearing "stuck")
 	var e : float = 0.0
 	if speed_norm > 20.0:
 		e = 0.12
+	elif speed_norm < 3.0:
+		e = 0.0  # Kill small bounces entirely
 	else:
-		e = 0.510 - 0.0375*speed_norm + 0.000903*speed_norm*speed_norm
+		# Reduced from 0.510 to 0.30 at low speeds
+		e = 0.30 - 0.0150*speed_norm + 0.0003*speed_norm*speed_norm
 
 	vel_norm = vel_norm*-e
 

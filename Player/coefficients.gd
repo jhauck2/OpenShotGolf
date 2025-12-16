@@ -50,18 +50,22 @@ static func get_Cd(Re: float) -> float:
 	return 1.1948 - 0.0000209661*Re + 1.42472e-10*Re*Re - 3.14383e-16*Re*Re*Re
 
 static func get_Cl(Re: float, S: float) -> float:
+	# Maximum Cl cap to prevent ballooning on high-spin shots
+	# This applies to ALL code paths
+	# 0.55 gives better carry on lower-speed shots while still preventing ballooning
+	const CL_MAX = 0.55
+
 	# Low Reynolds number
 	if Re < 50000:
 		return 0.1
 
 	# Very high Reynolds number - use linear model to avoid extrapolation issues
 	if Re >= 200000:
-		return max(0.05, ReHighToCl(S))
+		return min(CL_MAX, max(0.05, ReHighToCl(S)))
 
 	# For Re > 75k, use ReHighToCl directly
-	# With fixed linear model (1.1*S + 0.05), values are now reasonable without clamping
 	if Re > 75000:
-		return max(0.05, ReHighToCl(S))
+		return min(CL_MAX, max(0.05, ReHighToCl(S)))
 
 	# Interpolation between polynomial models for 50k <= Re <= 75k
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
@@ -83,9 +87,9 @@ static func get_Cl(Re: float, S: float) -> float:
 	if Re_high != Re_low:
 		weight = (Re - Re_low)/(Re_high - Re_low)
 
-	# Interpolate final Cl value from upper and lower Cl
+	# Interpolate final Cl value from upper and lower Cl, apply cap
 	var Cl_interpolated = lerpf(Cl_low, Cl_high, weight)
-	return max(0.05, Cl_interpolated)
+	return min(CL_MAX, max(0.05, Cl_interpolated))
 
 static func Re50kToCl(S: float) -> float:
 	return 0.0472121 + 2.84795*S - 23.4342*S*S + 45.4849*S*S*S
@@ -104,5 +108,7 @@ static func ReHighToCl(S: float) -> float:
 	# Calibrated to match GSPro carry distances:
 	#   1.8 caused ballooning (45% too high apex)
 	#   1.1 was ~10 yards short on carry
-	#   1.3 should be the sweet spot
-	return 1.3*S + 0.05
+	#   1.3 is good for normal spin, but needs cap for high spin
+	# Cap at 0.38 to prevent ballooning - apex was 2x too high at 0.45
+	var linear_cl = 1.3*S + 0.05
+	return min(linear_cl, 0.38)
