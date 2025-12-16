@@ -31,8 +31,7 @@ func _ready() -> void:
 	temperature_spin_box = $MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox
 	altitude_spin_box = $MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox
 	drag_spin_box = $MarginContainer/VBoxContainer/DragScale/DragSpinBox
-	if has_node("MarginContainer/VBoxContainer/LiftScale/LiftSpinBox"):
-		lift_spin_box = $MarginContainer/VBoxContainer/LiftScale/LiftSpinBox
+	lift_spin_box = $MarginContainer/VBoxContainer/LiftScale/LiftSpinBox
 	surface_option = $MarginContainer/VBoxContainer/SurfaceType/SurfaceOption
 	tracer_count_spin_box = $MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox
 
@@ -49,8 +48,7 @@ func _ready() -> void:
 	_setup_spin_box(drag_spin_box, GlobalSettings.range_settings.drag_scale, 0.5)
 
 	# Lift scale
-	if lift_spin_box != null:
-		_setup_spin_box(lift_spin_box, GlobalSettings.range_settings.lift_scale, 0.1)
+	_setup_spin_box(lift_spin_box, GlobalSettings.range_settings.lift_scale, 0.1)
 
 	# Tracer count
 	_setup_spin_box(tracer_count_spin_box, GlobalSettings.range_settings.shot_tracer_count, 1.0)

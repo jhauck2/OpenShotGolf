@@ -45,7 +45,8 @@ func _ready() -> void:
 
 
 func _is_ground_normal(n: Vector3) -> bool:
-	return n.dot(Vector3.UP) > 0.7
+	# Collision normals from Godot are always normalized, so n.y == n.dot(Vector3.UP)
+	return n.y > 0.7
 
 
 # --- NEW: compute downrange distance along shot_dir (GSPro-like) ---
@@ -72,7 +73,7 @@ func _physics_process(delta: float) -> void:
 	var T_g := Vector3.ZERO # Grass drag torque
 
 	# Use ground state from PREVIOUS frame for force calculations
-	if on_ground:
+	if was_on_ground:
 		# Force of viscous drag from grass
 		F_gd = velocity*(-6*PI*radius*nu_g)
 		F_gd.y = 0.0
@@ -152,49 +153,39 @@ func _physics_process(delta: float) -> void:
 	# Move and detect collision
 	var collision = move_and_collide(velocity * delta)
 
-	# Update ground state based on ACTUAL collision detection
-	if state == Enums.BallState.FLIGHT:
-		# In flight - use air forces only
-		on_ground = false
-		floor_norm = Vector3(0.0, 1.0, 0.0)
+	if collision:
+		var normal = collision.get_normal()
 
-		# Handle first impact bounce (transitions to ROLLOUT)
-		if collision:
-			var normal = collision.get_normal()
+		if _is_ground_normal(normal):
+			floor_norm = normal
 
-			# FIX: only treat as ground impact if normal is ground-like, else damp reflection
-			if _is_ground_normal(normal):
-				print("FIRST IMPACT at pos: ", position, ", downrange: %.2f yds" % get_downrange_yards())
-				print("  Velocity at impact: ", velocity, " (%.2f m/s)" % velocity.length())
-				print("  Normal: ", normal)
+			# Bounce if: first impact (FLIGHT) OR subsequent airborne landing
+			var is_landing = (state == Enums.BallState.FLIGHT) or (not was_on_ground and prev_velocity.y < -0.5)
 
+			if is_landing:
+				if state == Enums.BallState.FLIGHT:
+					print("FIRST IMPACT at pos: ", position, ", downrange: %.2f yds" % get_downrange_yards())
+					print("  Velocity at impact: ", velocity, " (%.2f m/s)" % velocity.length())
+					print("  Normal: ", normal)
 				velocity = bounce(velocity, normal)
+				on_ground = false
 			else:
-				velocity = velocity.bounce(normal) * 0.30
-	else:
-		# In ROLLOUT or REST - use proper ground detection
-		if collision:
-			var normal = collision.get_normal()
-
-			if normal.dot(Vector3.UP) > 0.7:
+				# On ground, not bouncing
 				on_ground = true
-				floor_norm = normal
-
-				# Handle subsequent bounces
-				if not was_on_ground and prev_velocity.y < -0.5:
-					velocity = bounce(velocity, floor_norm)
-				elif velocity.y < 0:
+				if velocity.y < 0:
 					velocity.y = 0
-			else:
-				on_ground = false
-				floor_norm = Vector3(0.0, 1.0, 0.0)
 		else:
-			# Tighten rolling continuity to avoid applying ground forces while slightly airborne
-			if was_on_ground and position.y < 0.02 and velocity.y <= 0.0:
-				on_ground = true
-			else:
-				on_ground = false
-				floor_norm = Vector3(0.0, 1.0, 0.0)
+			# Non-ground collision (wall, etc.) - damped reflection
+			on_ground = false
+			floor_norm = Vector3(0.0, 1.0, 0.0)
+			velocity = velocity.bounce(normal) * 0.30
+	else:
+		# No collision - check rolling continuity for non-flight states
+		if state != Enums.BallState.FLIGHT and was_on_ground and position.y < 0.02 and velocity.y <= 0.0:
+			on_ground = true
+		else:
+			on_ground = false
+			floor_norm = Vector3(0.0, 1.0, 0.0)
 
 	# Rest detection
 	if velocity.length() < 0.1 and state != Enums.BallState.REST:
