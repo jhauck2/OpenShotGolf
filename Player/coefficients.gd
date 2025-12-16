@@ -56,11 +56,12 @@ static func get_Cl(Re: float, S: float) -> float:
 
 	# Very high Reynolds number - use linear model to avoid extrapolation issues
 	if Re >= 200000:
-		return min(0.4, max(0.05, ReHighToCl(S)))
+		return max(0.05, ReHighToCl(S))
 
-	# For Re > 75k, use ReHighToCl directly (avoid extrapolation beyond polynomial range)
+	# For Re > 75k, use ReHighToCl directly
+	# With fixed linear model (1.1*S + 0.05), values are now reasonable without clamping
 	if Re > 75000:
-		return ReHighToCl(S)
+		return max(0.05, ReHighToCl(S))
 
 	# Interpolation between polynomial models for 50k <= Re <= 75k
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
@@ -83,7 +84,8 @@ static func get_Cl(Re: float, S: float) -> float:
 		weight = (Re - Re_low)/(Re_high - Re_low)
 
 	# Interpolate final Cl value from upper and lower Cl
-	return lerpf(Cl_low, Cl_high, weight)
+	var Cl_interpolated = lerpf(Cl_low, Cl_high, weight)
+	return max(0.05, Cl_interpolated)
 
 static func Re50kToCl(S: float) -> float:
 	return 0.0472121 + 2.84795*S - 23.4342*S*S + 45.4849*S*S*S
@@ -99,6 +101,8 @@ static func Re70kToCl(S: float) -> float:
 	
 static func ReHighToCl(S: float) -> float:
 	# Linear model for high Reynolds numbers (Re >= 60k)
-	# Adjusted to match golf ball aerodynamics at typical shot speeds (Re ~ 100k-200k)
-	# Based on experimental data showing Cl ~ 0.18-0.25 at S ~ 0.08-0.10
-	return 1.8*S + 0.05
+	# Calibrated to match GSPro carry distances:
+	#   1.8 caused ballooning (45% too high apex)
+	#   1.1 was ~10 yards short on carry
+	#   1.3 should be the sweet spot
+	return 1.3*S + 0.05

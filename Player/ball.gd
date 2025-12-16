@@ -16,7 +16,7 @@ var theta_c = 0.30 # critical bounce angle in radians (~17°); surface-driven
 var airDensity = Coefficients.get_air_density(0.0, temperature)
 var dynamicAirViscosity = Coefficients.get_dynamic_air_viscosity(temperature)
 # Spin decay time constant (seconds) - tuned to match GSPro behavior
-# Note: Combined with lift_scale, lower tau compensates for lift model differences
+# Note: With fixed Cl model (1.1*S + 0.05), tau = 3.0 gives correct spin decay
 var spin_decay_tau = 3.0
 var nu_g = 0.0005 # Grass drag viscosity; surface-driven
 var drag_cf: float # Drag correction factor (set from GlobalSettings)
@@ -28,6 +28,9 @@ var state : Enums.BallState = Enums.BallState.REST
 # --- NEW: shot reference for measuring downrange distance correctly ---
 var shot_start_pos := Vector3.ZERO
 var shot_dir := Vector3(0.0, 0.0, 1.0) # normalized horizontal-ish direction
+
+# --- Store launch spin for bounce calculations (spin decays during flight) ---
+var launch_spin_rpm := 0.0
 
 signal rest
 
@@ -166,8 +169,11 @@ func _physics_process(delta: float) -> void:
 				if state == Enums.BallState.FLIGHT:
 					print("FIRST IMPACT at pos: ", position, ", downrange: %.2f yds" % get_downrange_yards())
 					print("  Velocity at impact: ", velocity, " (%.2f m/s)" % velocity.length())
+					print("  Spin at impact: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
 					print("  Normal: ", normal)
 				velocity = bounce(velocity, normal)
+				if state == Enums.BallState.ROLLOUT:
+					print("  Velocity after bounce: ", velocity, " (%.2f m/s)" % velocity.length())
 				on_ground = false
 			else:
 				# On ground, not bouncing
@@ -215,8 +221,21 @@ func bounce(vel, normal) -> Vector3:
 
 	# final orthogonal speed
 	# FIX: use signed normal spin component (length() loses sign)
+	# Reduced tangential retention from 5/7 (0.714) to 0.25 to fix excessive roll
+	# GSPro shows ~10-20 yards roll on driver, we were getting 38+ yards with 0.714
+	# Further reduce tangential retention for high-spin shots (wedges should check up)
 	var spin_n: float = omega.dot(normal) # signed
-	var v2_orth = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*radius*abs(spin_n)/7.0
+
+	# Use LAUNCH spin for bounce retention calculation, not current decayed spin
+	# This ensures high-spin shots always check up, regardless of spin decay during flight
+	# At 0 rpm launch: retention = 0.30, at 5000+ rpm launch: retention ≈ 0.06
+	var spin_factor = clamp(1.0 - (launch_spin_rpm / 6000.0), 0.20, 1.0)
+	var tangential_retention: float = 0.30 * spin_factor  # Heavily reduced for high-spin launches
+
+	if state == Enums.BallState.FLIGHT:
+		print("  Bounce calc: launch_spin=%.0f rpm, current_spin=%.0f rpm, spin_factor=%.3f, retention=%.3f" % [launch_spin_rpm, omega.length()/0.10472, spin_factor, tangential_retention])
+
+	var v2_orth = tangential_retention*speed*sin(theta_1-theta_c) - 2.0*radius*abs(spin_n)/7.0
 
 	# orthogonal restitution - handle negative v2_orth (high spin case)
 	if speed_orth < 0.01 or v2_orth <= 0.0:
@@ -232,7 +251,7 @@ func bounce(vel, normal) -> Vector3:
 	else:
 		omg_orth = omg_orth.limit_length(w2h)
 
-	# normal restitution
+	# normal restitution (coefficient of restitution)
 	var e : float = 0.0
 	if speed_norm > 20.0:
 		e = 0.12
@@ -271,6 +290,7 @@ func hit():
 	shot_dir = v_flat.normalized() if v_flat.length() > 0.001 else Vector3(0.0, 0.0, 1.0)
 
 	omega = Vector3(0.0, 0.0, data["TotalSpin"]*0.10472).rotated(Vector3(1.0, 0.0, 0.0), data["SpinAxis"]*PI/180.0)
+	launch_spin_rpm = data["TotalSpin"]
 
 
 func hit_from_data(data : Dictionary):
@@ -314,20 +334,27 @@ func hit_from_data(data : Dictionary):
 	else:
 		omega = Vector3(0.0, 0.0, total_spin*0.10472).rotated(Vector3(1.0, 0.0, 0.0), spin_axis*PI/180)
 
+	# Store launch spin for bounce calculations (spin decays during flight)
+	launch_spin_rpm = total_spin
+
 	# Leave these in. We'll revisit again--I am sure.
-	#print("=== SHOT DEBUG ===")
-	#print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
-	#print("VLA: %.2f°, HLA: %.2f°" % [vla_deg, hla_deg])
-	#print("Spin: %.0f rpm, Axis: %.2f°" % [total_spin, spin_axis])
-	#print("drag_cf: %.2f, lift_cf: %.2f" % [drag_cf, lift_cf])
-	#print("Air density: %.4f kg/m³" % airDensity)
-	#print("Dynamic viscosity: %.8f kg/(m·s)" % dynamicAirViscosity)
-	#var Re_initial = airDensity * speed_mps * radius * 2.0 / dynamicAirViscosity
-	#print("Reynolds number (initial): %.0f" % Re_initial)
-	#print("Initial velocity: ", velocity)
-	#print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
-	#print("Shot dir (flat): ", shot_dir)
-	#print("===================")
+	print("=== SHOT DEBUG ===")
+	print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
+	print("VLA: %.2f°, HLA: %.2f°" % [vla_deg, hla_deg])
+	print("Spin: %.0f rpm, Axis: %.2f°" % [total_spin, spin_axis])
+	print("drag_cf: %.2f, lift_cf: %.2f" % [drag_cf, lift_cf])
+	print("Air density: %.4f kg/m³" % airDensity)
+	print("Dynamic viscosity: %.11f kg/(m·s)" % dynamicAirViscosity)
+	var Re_initial = airDensity * speed_mps * radius * 2.0 / dynamicAirViscosity
+	var spin_ratio = (total_spin * 0.10472) * radius / speed_mps if speed_mps > 0.1 else 0.0
+	var Cl_initial = Coefficients.get_Cl(Re_initial, spin_ratio)
+	print("Reynolds number (initial): %.0f" % Re_initial)
+	print("Spin ratio (initial): %.3f" % spin_ratio)
+	print("Cl (initial, before lift_cf): %.3f, after: %.3f" % [Cl_initial, Cl_initial * lift_cf])
+	print("Initial velocity: ", velocity)
+	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))
+	print("Shot dir (flat): ", shot_dir)
+	print("===================")
 
 
 func set_env(_value):
@@ -340,6 +367,7 @@ func reset():
 	position = Vector3(0.0, 0.1, 0.0)
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
+	launch_spin_rpm = 0.0
 	state = Enums.BallState.REST
 	on_ground = false
 
