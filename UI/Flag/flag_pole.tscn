@@ -1,0 +1,43 @@
+[gd_scene load_steps=8 format=3 uid="uid://bx67q2irdmviu"]
+
+[ext_resource type="Script" uid="uid://bkt0dnsrg7i0n" path="res://UI/Flag/flag_pole.gd" id="1_p87f8"]
+[ext_resource type="Shader" uid="uid://dhb4kyon4rp" path="res://UI/Flag/flag_pole.gdshader" id="2_45a7n"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p87f8"]
+cull_mode = 2
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_ojxsx"]
+material = SubResource("StandardMaterial3D_p87f8")
+top_radius = 0.05
+bottom_radius = 0.05
+height = 3.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_78cgf"]
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_58edq"]
+render_priority = 0
+shader = ExtResource("2_45a7n")
+shader_parameter/uv_offset_texture = SubResource("NoiseTexture2D_78cgf")
+shader_parameter/uv_offset_scale = Vector2(-0.2, -0.1)
+shader_parameter/time_scale = Vector2(0.22, 0)
+shader_parameter/face_distortion = 0.1
+shader_parameter/flag_color = Color(1, 1, 1, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_7jc6a"]
+material = SubResource("ShaderMaterial_58edq")
+size = Vector2(0.8, 1.3)
+subdivide_width = 10
+subdivide_depth = 4
+
+[node name="FlagPole" type="Node3D"]
+script = ExtResource("1_p87f8")
+pole_color = Color(0.297765, 0.560518, 0.87938124, 1)
+
+[node name="PoleMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("CylinderMesh_ojxsx")
+
+[node name="FlagMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.9106855e-15, 4.371139e-08, 1, 1, -4.371139e-08, 0, 4.371139e-08, 1, -4.371139e-08, 0.7, 2.5, -0.5)
+mesh = SubResource("PlaneMesh_7jc6a")
