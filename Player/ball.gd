@@ -167,6 +167,7 @@ func _physics_process(delta: float) -> void:
 
 			if is_landing:
 				if state == Enums.BallState.FLIGHT:
+					# Keep for debugging later. 
 					print("FIRST IMPACT at pos: ", position, ", downrange: %.2f yds" % get_downrange_yards())
 					print("  Velocity at impact: ", velocity, " (%.2f m/s)" % velocity.length())
 					print("  Spin at impact: ", omega, " (%.0f rpm)" % (omega.length()/0.10472))

@@ -59,7 +59,8 @@ func _on_golf_ball_rest(_ball_data) -> void:
 
 	# Return camera to starting position if follow mode is enabled
 	if GlobalSettings.range_settings.camera_follow_mode.value:
-		await get_tree().create_timer(1.5).timeout
+		var camera_reset_delay: float = GlobalSettings.range_settings.ball_reset_timer.value
+		await get_tree().create_timer(camera_reset_delay).timeout
 		reset_camera_to_start()
 
 	if GlobalSettings.range_settings.auto_ball_reset.value:
