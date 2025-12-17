@@ -295,7 +295,6 @@ func hit():
 
 
 func hit_from_data(data : Dictionary):
-	debug_frame_count = 0  # Reset diagnostic counter for new shot
 	var speed_mps: float = (data.get("Speed", 0.0) as float)*0.44704
 	var vla_deg: float = data.get("VLA", 0.0) as float
 	var hla_deg: float = data.get("HLA", 0.0) as float
