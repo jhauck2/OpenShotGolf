@@ -61,7 +61,7 @@ static func get_Cl(Re: float, S: float) -> float:
 
 	# For Re > 75k, use ReHighToCl directly
 	if Re > 75000:
-		return clampf(ReHighToCl(S), 0.05, CL_MAX)
+		return clampf(ReHighToCl(S), 0.0, CL_MAX)
 
 	# Interpolation between polynomial models for 50k <= Re <= 75k
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
@@ -84,20 +84,24 @@ static func get_Cl(Re: float, S: float) -> float:
 		weight = (Re - Re_low)/(Re_high - Re_low)
 
 	# Interpolate final Cl value from upper and lower Cl, apply cap
+	# Allow natural polynomial output (may be near-zero for low spin cases)
 	var Cl_interpolated = lerpf(Cl_low, Cl_high, weight)
-	return min(CL_MAX, max(0.05, Cl_interpolated))
+	return clampf(Cl_interpolated, 0.0, CL_MAX)
 
 static func Re50kToCl(S: float) -> float:
 	return 0.0472121 + 2.84795*S - 23.4342*S*S + 45.4849*S*S*S
 	
 static func Re60kToCl(S: float) -> float:
-	return max(0.05, 0.320524 - 4.7032*S + 14.0613*S*S)
+	# Polynomial fitted to experimental data - allow natural output including near-zero
+	return 0.320524 - 4.7032*S + 14.0613*S*S
 
 static func Re65kToCl(S: float) -> float:
-	return max(0.05, 0.266667 - 4*S + 13.3333*S*S)
+	# Polynomial fitted to experimental data - allow natural output including near-zero
+	return 0.266667 - 4*S + 13.3333*S*S
 
 static func Re70kToCl(S: float) -> float:
-	return max(0.05, 0.0496189 + 0.00211396*S + 2.34201*S*S)
+	# Polynomial fitted to experimental data - allow natural output including near-zero
+	return 0.0496189 + 0.00211396*S + 2.34201*S*S
 	
 static func ReHighToCl(S: float) -> float:
 	# Linear model for high Reynolds numbers (Re >= 60k)

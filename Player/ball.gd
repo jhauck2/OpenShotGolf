@@ -221,19 +221,17 @@ func bounce(vel, normal) -> Vector3:
 
 	# final orthogonal speed
 	# FIX: use signed normal spin component (length() loses sign)
-	# Reduced tangential retention from 5/7 (0.714) to 0.25 to fix excessive roll
-	# GSPro shows ~10-20 yards roll on driver, we were getting 38+ yards with 0.714
-	# Further reduce tangential retention for high-spin shots (wedges should check up)
 	var spin_n: float = omega.dot(normal) # signed
 
-	# Use LAUNCH spin for bounce retention calculation, not current decayed spin
-	# This ensures high-spin shots always check up, regardless of spin decay during flight
-	# At 0 rpm launch: retention = 0.30, at 5000+ rpm launch: retention ≈ 0.06
-	var spin_factor = clamp(1.0 - (launch_spin_rpm / 6000.0), 0.20, 1.0)
-	var tangential_retention: float = 0.30 * spin_factor  # Heavily reduced for high-spin launches
+	# Tangential retention: theoretical is 5/7 (0.714), real golf balls ~0.55-0.60
+	# High backspin reduces forward momentum on landing (ball "checks up")
+	# Use current spin at impact for realistic behavior
+	var current_spin_rpm = omega.length() / 0.10472
+	var spin_factor = clamp(1.0 - (current_spin_rpm / 8000.0), 0.40, 1.0)
+	var tangential_retention: float = 0.55 * spin_factor
 
 	if state == Enums.BallState.FLIGHT:
-		print("  Bounce calc: launch_spin=%.0f rpm, current_spin=%.0f rpm, spin_factor=%.3f, retention=%.3f" % [launch_spin_rpm, omega.length()/0.10472, spin_factor, tangential_retention])
+		print("  Bounce calc: launch_spin=%.0f rpm, current_spin=%.0f rpm, spin_factor=%.3f, retention=%.3f" % [launch_spin_rpm, current_spin_rpm, spin_factor, tangential_retention])
 
 	var v2_orth = tangential_retention*speed*sin(theta_1-theta_c) - 2.0*radius*abs(spin_n)/7.0
 
@@ -252,15 +250,15 @@ func bounce(vel, normal) -> Vector3:
 		omg_orth = omg_orth.limit_length(w2h)
 
 	# normal restitution (coefficient of restitution)
-	# Reduced low-speed COR to prevent extended bouncing (ball appearing "stuck")
+	# Golf ball COR on turf is typically 0.4-0.6 depending on surface and impact speed
 	var e : float = 0.0
 	if speed_norm > 20.0:
-		e = 0.12
-	elif speed_norm < 3.0:
-		e = 0.0  # Kill small bounces entirely
+		e = 0.25  # High speed impacts
+	elif speed_norm < 2.0:
+		e = 0.0  # Kill very small bounces
 	else:
-		# Reduced from 0.510 to 0.30 at low speeds
-		e = 0.30 - 0.0150*speed_norm + 0.0003*speed_norm*speed_norm
+		# Typical COR curve for golf ball on turf
+		e = 0.45 - 0.0100*speed_norm + 0.0002*speed_norm*speed_norm
 
 	vel_norm = vel_norm*-e
 
