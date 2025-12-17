@@ -82,6 +82,10 @@ func _apply_surface_params() -> void:
 	_rolling_friction = params["u_kr"]
 	_grass_viscosity = params["nu_g"]
 	_critical_angle = params["theta_c"]
+	if OS.is_debug_build():
+		print("Surface set to %s -> u_k=%.3f, u_kr=%.3f, nu_g=%.4f, theta_c=%.3f" % [
+			str(surface_type), _kinetic_friction, _rolling_friction, _grass_viscosity, _critical_angle
+		])
 
 
 func get_downrange_yards() -> float:
@@ -154,6 +158,7 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 
 		if _is_ground_normal(normal):
 			floor_normal = normal
+			# Match openfairway behaviour: first impact or any noticeable downward collision
 			var is_landing := (state == Enums.BallState.FLIGHT) or prev_velocity.y < -0.5
 
 			if is_landing:
@@ -229,7 +234,6 @@ func hit_from_data(data: Dictionary) -> void:
 	var vla_deg: float = float(data.get("VLA", 0.0))
 	var hla_deg: float = float(data.get("HLA", 0.0))
 
-	# Parse spin data (handle both backspin/sidespin and totalspin/axis formats)
 	var spin_data := _parse_spin_data(data)
 	var total_spin: float = spin_data.total
 	var spin_axis: float = spin_data.axis

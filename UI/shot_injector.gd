@@ -21,10 +21,11 @@ func _populate_payloads() -> void:
 		return
 	payload_option.clear()
 	var payloads := {
-		"Drive test shot": "res://assets/data/drive_test_shot.json",
-		"Wood Low test shot": "res://assets/data/wood_low_test_shot.json",
-		"Wedge test shot": "res://assets/data/wedge_test_shot.json",
-		"Bump test shot": "res://assets/data/bump_test_shot.json",
+		"Approach": "res://assets/data/approach_test_shot.json",
+		"Driver": "res://assets/data/drive_test_shot.json",
+		"Wood Low Flight": "res://assets/data/wood_low_test_shot.json",
+		"Wedge": "res://assets/data/wedge_test_shot.json",
+		"Bump & Run": "res://assets/data/bump_test_shot.json",
 	}
 	var selected := 0
 	var idx := 0
