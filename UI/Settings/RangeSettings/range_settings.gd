@@ -58,9 +58,13 @@ func _ready() -> void:
 	# Surface type options
 	surface_option.clear()
 	surface_option.add_item("Fairway", Enums.Surface.FAIRWAY)
+	surface_option.add_item("Soft Fairway", Enums.Surface.FAIRWAY_SOFT)
 	surface_option.add_item("Rough", Enums.Surface.ROUGH)
 	surface_option.add_item("Firm", Enums.Surface.FIRM)
-	surface_option.select(GlobalSettings.range_settings.surface_type.value)
+	var surface_id: int = GlobalSettings.range_settings.surface_type.value
+	var surface_index := surface_option.get_item_index(surface_id)
+	if surface_index >= 0:
+		surface_option.select(surface_index)
 
 	GlobalSettings.range_settings.range_units.setting_changed.connect(update_units)
 

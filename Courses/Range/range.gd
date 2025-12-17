@@ -93,10 +93,11 @@ func reset_camera_to_start() -> void:
 	await tween.finished
 
 	# Reset ball to starting position so it's visible for next shot
-	$Player/Ball.position = Vector3(0.0, 0.05, 0.0)
-	$Player/Ball.velocity = Vector3.ZERO
-	$Player/Ball.omega = Vector3.ZERO
-	$Player/Ball.state = Enums.BallState.REST
+	var ball := $Player/Ball
+	ball.position = Vector3(0.0, ball.START_HEIGHT, 0.0)
+	ball.velocity = Vector3.ZERO
+	ball.omega = Vector3.ZERO
+	ball.state = Enums.BallState.REST
 
 	# Keep follow mode disabled - it will re-enable when the next shot starts
 

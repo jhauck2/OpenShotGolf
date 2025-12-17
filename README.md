@@ -32,12 +32,12 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 - Range session recorder and basic UI for club selection and shot playback.
 
 ## Ball Physics and Distance Calculation
-- Ball flight is driven by `Player/ball.gd`. Forces include gravity, drag, Magnus lift, grass drag, and frictional torque for bounce and rollout.
+- Ball flight is driven by `Player/ball.gd` using force/torque helpers in `physics/ball_physics.gd` (gravity, drag, Magnus lift, grass drag, and frictional torque for bounce and rollout).
 - Spin, launch angle, and ball speed are applied in `hit_from_data`, and the ball transitions through FLIGHT, ROLLOUT, and REST states.
 - Distance metrics come from `Player/player.gd`: horizontal distance is `Vector2(x, z).length()` in meters, converted to yards in range UI when needed (`Courses/Range/range.gd`). Carry, apex, and offline distances are tracked until the ball rests.
 
 ## Aerodynamics and Reynolds Number Modeling
-- Drag (Cd) and lift (Cl) coefficients are calculated in `Player/coefficients.gd` based on Reynolds number (Re) and spin ratio (S).
+- Drag (Cd) and lift (Cl) coefficients are calculated in `physics/aerodynamics.gd` based on Reynolds number (Re) and spin ratio (S).
 - **Reynolds number** determines flow regime: `Re = (air_density × velocity × diameter) / viscosity`
   - **Re < 50k**: Low Reynolds regime (slow wedges/chips < 77 mph) - constant Cl = 0.1
   - **50k < Re < 75k**: Polynomial interpolation between Re-specific models
@@ -48,7 +48,7 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 - This implementation ensures physically realistic behavior across the full range of golf shot speeds, from chips to drivers.
 
 ## Surface and Rollout Tuning
-- Range settings expose a surface preset (Firm/Fairway/Rough) that maps to ground friction and grass drag parameters in `Player/ball.gd` (`u_k`, `u_kr`, `nu_g`), plus a `drag_scale` multiplier for coarse aerodynamic tuning.
+- Range settings expose a surface preset (Firm/Fairway/Soft Fairway/Rough) that maps to ground friction and grass drag parameters in `physics/surface.gd` (`u_k`, `u_kr`, `nu_g`), plus a `drag_scale` multiplier for coarse aerodynamic tuning.
 - Firm uses lower friction/grass drag for faster rollout; Rough uses higher values to shorten rollout; Fairway sits between.
 - These were limited tested with PiTrac hits with limited ball speeds between 40-80mph. Also compared and tested against what a player would expect on GSPro Practice session rollout (FIRM). These numbers are always subjected to weather (morning dew), slightly longer grass in rough vs shorter, etc. Overall, its a good starting point to give options. In the future the code leaves room to scale to sand, and different types of grass (e.g. FIRM_FESCUE vs FIRM_BERMUDA)
 - Defaults are heuristic (tuned for believable rollout) and can be adjusted in the range settings UI. They are not direct measurements from a single study but informed by typical rolling/sliding friction ranges on turf and the drag curve below.
@@ -131,6 +131,7 @@ Download and install Godot 4.5 for your operating system: https://godotengine.or
 
 ## Project Layout
 - `Player/`: Ball physics, player controller, and shot metric tracking.
+- `physics/`: Shared physics modules (BallPhysics, Aerodynamics, surfaces, docs).
 - `TCP/`: TCP server and GSPro-style JSON handling.
 - `Courses/Range/`: Range scene, UI, and yardage output.
 - `Resources/`, `UI/`, `Utils/`: Art assets, UI components, and helper scripts.
