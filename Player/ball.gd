@@ -24,6 +24,7 @@ var lift_cf: float # Lift correction factor (set from GlobalSettings)
 var surface_type: int = Enums.Surface.FAIRWAY
 
 var state : Enums.BallState = Enums.BallState.REST
+var debug_frame_count := 0
 
 # --- NEW: shot reference for measuring downrange distance correctly ---
 var shot_start_pos := Vector3.ZERO
@@ -113,7 +114,6 @@ func _physics_process(delta: float) -> void:
 		# Magnus, drag, and coefficients
 		var Cl = Coefficients.get_Cl(Re, spin)*lift_cf
 		var Cd = Coefficients.get_Cd(Re)*drag_cf
-
 		# Magnus force
 		var om_x_vel = omega.cross(velocity)
 		var omega_len = omega.length()
@@ -298,6 +298,7 @@ func hit():
 
 
 func hit_from_data(data : Dictionary):
+	debug_frame_count = 0  # Reset diagnostic counter for new shot
 	var speed_mps: float = (data.get("Speed", 0.0) as float)*0.44704
 	var vla_deg: float = data.get("VLA", 0.0) as float
 	var hla_deg: float = data.get("HLA", 0.0) as float
