@@ -24,7 +24,6 @@ var lift_cf: float # Lift correction factor (set from GlobalSettings)
 var surface_type: int = Enums.Surface.FAIRWAY
 
 var state : Enums.BallState = Enums.BallState.REST
-var debug_frame_count := 0
 
 # --- NEW: shot reference for measuring downrange distance correctly ---
 var shot_start_pos := Vector3.ZERO
