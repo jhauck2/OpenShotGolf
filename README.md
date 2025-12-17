@@ -6,6 +6,7 @@
 - [Current State](#current-state)
 - [Feature Highlights](#feature-highlights)
 - [Ball Physics and Distance Calculation](#ball-physics-and-distance-calculation)
+- [Aerodynamics and Reynolds Number Modeling](#aerodynamics-and-reynolds-number-modeling)
 - [Surface and Rollout Tuning](#surface-and-rollout-tuning)
 - [Launch Monitor and Networking](#launch-monitor-and-networking)
 - [Data Sequence Diagram](#data-sequence-diagram)
@@ -34,6 +35,17 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 - Ball flight is driven by `Player/ball.gd`. Forces include gravity, drag, Magnus lift, grass drag, and frictional torque for bounce and rollout.
 - Spin, launch angle, and ball speed are applied in `hit_from_data`, and the ball transitions through FLIGHT, ROLLOUT, and REST states.
 - Distance metrics come from `Player/player.gd`: horizontal distance is `Vector2(x, z).length()` in meters, converted to yards in range UI when needed (`Courses/Range/range.gd`). Carry, apex, and offline distances are tracked until the ball rests.
+
+## Aerodynamics and Reynolds Number Modeling
+- Drag (Cd) and lift (Cl) coefficients are calculated in `Player/coefficients.gd` based on Reynolds number (Re) and spin ratio (S).
+- **Reynolds number** determines flow regime: `Re = (air_density × velocity × diameter) / viscosity`
+  - **Re < 50k**: Low Reynolds regime (slow wedges/chips < 77 mph) - constant Cl = 0.1
+  - **50k < Re < 75k**: Polynomial interpolation between Re-specific models
+  - **75k < Re < 200k**: Linear model for most normal golf shots (77-155 mph)
+  - **Re > 200k**: Very high Reynolds (extreme long drive competition) - clamped linear model
+- The `lift_scale` parameter (default 1.23) in range settings allows tuning Magnus lift to match real-world carry distances.
+- A Python script (`assets/scripts/reynolds_calculator.py`) is provided to analyze Reynolds numbers for different shot speeds and validate aerodynamic regime assignments.
+- This implementation ensures physically realistic behavior across the full range of golf shot speeds, from chips to drivers.
 
 ## Surface and Rollout Tuning
 - Range settings expose a surface preset (Firm/Fairway/Rough) that maps to ground friction and grass drag parameters in `Player/ball.gd` (`u_k`, `u_kr`, `nu_g`), plus a `drag_scale` multiplier for coarse aerodynamic tuning.

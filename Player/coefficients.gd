@@ -34,7 +34,7 @@ static func get_air_density(altitude: float, temp: float) -> float:
 static func get_dynamic_air_viscosity(temp: float) -> float:
 	var tempK : float
 	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
-		tempK= FtoC(temp) + KELVIN_CELCIUS
+		tempK = FtoC(temp) + KELVIN_CELCIUS
 	else:
 		tempK = temp + KELVIN_CELCIUS
 	
@@ -50,23 +50,24 @@ static func get_Cd(Re: float) -> float:
 	return 1.1948 - 0.0000209661*Re + 1.42472e-10*Re*Re - 3.14383e-16*Re*Re*Re
 
 static func get_Cl(Re: float, S: float) -> float:
-	# Low and high S
+	# Maximum Cl cap to prevent ballooning on high-spin shots
+	# This applies to ALL code paths
+	# 0.55 gives better carry on lower-speed shots while still preventing ballooning
+	const CL_MAX = 0.55
 
-	if S < 0.05:
-		return 0.05
-	if S > .35:
-		if Re > 12.5e4:
-			return .3
-		else:
-			return -1.34786 + 0.0000354549*Re - 1.847e-10*Re*Re
-	
-	# Low and high Reynolds number
+	# Low Reynolds number
 	if Re < 50000:
 		return 0.1
-	if Re >= 75000:
-		return .203 
-		
-	# Calculations (fixed interpolation with equality handled)
+
+	# Very high Reynolds number - use linear model to avoid extrapolation issues
+	if Re >= 200000:
+		return min(CL_MAX, max(0.05, ReHighToCl(S)))
+
+	# For Re > 75k, use ReHighToCl directly
+	if Re > 75000:
+		return min(CL_MAX, max(0.05, ReHighToCl(S)))
+
+	# Interpolation between polynomial models for 50k <= Re <= 75k
 	var Re_values: Array[int] = [50000, 60000, 65000, 70000, 75000]
 	var Re_high_index: int = Re_values.size() - 1
 	for val in Re_values:
@@ -74,9 +75,9 @@ static func get_Cl(Re: float, S: float) -> float:
 			Re_high_index = Re_values.find(val)
 			break
 	var Re_low_index: int = max(Re_high_index - 1, 0)
-	
-	var ClCallables : Array[Callable] = [Re50kToCl, Re60kToCl, Re65kToCl, Re70kToCl, Re75kToCl]
-	
+
+	var ClCallables : Array[Callable] = [Re50kToCl, Re60kToCl, Re65kToCl, Re70kToCl, ReHighToCl]
+
 	# Get lower and upper bounds on Cl based on Re bounds and S
 	var Cl_low = ClCallables[Re_low_index].call(S)
 	var Cl_high = ClCallables[Re_high_index].call(S)
@@ -86,20 +87,28 @@ static func get_Cl(Re: float, S: float) -> float:
 	if Re_high != Re_low:
 		weight = (Re - Re_low)/(Re_high - Re_low)
 
-	# Interpolate final Cl value from uper and lower Cl
-	return lerpf(Cl_low, Cl_high, weight)
+	# Interpolate final Cl value from upper and lower Cl, apply cap
+	var Cl_interpolated = lerpf(Cl_low, Cl_high, weight)
+	return min(CL_MAX, max(0.05, Cl_interpolated))
 
 static func Re50kToCl(S: float) -> float:
 	return 0.0472121 + 2.84795*S - 23.4342*S*S + 45.4849*S*S*S
 	
 static func Re60kToCl(S: float) -> float:
-	return 0.320524 - 4.7032*S + 14.0613*S*S
+	return max(0.05, 0.320524 - 4.7032*S + 14.0613*S*S)
 
 static func Re65kToCl(S: float) -> float:
-	return 0.266667 - 4*S + 13.3333*S*S
-	
+	return max(0.05, 0.266667 - 4*S + 13.3333*S*S)
+
 static func Re70kToCl(S: float) -> float:
-	return 0.0496189 + 0.00211396*S + 2.34201*S*S
+	return max(0.05, 0.0496189 + 0.00211396*S + 2.34201*S*S)
 	
-static func Re75kToCl(S: float) -> float:
-	return 1.1*S + 0.01
+static func ReHighToCl(S: float) -> float:
+	# Linear model for high Reynolds numbers (Re >= 60k)
+	# Calibrated to match GSPro carry distances:
+	#   1.8 caused ballooning (45% too high apex)
+	#   1.1 was ~10 yards short on carry
+	#   1.3 is good for normal spin, but needs cap for high spin
+	# Cap at 0.38 to prevent ballooning - apex was 2x too high at 0.45
+	var linear_cl = 1.3*S + 0.05
+	return min(linear_cl, 0.38)
