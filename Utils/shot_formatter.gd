@@ -31,8 +31,9 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 			ball_data["Distance"] = prev_data.get("Distance", "---")
 		var carry_val = player.carry
 		if carry_val <= 0 and raw_ball_data.has("CarryDistance"):
-			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float / 1.0 # raw is assumed yards
-		ball_data["Carry"] = "%.1f" % (carry_val*m2yd if not raw_ball_data.has("CarryDistance") else carry_val)
+			carry_val = raw_ball_data.get("CarryDistance", 0.0) as float
+		# carry_val is always in meters, convert to yards for imperial display
+		ball_data["Carry"] = "%.1f" % (carry_val * m2yd)
 		ball_data["Apex"] = "%.1f" % (player.apex*3.28084)
 		var side_distance = player.get_side_distance()*m2yd
 		var side_text := "R"
