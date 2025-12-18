@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bqimll8b8vom6" path="res://Player/player.gd" id="1_btcbx"]
 [ext_resource type="Script" uid="uid://b664jppxri6ts" path="res://Player/ball.gd" id="2_g0ryd"]
 [ext_resource type="Script" uid="uid://j86sopbu1jca" path="res://Player/ball_trail.gd" id="3_g0ryd"]
-[ext_resource type="PackedScene" path="res://assets/models/balls/golf_ball.glb" id="4_golf_ball"]
+[ext_resource type="PackedScene" uid="uid://byy76pu4x6rnq" path="res://assets/models/balls/golf_ball.glb" id="4_golf_ball"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_ubhqr"]
 margin = 0.06
