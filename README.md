@@ -43,12 +43,11 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
   - **50k < Re < 75k**: Polynomial interpolation between Re-specific models
   - **75k < Re < 200k**: Linear model for most normal golf shots (77-155 mph)
   - **Re > 200k**: Very high Reynolds (extreme long drive competition) - clamped linear model
-- The `lift_scale` parameter (default 1.23) in range settings allows tuning Magnus lift to match real-world carry distances.
 - A Python script (`assets/scripts/reynolds_calculator.py`) is provided to analyze Reynolds numbers for different shot speeds and validate aerodynamic regime assignments.
 - This implementation ensures physically realistic behavior across the full range of golf shot speeds, from chips to drivers.
 
 ## Surface and Rollout Tuning
-- Range settings expose a surface preset (Firm/Fairway/Soft Fairway/Rough) that maps to ground friction and grass drag parameters in `physics/surface.gd` (`u_k`, `u_kr`, `nu_g`), plus a `drag_scale` multiplier for coarse aerodynamic tuning.
+- Range settings expose a surface preset (Firm/Fairway/Soft Fairway/Rough) that maps to ground friction and grass drag parameters in `physics/surface.gd` (`u_k`, `u_kr`, `nu_g`).
 - Firm uses lower friction/grass drag for faster rollout; Rough uses higher values to shorten rollout; Fairway sits between.
 - These were limited tested with PiTrac hits with limited ball speeds between 40-80mph. Also compared and tested against what a player would expect on GSPro Practice session rollout (FIRM). These numbers are always subjected to weather (morning dew), slightly longer grass in rough vs shorter, etc. Overall, its a good starting point to give options. In the future the code leaves room to scale to sand, and different types of grass (e.g. FIRM_FESCUE vs FIRM_BERMUDA)
 - Defaults are heuristic (tuned for believable rollout) and can be adjusted in the range settings UI. They are not direct measurements from a single study but informed by typical rolling/sliding friction ranges on turf and the drag curve below.

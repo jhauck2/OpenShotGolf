@@ -323,8 +323,6 @@ yards = meters × 1.09361
 
 | Parameter | Default | Range | Effect |
 |-----------|---------|-------|--------|
-| drag_scale | 1.0 | 0.5-1.5 | Multiplier on Cd |
-| lift_scale | 1.33 | 0.8-2.0 | Multiplier on Cl |
 | temperature | 75°F | -40 to 120 | Affects air density |
 | altitude | 0 ft | -1000 to 10000 | Affects air density |
 | surface_type | FAIRWAY | ROUGH/FAIRWAY/FIRM | Ground interaction |
@@ -334,7 +332,6 @@ yards = meters × 1.09361
 | Parameter | Location | Value | Notes |
 |-----------|----------|-------|-------|
 | spin_decay_tau | ball.gd | 3.0s | Compensates for lift model |
-| lift_scale default | range_settings.gd | 1.33 | Boosts lift to match real balls |
 | COR polynomial | ball.gd | see above | Fitted to bounce data |
 | Cl polynomials | aerodynamics.gd | see above | Wind tunnel curve fits |
 | Cd polynomial | aerodynamics.gd | see above | Wind tunnel curve fit |

@@ -262,14 +262,22 @@ static func calculate_bounce(
 		else:
 			omega_tangent = omega_tangent.limit_length(new_omega_tangent)
 	else:
+		# Rollout: preserve existing spin direction, apply decay factor
+		# Don't force spin to match velocity - let friction torque handle spin naturally
+		# This is where I think the bug could be fixed for high ball speed, low apex lack of distance. 
 		# Rollout: force spin to match rolling velocity to avoid prolonged slipping
-		if new_tangent_speed > 0.1:
-			# Set spin for pure rolling: omega = v/r in direction of velocity
-			var tangent_dir := vel_tangent.normalized() if vel_tangent.length() > 0.01 else Vector3.RIGHT
-			var rolling_axis := normal.cross(tangent_dir).normalized()
-			omega_tangent = rolling_axis * (new_tangent_speed / RADIUS)
-		else:
-			omega_tangent = Vector3.ZERO
+		# TODO - used to be this. But now workaround starts on line 278. 
+		# If reverted, rpm is high on 2nd bounce, then not stable. 
+		# if new_tangent_speed > 0.1:
+		# 	# Set spin for pure rolling: omega = v/r in direction of velocity
+		# 	var tangent_dir := vel_tangent.normalized() if vel_tangent.length() > 0.01 else Vector3.RIGHT
+		# 	var rolling_axis := normal.cross(tangent_dir).normalized()
+		# 	omega_tangent = rolling_axis * (new_tangent_speed / RADIUS)
+		# else:
+		# 	omega_tangent = Vector3.ZERO
+
+		var omega_decay := 0.5  # Reduce spin by 50% on bounce
+		omega_tangent = omega_tangent * omega_decay
 
 	# Coefficient of restitution (speed-dependent)
 	var cor: float
