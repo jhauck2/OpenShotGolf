@@ -27,8 +27,15 @@ var last_display: Dictionary = {}
 func _ready() -> void:
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_changed)
+	GlobalSettings.range_settings.ball_type.setting_changed.connect(_on_ball_type_changing)
 	set_camera_follow_mode(GlobalSettings.range_settings.camera_follow_mode.value)
 	_apply_surface_to_ball()
+
+
+func _on_ball_type_changing(_value) -> void:
+	# Temporarily disable camera follow before ball switch to avoid projection errors
+	$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
+	$PhantomCamera3D.follow_target = null
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -74,17 +81,27 @@ func _on_golf_ball_rest(_ball_data) -> void:
 
 func set_camera_follow_mode(value) -> void:
 	if value:
-		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.FRAMED
 		$PhantomCamera3D.follow_target = $Player/Ball
+		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.FRAMED
 	else:
 		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
+		$PhantomCamera3D.follow_target = null
 
 func reset_camera_to_start() -> void:
-	# Temporarily disable follow mode
+	# Disable follow mode first
 	$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
+	$PhantomCamera3D.follow_target = null
 
-	# Tween camera back to starting position
-	var start_pos := Vector3(-2.5, 1.5, 0)  # Starting camera offset from ball at origin
+	# Wait a frame to ensure phantom camera has fully stopped following
+	await get_tree().process_frame
+
+	# Calculate camera position: ball start position + follow offset
+	var ball := $Player/Ball
+	var ball_start := Vector3(0.0, ball.START_HEIGHT, 0.0)
+	var follow_offset: Vector3 = $PhantomCamera3D.follow_offset
+	var start_pos := ball_start + follow_offset
+
+	# Tween the PhantomCamera3D back to starting position
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC)
 	tween.set_ease(Tween.EASE_IN_OUT)
@@ -93,8 +110,7 @@ func reset_camera_to_start() -> void:
 	await tween.finished
 
 	# Reset ball to starting position so it's visible for next shot
-	var ball := $Player/Ball
-	ball.position = Vector3(0.0, ball.START_HEIGHT, 0.0)
+	ball.position = ball_start
 	ball.velocity = Vector3.ZERO
 	ball.omega = Vector3.ZERO
 	ball.state = Enums.BallState.REST

@@ -134,7 +134,7 @@ func _on_altitude_spin_box_value_changed(value: float) -> void:
 	GlobalSettings.range_settings.altitude.set_value(value)
 
 
-func _on_drag_spin_box_value_changed(value: float) -> void:
+func _on_drag_spin_box_value_changed(_value: float) -> void:
 	pass
 
 
