@@ -9,8 +9,8 @@ var display_data: Dictionary = {
 	"Carry": "---",
 	"Offline": "---",
 	"Apex": "---",
-	"VLA": 0.0,
-	"HLA": 0.0,
+	"VLA": "---",
+	"HLA": "---",
 	"Speed": "---",
 	"BackSpin": "---",
 	"SideSpin": "---",
@@ -126,8 +126,8 @@ func _reset_display_data() -> void:
 	display_data["Carry"] = "---"
 	display_data["Offline"] = "---"
 	display_data["Apex"] = "---"
-	display_data["VLA"] = 0.0
-	display_data["HLA"] = 0.0
+	display_data["VLA"] = "---"
+	display_data["HLA"] = "---"
 	display_data["Speed"] = "---"
 	display_data["BackSpin"] = "---"
 	display_data["SideSpin"] = "---"

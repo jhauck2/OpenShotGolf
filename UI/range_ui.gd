@@ -31,8 +31,8 @@ func set_data(data: Dictionary) -> void:
 		$GridCanvas/TotalSpin.set_data(str(data["TotalSpin"]))
 		$GridCanvas/SpinAxis.set_units("deg")
 		$GridCanvas/SpinAxis.set_data(str(data["SpinAxis"]))
-		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
-		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
+		$GridCanvas/VLA.set_data(_format_angle(data.get("VLA")))
+		$GridCanvas/HLA.set_data(_format_angle(data.get("HLA")))
 	else:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
@@ -48,8 +48,15 @@ func set_data(data: Dictionary) -> void:
 		$GridCanvas/TotalSpin.set_data(str(data["TotalSpin"]))
 		$GridCanvas/SpinAxis.set_units("deg")
 		$GridCanvas/SpinAxis.set_data(str(data["SpinAxis"]))
-		$GridCanvas/VLA.set_data("%3.1f" % data["VLA"])
-		$GridCanvas/HLA.set_data("%3.1f" % data["HLA"])
+		$GridCanvas/VLA.set_data(_format_angle(data.get("VLA")))
+		$GridCanvas/HLA.set_data(_format_angle(data.get("HLA")))
+
+
+func _format_angle(value) -> String:
+	# Accept both numeric values and placeholder strings (e.g., "---" after reset).
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		return "%3.1f" % value
+	return str(value)
 
 
 func _on_rec_button_pressed() -> void:
