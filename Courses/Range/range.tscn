@@ -204,7 +204,7 @@ script = ExtResource("1_sunpe")
 script = ExtResource("2_d1a0v")
 
 [node name="Player" parent="." instance=ExtResource("3_4jr3s")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.04, 0)
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 174.334, 165.881, 0)
@@ -316,8 +316,8 @@ script = ExtResource("21_6rpr1")
 [connection signal="good_data" from="Player" to="TCPServer" method="_on_golf_ball_good_data"]
 [connection signal="rest" from="Player" to="." method="_on_golf_ball_rest"]
 [connection signal="rest" from="Player" to="SessionRecorder" method="_on_golf_ball_rest"]
-[connection signal="hit_shot" from="RangeUI" to="Player" method="_on_range_ui_hit_shot"]
 [connection signal="hit_shot" from="RangeUI" to="." method="_on_range_ui_hit_shot"]
+[connection signal="hit_shot" from="RangeUI" to="Player" method="_on_range_ui_hit_shot"]
 [connection signal="rec_button_pressed" from="RangeUI" to="SessionRecorder" method="toggle_recording"]
 [connection signal="set_session" from="RangeUI" to="SessionRecorder" method="_on_range_ui_set_session"]
 [connection signal="recording_state" from="SessionRecorder" to="RangeUI" method="_on_session_recorder_recording_state"]

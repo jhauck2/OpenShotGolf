@@ -1,6 +1,9 @@
 extends Node3D
 
 
+const STANDARD_BALL_SCRIPT := preload("res://Player/ball.gd")
+const PREMIUM_BALL_SCRIPT := preload("res://Player/ball_premium.gd")
+
 var track_points : bool = false
 var trail_timer : float = 0.0
 var trail_resolution : float = 0.1
@@ -24,6 +27,8 @@ func _ready() -> void:
 	# Set initial value and connect to setting changes
 	max_tracers = GlobalSettings.range_settings.shot_tracer_count.value
 	GlobalSettings.range_settings.shot_tracer_count.setting_changed.connect(_on_tracer_count_changed)
+	_apply_ball_type(GlobalSettings.range_settings.ball_type.value)
+	GlobalSettings.range_settings.ball_type.setting_changed.connect(_on_ball_type_changed)
 
 func _on_tracer_count_changed(value) -> void:
 	max_tracers = value
@@ -31,6 +36,30 @@ func _on_tracer_count_changed(value) -> void:
 	while tracers.size() > max_tracers:
 		var oldest = tracers.pop_front()
 		oldest.queue_free()
+
+
+func _on_ball_type_changed(value) -> void:
+	_apply_ball_type(value)
+
+
+func _apply_ball_type(ball_type_value) -> void:
+	var ball := $Ball
+	var desired_script: Script = STANDARD_BALL_SCRIPT
+	if ball_type_value == Enums.BallType.PREMIUM:
+		desired_script = PREMIUM_BALL_SCRIPT
+
+	if ball.get_script() != desired_script:
+		ball.set_script(desired_script)
+	if ball.has_method("initialize_ball"):
+		ball.initialize_ball()
+
+	# Ensure connections remain intact if script swapped at runtime
+	if not ball.is_connected("rest", _on_ball_rest):
+		ball.rest.connect(_on_ball_rest)
+
+	# Re-apply surface/environment and reset to a clean state
+	ball.set_surface(GlobalSettings.range_settings.surface_type.value)
+	reset_ball()
 
 func create_new_tracer() -> MeshInstance3D:
 	# Don't create tracer if max_tracers is 0

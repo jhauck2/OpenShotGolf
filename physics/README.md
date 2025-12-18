@@ -49,10 +49,10 @@ The simulation handles three ball states:
 
 | File | Purpose |
 |------|---------|
-| `Player/ball.gd` | Main ball physics, state machine, forces, bounce |
-| `Player/coefficients.gd` | Aerodynamic coefficients (Cd, Cl), air properties |
-| `Player/player.gd` | Shot tracking, distance measurement |
-| `Utils/surface.gd` | Surface friction parameters |
+| `Player/ball.gd` | Ball state machine, collision handling, distance tracking |
+| `physics/ball_physics.gd` | Force/torque/bounce calculations |
+| `physics/aerodynamics.gd` | Aerodynamic coefficients (Cd, Cl), air properties |
+| `physics/surface.gd` | Surface friction parameters |
 | `Utils/Settings/range_settings.gd` | User-adjustable physics settings |
 
 ---
@@ -109,7 +109,7 @@ Where:
 
 ### Aerodynamic Coefficients
 
-Located in `Player/coefficients.gd`.
+Located in `physics/aerodynamics.gd`.
 
 #### Drag Coefficient Cd(Re)
 
@@ -187,13 +187,14 @@ Where:
 
 ### Surface Types
 
-Defined in `Utils/surface.gd`:
+Defined in physics/surface.gd:
 
 | Surface | u_k (kinetic) | u_kr (rolling) | nu_g (grass drag) | theta_c (critical angle) |
 |---------|---------------|----------------|-------------------|--------------------------|
-| ROUGH | 0.15 | 0.05 | 0.0005 | 0.38 rad (~22°) |
-| FAIRWAY | 0.42 | 0.18 | 0.0020 | 0.30 rad (~17°) |
-| FIRM | 0.08 | 0.02 | 0.0002 | 0.21 rad (~12°) |
+| ROUGH | 0.15 | 0.05 | 0.0005 | 0.38 rad (~22 deg) |
+| FAIRWAY | 0.30 | 0.015 | 0.0010 | 0.25 rad (~14 deg) |
+| FAIRWAY_SOFT | 0.42 | 0.18 | 0.0020 | 0.30 rad (~17 deg) |
+| FIRM | 0.08 | 0.02 | 0.0002 | 0.21 rad (~12 deg) |
 
 **Parameter types:**
 - `u_k`, `u_kr`: **EMPIRICAL** - tuned to match GSPro rollout
@@ -322,8 +323,6 @@ yards = meters × 1.09361
 
 | Parameter | Default | Range | Effect |
 |-----------|---------|-------|--------|
-| drag_scale | 1.0 | 0.5-1.5 | Multiplier on Cd |
-| lift_scale | 1.33 | 0.8-2.0 | Multiplier on Cl |
 | temperature | 75°F | -40 to 120 | Affects air density |
 | altitude | 0 ft | -1000 to 10000 | Affects air density |
 | surface_type | FAIRWAY | ROUGH/FAIRWAY/FIRM | Ground interaction |
@@ -333,10 +332,9 @@ yards = meters × 1.09361
 | Parameter | Location | Value | Notes |
 |-----------|----------|-------|-------|
 | spin_decay_tau | ball.gd | 3.0s | Compensates for lift model |
-| lift_scale default | range_settings.gd | 1.33 | Boosts lift to match real balls |
 | COR polynomial | ball.gd | see above | Fitted to bounce data |
-| Cl polynomials | coefficients.gd | see above | Wind tunnel curve fits |
-| Cd polynomial | coefficients.gd | see above | Wind tunnel curve fit |
+| Cl polynomials | aerodynamics.gd | see above | Wind tunnel curve fits |
+| Cd polynomial | aerodynamics.gd | see above | Wind tunnel curve fit |
 
 ---
 
@@ -411,3 +409,4 @@ yards = meters × 1.09361
 ---
 
 *Last updated: 15-12-2025*
+
