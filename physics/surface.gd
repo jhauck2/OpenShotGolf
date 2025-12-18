@@ -1,18 +1,17 @@
 class_name Surface
-extends RefCounted
 
 # Utility class for ground surface physics parameters.
 # Provides friction coefficients and interaction parameters for different playing surfaces.
-
+enum SurfaceType {FAIRWAY, FAIRWAY_SOFT, ROUGH, FIRM}
 ## Returns ground interaction parameters for a given surface type.
 ## Parameters returned:
 ## - u_k: Kinetic friction coefficient (sliding)
 ## - u_kr: Rolling friction coefficient
 ## - nu_g: Grass drag viscosity
 ## - theta_c: Critical bounce angle in radians (from Penner's golf physics)
-static func get_params(surface: Enums.Surface) -> Dictionary:
+static func get_params(surface: SurfaceType) -> Dictionary:
 	match surface:
-		Enums.Surface.ROUGH:
+		SurfaceType.ROUGH:
 			# High grip, more friction - ball checks up quickly
 			return {
 				"u_k": 0.15,
@@ -20,7 +19,7 @@ static func get_params(surface: Enums.Surface) -> Dictionary:
 				"nu_g": 0.0005,
 				"theta_c": 0.38  # ~22 deg
 			}
-		Enums.Surface.FAIRWAY:
+		SurfaceType.FAIRWAY:
 			# Normal fairway - good conditions with 30-40 yd rollout, low rpm, high ball speed, low apex.
 			return {
 				"u_k": 0.30,      # Lower kinetic friction for less skid loss
@@ -28,7 +27,7 @@ static func get_params(surface: Enums.Surface) -> Dictionary:
 				"nu_g": 0.0010,   # Less grass drag for better rollout
 				"theta_c": 0.25   # ~14 deg - firmer surface
 			}
-		Enums.Surface.FAIRWAY_SOFT:
+		SurfaceType.FAIRWAY_SOFT:
 			# Soft/wet fairway - reduced rollout (~20-30 yds)
 			return {
 				"u_k": 0.42,      # Higher kinetic friction
@@ -36,7 +35,7 @@ static func get_params(surface: Enums.Surface) -> Dictionary:
 				"nu_g": 0.0020,   # More grass drag
 				"theta_c": 0.30   # ~17 deg - softer surface
 			}
-		Enums.Surface.FIRM:
+		SurfaceType.FIRM:
 			# Low grip - ball runs out more
 			return {
 				"u_k": 0.08,

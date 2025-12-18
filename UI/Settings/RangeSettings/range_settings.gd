@@ -30,7 +30,7 @@ func _ready() -> void:
 	temperature_spin_box = $MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox
 	altitude_spin_box = $MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox
 	surface_option = $MarginContainer/VBoxContainer/SurfaceType/SurfaceOption
-	if has_node("MarginContainer/VBoxContainer/BallType/BallTypeOption"):
+	if ("MarginContainer/VBoxContainer/BallType/BallTypeOption"):
 		ball_type_option = $MarginContainer/VBoxContainer/BallType/BallTypeOption
 	tracer_count_spin_box = $MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox
 
@@ -49,10 +49,10 @@ func _ready() -> void:
 
 	# Surface type options
 	surface_option.clear()
-	surface_option.add_item("Fairway", Enums.Surface.FAIRWAY)
-	surface_option.add_item("Soft Fairway", Enums.Surface.FAIRWAY_SOFT)
-	surface_option.add_item("Rough", Enums.Surface.ROUGH)
-	surface_option.add_item("Firm", Enums.Surface.FIRM)
+	surface_option.add_item("Fairway", Surface.SurfaceType.FAIRWAY)
+	surface_option.add_item("Soft Fairway", Surface.SurfaceType.FAIRWAY_SOFT)
+	surface_option.add_item("Rough", Surface.SurfaceType.ROUGH)
+	surface_option.add_item("Firm", Surface.SurfaceType.FIRM)
 	var surface_id: int = GlobalSettings.range_settings.surface_type.value
 	var surface_index := surface_option.get_item_index(surface_id)
 	if surface_index >= 0:
@@ -148,7 +148,7 @@ func _on_tracer_count_spin_box_value_changed(value: float) -> void:
 
 
 func _on_ball_type_option_item_selected(index: int) -> void:
-	if ball_type_option == null:
+	if ball_type_option == null: #If you remove, ball selection stops working in settings. Look at debug shot. 
 		return
 	var id: int = ball_type_option.get_item_id(index)
 	GlobalSettings.range_settings.ball_type.set_value(id)

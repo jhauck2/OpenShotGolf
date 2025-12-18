@@ -54,9 +54,8 @@ func _apply_ball_type(ball_type_value) -> void:
 		ball.initialize_ball()
 
 	# Ensure connections remain intact if script swapped at runtime
-	var callable := Callable(self, "_on_ball_rest")
-	if not ball.is_connected("rest", callable):
-		ball.rest.connect(callable)
+	if not ball.is_connected("rest", _on_ball_rest):
+		ball.rest.connect(_on_ball_rest)
 
 	# Re-apply surface/environment and reset to a clean state
 	ball.set_surface(GlobalSettings.range_settings.surface_type.value)

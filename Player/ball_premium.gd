@@ -12,7 +12,7 @@ var _settings_connected := false
 
 # Surface parameters (base values pulled from physics/surface.gd, then multiplied below).
 # Change the *_mult values to tune this ball independently of global settings.
-var surface_type: Enums.Surface = Enums.Surface.FAIRWAY
+var surface_type: Surface.SurfaceType = Surface.SurfaceType.FAIRWAY
 var _kinetic_friction := 0.0
 var _rolling_friction := 0.0
 var _grass_viscosity := 0.0
@@ -89,7 +89,7 @@ func _on_lift_scale_changed(_value) -> void:
 
 
 func set_surface(surface: int) -> void:
-	surface_type = surface as Enums.Surface
+	surface_type = surface as Surface.SurfaceType
 	_apply_surface_params()
 
 

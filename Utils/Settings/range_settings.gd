@@ -8,7 +8,7 @@ var auto_ball_reset := Setting.new(false)
 var ball_reset_timer := Setting.new(5.0, 1.0, 15.0)
 var temperature := Setting.new(75, -40, 120)
 var altitude := Setting.new(0.0, -1000.0, 10000.0)
-var surface_type := Setting.new(Enums.Surface.FAIRWAY)
+var surface_type := Setting.new(Surface.SurfaceType.FAIRWAY)
 var shot_tracer_count := Setting.new(1, 0, 4)
 var ball_type := Setting.new(Enums.BallType.STANDARD)
 

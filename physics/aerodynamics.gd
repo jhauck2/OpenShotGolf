@@ -1,5 +1,4 @@
 class_name Aerodynamics
-extends RefCounted
 
 # Aerodynamic coefficient calculations for golf ball flight simulation.
 # Provides drag (Cd) and lift (Cl) coefficients based on Reynolds number

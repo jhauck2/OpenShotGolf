@@ -13,7 +13,7 @@ var _settings_connected := false
 # Surface parameters (base values pulled from physics/surface.gd, then multiplied below).
 # TODO - some of these values should not be in ball. Ball type shouldn't matter grass viscosity. 
 # Change the *_mult values to create a different “feel” for this ball without touching global settings.
-var surface_type: Enums.Surface = Enums.Surface.FAIRWAY
+var surface_type: Surface.SurfaceType = Surface.SurfaceType.FAIRWAY
 var _kinetic_friction: float = 0.42
 var _rolling_friction: float = 0.18
 var _grass_viscosity: float = 0.0020
@@ -50,14 +50,13 @@ func initialize_ball() -> void:
 
 func _connect_settings() -> void:
 	var settings := GlobalSettings.range_settings
-	var env_callable := Callable(self, "_on_environment_changed")
 
-	if not settings.temperature.setting_changed.is_connected(env_callable):
-		settings.temperature.setting_changed.connect(env_callable)
-	if not settings.altitude.setting_changed.is_connected(env_callable):
-		settings.altitude.setting_changed.connect(env_callable)
-	if not settings.range_units.setting_changed.is_connected(env_callable):
-		settings.range_units.setting_changed.connect(env_callable)
+	if not settings.temperature.setting_changed.is_connected(_on_environment_changed):
+		settings.temperature.setting_changed.connect(_on_environment_changed)
+	if not settings.altitude.setting_changed.is_connected(_on_environment_changed):
+		settings.altitude.setting_changed.connect(_on_environment_changed)
+	if not settings.range_units.setting_changed.is_connected(_on_environment_changed):
+		settings.range_units.setting_changed.connect(_on_environment_changed)
 	_drag_scale = _drag_mult
 	_lift_scale = _lift_mult
 	_settings_connected = true
@@ -90,7 +89,7 @@ func _update_environment() -> void:
 
 
 func set_surface(surface: int) -> void:
-	surface_type = surface as Enums.Surface
+	surface_type = surface as Surface.SurfaceType
 	_apply_surface_params()
 
 
