@@ -198,7 +198,6 @@ tonemap_white = 6.0
 script = ExtResource("18_gqfs3")
 
 [node name="Range" type="Node3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.045286305, 0)
 script = ExtResource("1_sunpe")
 
 [node name="TCPServer" type="Node" parent="."]
