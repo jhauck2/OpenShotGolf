@@ -4,7 +4,7 @@ signal rest
 
 const START_HEIGHT := 0.02
 
-var state: Enums.BallState = Enums.BallState.REST
+var state: GolfBall.BallState = GolfBall.BallState.REST
 var omega := Vector3.ZERO  # Angular velocity (rad/s)
 var on_ground := false
 var floor_normal := Vector3.UP
@@ -108,7 +108,7 @@ func get_downrange_yards() -> float:
 
 
 func _physics_process(delta: float) -> void:
-	if state == Enums.BallState.REST:
+	if state == GolfBall.BallState.REST:
 		return
 
 	var was_on_ground := on_ground
@@ -127,7 +127,7 @@ func _physics_process(delta: float) -> void:
 	var collision := move_and_collide(velocity * delta)
 	_handle_collision(collision, was_on_ground, prev_velocity)
 
-	if velocity.length() < 0.1 and state != Enums.BallState.REST:
+	if velocity.length() < 0.1 and state != GolfBall.BallState.REST:
 		_enter_rest_state()
 
 
@@ -166,10 +166,10 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 
 		if _is_ground_normal(normal):
 			floor_normal = normal
-			var is_landing := (state == Enums.BallState.FLIGHT) or prev_velocity.y < -0.5
+			var is_landing := (state == GolfBall.BallState.FLIGHT) or prev_velocity.y < -0.5
 
 			if is_landing:
-				if state == Enums.BallState.FLIGHT:
+				if state == GolfBall.BallState.FLIGHT:
 					_print_impact_debug()
 
 				var params := _create_physics_params()
@@ -189,7 +189,7 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 			floor_normal = Vector3.UP
 			velocity = velocity.bounce(normal) * 0.30
 	else:
-		if state != Enums.BallState.FLIGHT and was_on_ground and position.y < 0.02 and velocity.y <= 0.0:
+		if state != GolfBall.BallState.FLIGHT and was_on_ground and position.y < 0.02 and velocity.y <= 0.0:
 			on_ground = true
 		else:
 			on_ground = false
@@ -208,7 +208,7 @@ func _print_impact_debug() -> void:
 
 
 func _enter_rest_state() -> void:
-	state = Enums.BallState.REST
+	state = GolfBall.BallState.REST
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	rest.emit()
@@ -219,7 +219,7 @@ func reset() -> void:
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	launch_spin_rpm = 0.0
-	state = Enums.BallState.REST
+	state = GolfBall.BallState.REST
 	on_ground = false
 
 
@@ -243,7 +243,7 @@ func hit_from_data(data: Dictionary) -> void:
 	var total_spin: float = spin_data.total
 	var spin_axis: float = spin_data.axis
 
-	state = Enums.BallState.FLIGHT
+	state = GolfBall.BallState.FLIGHT
 	on_ground = false
 	position = Vector3(0.0, START_HEIGHT, 0.0)
 

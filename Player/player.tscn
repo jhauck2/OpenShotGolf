@@ -15,6 +15,7 @@ radius = 0.043
 script = ExtResource("1_btcbx")
 
 [node name="Ball" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 script = ExtResource("2_g0ryd")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ball"]

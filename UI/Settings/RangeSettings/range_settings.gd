@@ -60,8 +60,8 @@ func _ready() -> void:
 	# Ball type options
 	if ball_type_option:
 		ball_type_option.clear()
-		ball_type_option.add_item("Standard", Enums.BallType.STANDARD)
-		ball_type_option.add_item("Premium", Enums.BallType.PREMIUM)
+		ball_type_option.add_item("Standard", GolfBall.BallType.STANDARD)
+		ball_type_option.add_item("Premium", GolfBall.BallType.PREMIUM)
 		var ball_type_id: int = GlobalSettings.range_settings.ball_type.value
 		var ball_type_index := ball_type_option.get_item_index(ball_type_id)
 		if ball_type_index >= 0:

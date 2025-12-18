@@ -45,7 +45,7 @@ func _on_ball_type_changed(value) -> void:
 func _apply_ball_type(ball_type_value) -> void:
 	var ball := $Ball
 	var desired_script: Script = STANDARD_BALL_SCRIPT
-	if ball_type_value == Enums.BallType.PREMIUM:
+	if ball_type_value == GolfBall.BallType.PREMIUM:
 		desired_script = PREMIUM_BALL_SCRIPT
 
 	if ball.get_script() != desired_script:
@@ -110,7 +110,7 @@ func _physics_process(delta: float) -> void:
 	if track_points and current_tracer != null:
 		apex = max(apex, $Ball.position.y)
 		side_distance = $Ball.position.z
-		if $Ball.state == Enums.BallState.FLIGHT:
+		if $Ball.state == GolfBall.BallState.FLIGHT:
 			carry = $Ball.get_downrange_yards() / 1.09361  # Convert yards back to meters for consistency
 		trail_timer += delta
 		if trail_timer >= trail_resolution:

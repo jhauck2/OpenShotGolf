@@ -177,9 +177,9 @@ static func calculate_ground_torques(
 class BounceResult:
 	var new_velocity: Vector3
 	var new_omega: Vector3
-	var new_state: Enums.BallState
+	var new_state: GolfBall.BallState
 
-	func _init(vel: Vector3, omg: Vector3, st: Enums.BallState) -> void:
+	func _init(vel: Vector3, omg: Vector3, st: GolfBall.BallState) -> void:
 		new_velocity = vel
 		new_omega = omg
 		new_state = st
@@ -190,10 +190,10 @@ static func calculate_bounce(
 	vel: Vector3,
 	omega: Vector3,
 	normal: Vector3,
-	current_state: Enums.BallState,
+	current_state: GolfBall.BallState,
 	params: PhysicsParams
 ) -> BounceResult:
-	var new_state := Enums.BallState.ROLLOUT if current_state == Enums.BallState.FLIGHT else current_state
+	var new_state := GolfBall.BallState.ROLLOUT if current_state == GolfBall.BallState.FLIGHT else current_state
 
 	# Decompose velocity
 	var vel_normal := vel.project(normal)
@@ -215,7 +215,7 @@ static func calculate_bounce(
 
 	var tangential_retention: float
 
-	if current_state == Enums.BallState.FLIGHT:
+	if current_state == GolfBall.BallState.FLIGHT:
 		# First bounce from flight: Use spin-based penalty
 		var spin_factor := clampf(1.0 - (current_spin_rpm / 8000.0), 0.40, 1.0)
 		tangential_retention = 0.55 * spin_factor
@@ -231,7 +231,7 @@ static func calculate_bounce(
 		else:
 			tangential_retention = 0.70
 
-	if new_state == Enums.BallState.ROLLOUT:
+	if new_state == GolfBall.BallState.ROLLOUT:
 		print("  Bounce: spin=%.0f rpm, retention=%.3f" % [
 			current_spin_rpm, tangential_retention
 		])
@@ -239,7 +239,7 @@ static func calculate_bounce(
 	# Calculate new tangential speed
 	var new_tangent_speed: float
 
-	if current_state == Enums.BallState.FLIGHT:
+	if current_state == GolfBall.BallState.FLIGHT:
 		# First bounce from flight: Use Penner model - backspin creates reverse velocity
 		new_tangent_speed = tangential_retention * vel.length() * sin(impact_angle - params.critical_angle) - \
 			2.0 * RADIUS * omega_tangent_magnitude / 7.0
@@ -254,7 +254,7 @@ static func calculate_bounce(
 		vel_tangent = vel_tangent.limit_length(new_tangent_speed)
 
 	# Update tangential angular velocity
-	if current_state == Enums.BallState.FLIGHT:
+	if current_state == GolfBall.BallState.FLIGHT:
 		# First bounce: compute omega from tangent speed
 		var new_omega_tangent := new_tangent_speed / RADIUS
 		if omega_tangent.length() < 0.1 or new_omega_tangent <= 0.0:
@@ -281,7 +281,7 @@ static func calculate_bounce(
 
 	# Coefficient of restitution (speed-dependent)
 	var cor: float
-	if current_state == Enums.BallState.FLIGHT:
+	if current_state == GolfBall.BallState.FLIGHT:
 		# First bounce from flight: use full COR
 		cor = get_coefficient_of_restitution(speed_normal)
 	else:
