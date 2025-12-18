@@ -30,8 +30,7 @@ func _ready() -> void:
 	temperature_spin_box = $MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox
 	altitude_spin_box = $MarginContainer/VBoxContainer/Altitude/AltitudeSpinBox
 	surface_option = $MarginContainer/VBoxContainer/SurfaceType/SurfaceOption
-	if ("MarginContainer/VBoxContainer/BallType/BallTypeOption"):
-		ball_type_option = $MarginContainer/VBoxContainer/BallType/BallTypeOption
+	ball_type_option = $MarginContainer/VBoxContainer/BallType/BallTypeOption
 	tracer_count_spin_box = $MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox
 
 	# Reset Timer Settings

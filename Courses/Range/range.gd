@@ -17,8 +17,6 @@ var display_data: Dictionary = {
 	"TotalSpin": "---",
 	"SpinAxis": "---"
 }
-var ball_reset_time := 5.0
-var auto_reset_enabled := false
 var raw_ball_data: Dictionary = {}
 var last_display: Dictionary = {}
 
