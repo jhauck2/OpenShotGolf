@@ -13,6 +13,7 @@ config_version=5
 config/name="OpenShotGolf"
 run/main_scene="uid://dgyd437dgyv0y"
 config/features=PackedStringArray("4.5", "Mobile")
+config/icon="uid://w55ctbj16lbs"
 
 [autoload]
 
@@ -33,6 +34,12 @@ project/assembly_name="OpenShotGolf"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/godot-sqlite/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+
+[file_customization]
+
+folder_colors={
+"res://UI/": "teal"
+}
 
 [input]
 
