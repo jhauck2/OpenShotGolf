@@ -88,13 +88,8 @@ func reset_camera_to_start() -> void:
 
 	await tween.finished
 
-	# Reset ball to starting position so it's visible for next shot
-	$Player.ball.position = Vector3(0.0, 0.2, 0.0)
-	$Player.ball.velocity = Vector3.ZERO
-	$Player.ball.omega = Vector3.ZERO
-	$Player.ball.state = GolfBall.BallState.REST
-
-	# Keep follow mode disabled - it will re-enable when the next shot starts
+	# Reset ball to starting position
+	$Player.ball.reset()
 
 
 func _on_range_ui_hit_shot(data: Dictionary) -> void:
@@ -102,6 +97,12 @@ func _on_range_ui_hit_shot(data: Dictionary) -> void:
 	raw_ball_data = data.duplicate()
 	_update_ball_display()
 
+	# Re-enable camera follow if the setting is on
+	if GlobalSettings.range_settings.camera_follow_mode.value:
+		set_camera_follow_mode(true)
+
+
+func _on_player_manual_hit() -> void:
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
 		set_camera_follow_mode(true)
