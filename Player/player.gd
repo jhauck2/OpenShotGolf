@@ -19,6 +19,7 @@ var ball : GolfBall = null
 signal good_data
 signal bad_data
 signal rest(data: Dictionary)
+signal manual_hit
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _ready() -> void:
 	ball = GolfBall.new(GolfBall.BallType.STANDARD)
 	ball.position.y = 3.0
 	add_child(ball)
+	ball.rest.connect(_on_ball_rest)
 	
 	# Set initial value and connect to setting changes
 	max_tracers = GlobalSettings.range_settings.shot_tracer_count.value
@@ -80,6 +82,7 @@ func _process(_delta: float) -> void:
 			current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
 		track_points = true
 		trail_timer = 0.0
+		emit_signal("manual_hit")
 	if Input.is_action_just_pressed("reset"):
 		ball.call_deferred("reset")
 		apex = 0.0
