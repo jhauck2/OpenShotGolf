@@ -1,0 +1,78 @@
+[gd_scene load_steps=8 format=3 uid="uid://bgc5q6m1mbtkj"]
+
+[ext_resource type="Theme" uid="uid://cgf8jxjkwhfhq" path="res://UI/Themes/menus_theme.tres" id="1_gfxp2"]
+[ext_resource type="Texture2D" uid="uid://bnow80shojrjt" path="res://Resources/Icons/person.png" id="3_jgdft"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat/Montserrat-SemiBold.ttf" id="4_2e3oi"]
+[ext_resource type="Script" uid="uid://dhb4kbk5ts21e" path="res://UI/Components/animation_component.gd" id="5_gfxp2"]
+[ext_resource type="FontFile" uid="uid://8il8rjk0d46o" path="res://UI/Fonts/Montserrat/Montserrat-Regular.ttf" id="5_rjr4k"]
+[ext_resource type="Script" uid="uid://cjqxlgrmcqirb" path="res://UI/MainMenu/Components/select_player_card.gd" id="6_gfxp2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jgdft"]
+bg_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[node name="Button" type="Button"]
+custom_minimum_size = Vector2(0, 60)
+offset_right = 517.0
+offset_bottom = 61.0
+mouse_default_cursor_shape = 2
+theme = ExtResource("1_gfxp2")
+script = ExtResource("6_gfxp2")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 0
+offset_right = 517.0
+offset_bottom = 61.0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Avatar" type="PanelContainer" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(40, 30)
+layout_mode = 2
+theme_type_variation = &"Avatar"
+theme_override_styles/panel = SubResource("StyleBoxFlat_jgdft")
+
+[node name="PlayerNick" type="Label" parent="MarginContainer/HBoxContainer/Avatar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/HBoxContainer/Avatar"]
+layout_mode = 2
+texture = ExtResource("3_jgdft")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="Text" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PlayerName" type="Label" parent="MarginContainer/HBoxContainer/Text"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("4_2e3oi")
+text = "Tiger Woods"
+
+[node name="Info" type="Label" parent="MarginContainer/HBoxContainer/Text"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.71, 1)
+theme_override_fonts/font = ExtResource("5_rjr4k")
+theme_override_font_sizes/font_size = 12
+text = "Pro | Avg Score: 68.5 | 247 rounds"
+
+[node name="AnimationComponenta" type="Node" parent="."]
+script = ExtResource("5_gfxp2")
+fade_animation = true
