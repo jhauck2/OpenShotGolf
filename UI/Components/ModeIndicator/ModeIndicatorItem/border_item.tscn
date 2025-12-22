@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://d3yssajyv306n"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_imgnh"]
+content_margin_top = 185.0
+content_margin_bottom = 186.0
+bg_color = Color(0.4351923, 0.43519226, 0.43519226, 0.23137255)
+
+[node name="BorderItem" type="MarginContainer"]
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="Panel" parent="."]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_imgnh")

@@ -1,0 +1,247 @@
+[gd_scene load_steps=11 format=3 uid="uid://d3w3cy230isuu"]
+
+[ext_resource type="Texture2D" uid="uid://wjk5p6e1xx4t" path="res://Resources/Icons/target.png" id="1_1bbf5"]
+[ext_resource type="Script" uid="uid://dx2rquun47tpy" path="res://UI/Components/ModeIndicator/mode_indicator.gd" id="1_5rbhv"]
+[ext_resource type="FontFile" uid="uid://ia14e2pq4s4r" path="res://UI/Fonts/Oswald-Bold.ttf" id="2_5rbhv"]
+[ext_resource type="Script" uid="uid://dwf17m6pyijhd" path="res://UI/Components/ModeIndicator/ModeIndicatorItem/info_item.gd" id="2_imeiy"]
+[ext_resource type="FontFile" uid="uid://cqo2okhoifio7" path="res://UI/Fonts/Montserrat-Medium.ttf" id="3_s8o1t"]
+[ext_resource type="Texture2D" uid="uid://cw87alqseuuoe" path="res://Resources/Icons/arrow_down.png" id="4_imeiy"]
+[ext_resource type="FontFile" uid="uid://cnbpshmwvaw1c" path="res://UI/Fonts/Montserrat-SemiBold.ttf" id="6_s8o1t"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gp1ws"]
+bg_color = Color(0.08627451, 0.105882354, 0.13333334, 0.7529412)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.15294118)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+expand_margin_left = 10.0
+expand_margin_right = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_f6p6h"]
+bg_color = Color(0.08627451, 0.105882354, 0.13333334, 0.7529412)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.20392157, 0.59607846, 0.85882354, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+expand_margin_left = 10.0
+expand_margin_right = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_imeiy"]
+content_margin_top = 185.0
+content_margin_bottom = 186.0
+bg_color = Color(0.4351923, 0.43519226, 0.43519226, 0.23137255)
+
+[node name="ModeIndicator" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -15.0
+offset_right = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_5rbhv")
+info_items = Array[ExtResource("2_imeiy")]([null])
+
+[node name="ModeButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(500, 60)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_right = 114.0
+offset_bottom = 60.0
+grow_horizontal = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_gp1ws")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_f6p6h")
+theme_override_styles/hover = SubResource("StyleBoxFlat_f6p6h")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_f6p6h")
+theme_override_styles/focus = SubResource("StyleBoxFlat_f6p6h")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ModeButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="ModeIcon" type="TextureRect" parent="ModeButton/HBoxContainer"]
+unique_name_in_owner = true
+modulate = Color(0.20392157, 0.59607846, 0.85882354, 1)
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+texture = ExtResource("1_1bbf5")
+expand_mode = 5
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ModeButton/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ModeLabel" type="Label" parent="ModeButton/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_5rbhv")
+theme_override_font_sizes/font_size = 18
+text = "Target Practice"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="InfoLabel" type="Label" parent="ModeButton/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+modulate = Color(0.5803922, 0.6392157, 0.72156864, 1)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_s8o1t")
+theme_override_font_sizes/font_size = 12
+text = "Pin: 150y"
+
+[node name="MarginContainer" type="MarginContainer" parent="ModeButton/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_bottom = 3
+
+[node name="Panel" type="Panel" parent="ModeButton/HBoxContainer/MarginContainer"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_imeiy")
+
+[node name="InfoContainer" type="HBoxContainer" parent="ModeButton/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginInfo1" type="MarginContainer" parent="ModeButton/HBoxContainer/InfoContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Info1" type="VBoxContainer" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo1"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo1/Info1"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_s8o1t")
+theme_override_font_sizes/font_size = 10
+text = "Info Title"
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = true
+
+[node name="Value" type="Label" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo1/Info1"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("6_s8o1t")
+theme_override_font_sizes/font_size = 16
+text = "128"
+horizontal_alignment = 1
+
+[node name="Border2" type="MarginContainer" parent="ModeButton/HBoxContainer/InfoContainer"]
+layout_mode = 2
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="Panel" parent="ModeButton/HBoxContainer/InfoContainer/Border2"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_imeiy")
+
+[node name="MarginInfo2" type="MarginContainer" parent="ModeButton/HBoxContainer/InfoContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Info2" type="VBoxContainer" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo2"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo2/Info2"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_s8o1t")
+theme_override_font_sizes/font_size = 10
+text = "Info Title"
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = true
+
+[node name="Value" type="Label" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo2/Info2"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("6_s8o1t")
+theme_override_font_sizes/font_size = 16
+text = "128"
+horizontal_alignment = 1
+
+[node name="Border3" type="MarginContainer" parent="ModeButton/HBoxContainer/InfoContainer"]
+layout_mode = 2
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="Panel" parent="ModeButton/HBoxContainer/InfoContainer/Border3"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_imeiy")
+
+[node name="MarginInfo3" type="MarginContainer" parent="ModeButton/HBoxContainer/InfoContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Info2" type="VBoxContainer" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo3"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo3/Info2"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_s8o1t")
+theme_override_font_sizes/font_size = 10
+text = "Info Title"
+horizontal_alignment = 1
+autowrap_mode = 3
+uppercase = true
+
+[node name="Value" type="Label" parent="ModeButton/HBoxContainer/InfoContainer/MarginInfo3/Info2"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("6_s8o1t")
+theme_override_font_sizes/font_size = 16
+text = "128"
+horizontal_alignment = 1
+
+[node name="Border4" type="MarginContainer" parent="ModeButton/HBoxContainer/InfoContainer"]
+layout_mode = 2
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="Panel" parent="ModeButton/HBoxContainer/InfoContainer/Border4"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_imeiy")
+
+[node name="Arrow" type="TextureRect" parent="ModeButton/HBoxContainer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+texture = ExtResource("4_imeiy")
+expand_mode = 5
+stretch_mode = 5
