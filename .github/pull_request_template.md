@@ -10,7 +10,6 @@
 PR Checklist  
 - [ ] I have reviewed and followed the [Contribution Guidlines](https://github.com/jhauck2/OpenShotGolf/blob/main/CONTRIBUTING.md) for this project.
 - [ ] This PR contains changes related to a single feature or bug
-- [ ] The changes and/or additions under this PR have been appropraitely commented
 - [ ] The changes introduced under this PR have been tested to ensure they are implemented correctly
 
 Godot Checklist  
