@@ -194,6 +194,7 @@ offset_bottom = 150.0
 rotation = -0.0004276121
 
 [node name="ShotInjector" type="VBoxContainer" parent="."]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
@@ -204,7 +205,6 @@ layout_mode = 2
 text = "Test Payload"
 
 [node name="PayloadOption" type="OptionButton" parent="ShotInjector"]
-visible = false
 layout_mode = 2
 
 [node name="Speed" type="Label" parent="ShotInjector"]
@@ -224,6 +224,7 @@ text = "SpinAxis"
 layout_mode = 2
 min_value = -25.0
 max_value = 25.0
+step = 0.5
 
 [node name="TotalSpin" type="Label" parent="ShotInjector"]
 layout_mode = 2
@@ -232,6 +233,7 @@ text = "Total Spin"
 [node name="TotalSpinSpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
 max_value = 12000.0
+step = 50.0
 value = 6000.0
 
 [node name="HLA" type="Label" parent="ShotInjector"]
@@ -242,6 +244,7 @@ text = "HLA"
 layout_mode = 2
 min_value = -45.0
 max_value = 45.0
+step = 0.5
 
 [node name="VLA" type="Label" parent="ShotInjector"]
 layout_mode = 2
@@ -250,6 +253,7 @@ text = "VLA"
 [node name="VLASpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
 max_value = 90.0
+step = 0.5
 value = 12.0
 
 [node name="Button" type="Button" parent="ShotInjector"]
