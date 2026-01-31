@@ -204,46 +204,46 @@ script = ExtResource("6_j5yvw")
 layout_mode = 2
 text = "Speed"
 
-[node name="SpeedText" type="TextEdit" parent="ShotInjector"]
-custom_minimum_size = Vector2(0, 35)
+[node name="SpeedSpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
-placeholder_text = "0.0"
+max_value = 250.0
+value = 150.0
 
 [node name="SpinAxis" type="Label" parent="ShotInjector"]
 layout_mode = 2
 text = "SpinAxis"
 
-[node name="SpinAxisText" type="TextEdit" parent="ShotInjector"]
-custom_minimum_size = Vector2(0, 35)
+[node name="SpinAxisSpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
-placeholder_text = "0.0"
+min_value = -25.0
+max_value = 25.0
 
 [node name="TotalSpin" type="Label" parent="ShotInjector"]
 layout_mode = 2
 text = "Total Spin"
 
-[node name="TotalSpinText" type="TextEdit" parent="ShotInjector"]
-custom_minimum_size = Vector2(0, 35)
+[node name="TotalSpinSpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
-placeholder_text = "0.0"
+max_value = 12000.0
+value = 6000.0
 
 [node name="HLA" type="Label" parent="ShotInjector"]
 layout_mode = 2
 text = "HLA"
 
-[node name="HLAText" type="TextEdit" parent="ShotInjector"]
-custom_minimum_size = Vector2(0, 35)
+[node name="HLASpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
-placeholder_text = "0.0"
+min_value = -45.0
+max_value = 45.0
 
 [node name="VLA" type="Label" parent="ShotInjector"]
 layout_mode = 2
 text = "VLA"
 
-[node name="VLAText" type="TextEdit" parent="ShotInjector"]
-custom_minimum_size = Vector2(0, 35)
+[node name="VLASpinBox" type="SpinBox" parent="ShotInjector"]
 layout_mode = 2
-placeholder_text = "0.0"
+max_value = 90.0
+value = 12.0
 
 [node name="Button" type="Button" parent="ShotInjector"]
 layout_mode = 2

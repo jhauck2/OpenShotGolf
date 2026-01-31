@@ -54,25 +54,24 @@ func _on_button_pressed() -> void:
 					data = parsed["BallData"].duplicate()
 					loaded = true
 	
+	# Inject the spinboxes values within the shot data
+	data["Speed"] = $SpeedSpinBox.value
+	data["SpinAxis"] = $SpinAxisSpinBox.value
+	data["TotalSpin"] = $TotalSpinSpinBox.value
+	data["HLA"] = $HLASpinBox.value
+	data["VLA"] = $VLASpinBox.value
+	
 	# Override with UI entries when provided
-	if $SpeedText.text.strip_edges() != "":
-		data["Speed"] = float($SpeedText.text)
-	if $SpinAxisText.text.strip_edges() != "":
-		data["SpinAxis"] = float($SpinAxisText.text)
-	if $TotalSpinText.text.strip_edges() != "":
-		data["TotalSpin"] = float($TotalSpinText.text)
-	if $HLAText.text.strip_edges() != "":
-		data["HLA"] = float($HLAText.text)
-	if $VLAText.text.strip_edges() != "":
-		data["VLA"] = float($VLAText.text)
-	if has_node("BackSpinText"):
-		var back_node = $BackSpinText
-		if back_node.text.strip_edges() != "":
-			data["BackSpin"] = float(back_node.text)
-	if has_node("SideSpinText"):
-		var side_node = $SideSpinText
-		if side_node.text.strip_edges() != "":
-			data["SideSpin"] = float(side_node.text)
+	# [pfrenette] What should be done with these two? 
+	# I assume there is a conversion possible from SpinAxis/TotalSpin and Back/SideSpin?
+	#if has_node("BackSpinText"):
+	#	var back_node = $BackSpinText
+	#	if back_node.text.strip_edges() != "":
+	#		data["BackSpin"] = float(back_node.text)
+	#if has_node("SideSpinText"):
+	#	var side_node = $SideSpinText
+	#	if side_node.text.strip_edges() != "":
+	#		data["SideSpin"] = float(side_node.text)
 	
 	if data.is_empty():
 		print("Shot injector: no data provided and default payload missing; using zeros")
