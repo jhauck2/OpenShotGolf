@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://dgyd437dgyv0y"]
+[gd_scene format=3 uid="uid://dgyd437dgyv0y"]
 
 [ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="1_jld46"]
 
-[node name="Main Menu" type="Control"]
+[node name="Main Menu" type="Control" unique_id=96381789]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_jld46")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1792198341]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,16 +23,16 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1818387515]
 layout_mode = 2
 alignment = 1
 
-[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer" unique_id=517992265]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.5
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1426295602]
 layout_mode = 2
 size_flags_vertical = 1
 size_flags_stretch_ratio = 0.0
@@ -40,40 +40,40 @@ theme_override_font_sizes/font_size = 100
 text = "Open Shot Golf"
 horizontal_alignment = 1
 
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1976035900]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.5
 
-[node name="Range" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="Range" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1166012794]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 30
 text = "Range"
 
-[node name="Courses" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="Courses" type="Button" parent="MarginContainer/VBoxContainer" unique_id=2068207240]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 30
 text = "Courses"
 
-[node name="Settings" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="Settings" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1359918767]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 30
 text = "Settings"
 
-[node name="Exit" type="Button" parent="MarginContainer/VBoxContainer"]
+[node name="Exit" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1757594502]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 30
 text = "Exit"
 
-[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer" unique_id=894350518]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.5

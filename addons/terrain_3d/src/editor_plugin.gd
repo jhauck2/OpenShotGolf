@@ -14,6 +14,7 @@ var modifier_alt: bool
 var modifier_shift: bool
 var _last_modifiers: int = 0
 var _input_mode: int = 0 # -1: camera move, 0: none, 1: operating
+var rmb_release_time: int = 0
 var _use_meta: bool = false
 
 var terrain: Terrain3D
@@ -151,11 +152,13 @@ func _clear() -> void:
 	region_gizmo.clear()
 
 
-func _forward_3d_gui_input(p_viewport_camera: Camera3D, p_event: InputEvent) -> int:
+func _forward_3d_gui_input(p_viewport_camera: Camera3D, p_event: InputEvent) -> AfterGUIInput:
 	if not is_terrain_valid():
 		return AFTER_GUI_INPUT_PASS
 
-	_read_input(p_event)
+	var continue_input: AfterGUIInput = _read_input(p_event)
+	if continue_input != AFTER_GUI_INPUT_CUSTOM:
+		return continue_input
 	ui.update_decal()
 	
 	## Setup active camera & viewport
@@ -249,7 +252,7 @@ func _forward_3d_gui_input(p_viewport_camera: Camera3D, p_event: InputEvent) -> 
 	return AFTER_GUI_INPUT_PASS
 
 
-func _read_input(p_event: InputEvent = null) -> void:
+func _read_input(p_event: InputEvent = null) -> AfterGUIInput:
 	## Determine if user is moving camera or applying
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or \
 		p_event is InputEventMouseButton and p_event.is_released() and \
@@ -266,7 +269,7 @@ func _read_input(p_event: InputEvent = null) -> void:
 			if p_event is InputEventMouseButton and p_event.is_released() and \
 				( p_event.get_button_index() == MOUSE_BUTTON_RIGHT or \
 				( Input.is_key_pressed(KEY_ALT) and p_event.get_button_index() == MOUSE_BUTTON_LEFT )):
-					ui.last_rmb_time = Time.get_ticks_msec()
+					rmb_release_time = Time.get_ticks_msec()
 		0, _: # Godot
 			if Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or \
 				Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
@@ -274,13 +277,20 @@ func _read_input(p_event: InputEvent = null) -> void:
 			if p_event is InputEventMouseButton and p_event.is_released() and \
 				( p_event.get_button_index() == MOUSE_BUTTON_RIGHT or \
 				p_event.get_button_index() == MOUSE_BUTTON_MIDDLE ):
-					ui.last_rmb_time = Time.get_ticks_msec()
+					rmb_release_time = Time.get_ticks_msec()
 	if _input_mode < 0:
-		return
+		# Camera is moving, skip input
+		return AFTER_GUI_INPUT_PASS
 
 	## Determine modifiers pressed
 	modifier_shift = Input.is_key_pressed(KEY_SHIFT)
-	modifier_ctrl = Input.is_key_pressed(KEY_META) if _use_meta else Input.is_key_pressed(KEY_CTRL)
+	
+	# Editor responds to modifier_ctrl so we must register touchscreen Invert 
+	if _use_meta:
+		modifier_ctrl = Input.is_key_pressed(KEY_META) || ui.inverted_input
+	else:
+		modifier_ctrl = Input.is_key_pressed(KEY_CTRL) || ui.inverted_input
+	
 	# Keybind enum: Alt,Space,Meta,Capslock
 	var alt_key: int
 	match get_setting("terrain3d/config/alt_key_bind", 0):
@@ -289,18 +299,69 @@ func _read_input(p_event: InputEvent = null) -> void:
 		1: alt_key = KEY_SPACE
 		0, _: alt_key = KEY_ALT
 	modifier_alt = Input.is_key_pressed(alt_key)
-
-	# Return if modifiers haven't changed AND brush_data has them;
-	# modifiers disappear from brush_data when clicking asset_dock (Why?)
 	var current_mods: int = int(modifier_shift) | int(modifier_ctrl) << 1 | int(modifier_alt) << 2
-	if _last_modifiers == current_mods and ui.brush_data.has("modifier_shift"):
-		return
-	
-	_last_modifiers = current_mods
-	ui.brush_data["modifier_shift"] = modifier_shift
-	ui.brush_data["modifier_ctrl"] = modifier_ctrl
-	ui.brush_data["modifier_alt"] = modifier_alt
-	ui.update_modifiers()
+
+	## Process Hotkeys
+	if p_event is InputEventKey and \
+			current_mods == 0 and \
+			p_event.is_pressed() and \
+			not p_event.is_echo() and \
+			consume_hotkey(p_event.keycode):
+		# Hotkey found, consume event, and stop input processing
+		EditorInterface.get_editor_viewport_3d().set_input_as_handled()
+		return AFTER_GUI_INPUT_STOP
+
+	# Brush data is cleared on set_tool, or clicking textures in the asset dock
+	# Update modifiers if changed or missing
+	if  _last_modifiers != current_mods or not ui.brush_data.has("modifier_shift"):
+		_last_modifiers = current_mods
+		ui.brush_data["modifier_shift"] = modifier_shift
+		ui.brush_data["modifier_ctrl"] = modifier_ctrl
+		ui.brush_data["modifier_alt"] = modifier_alt
+		ui.set_active_operation()
+
+	## Continue processing input
+	return AFTER_GUI_INPUT_CUSTOM
+
+
+# Returns true if hotkey matches and operation triggered
+func consume_hotkey(keycode: int) -> bool:
+	match keycode:
+		KEY_1:
+			terrain.material.set_show_region_grid(!terrain.material.get_show_region_grid())
+		KEY_2:
+			terrain.material.set_show_instancer_grid(!terrain.material.get_show_instancer_grid())
+		KEY_3:
+			terrain.material.set_show_vertex_grid(!terrain.material.get_show_vertex_grid())
+		KEY_4:
+			terrain.material.set_show_contours(!terrain.material.get_show_contours())
+		KEY_E:
+			ui.toolbar.get_button("AddRegion").set_pressed(true)
+		KEY_R:
+			ui.toolbar.get_button("Raise").set_pressed(true)
+		KEY_H:
+			ui.toolbar.get_button("Height").set_pressed(true)
+		KEY_S:
+			ui.toolbar.get_button("Slope").set_pressed(true)
+		KEY_C:
+			ui.toolbar.get_button("PaintColor").set_pressed(true)
+		KEY_N:
+			ui.toolbar.get_button("PaintNavigableArea").set_pressed(true)
+		KEY_I:
+			ui.toolbar.get_button("InstanceMeshes").set_pressed(true)
+		KEY_X:
+			ui.toolbar.get_button("AddHoles").set_pressed(true)
+		KEY_W:
+			ui.toolbar.get_button("PaintWetness").set_pressed(true)
+		KEY_B:
+			ui.toolbar.get_button("PaintTexture").set_pressed(true)
+		KEY_V:
+			ui.toolbar.get_button("SprayTexture").set_pressed(true)
+		KEY_A:
+			ui.toolbar.get_button("PaintAutoshader").set_pressed(true)
+		_:
+			return false
+	return true
 
 
 func update_region_grid() -> void:

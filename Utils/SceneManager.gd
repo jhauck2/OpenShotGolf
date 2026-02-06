@@ -29,7 +29,7 @@ func _deferred_change_scene(scene_path):
 		print("Could not load scene: " + scene_path)
 	
 	# Add the scene to the tree
-	get_tree().get_root().add_child(current_scene, true)
+	get_tree().get_root().add_child(current_scene)
 	
 
 
@@ -52,5 +52,5 @@ func reload_scene():
 	
 	# Load the new scene
 	var s = ResourceLoader.load(path)
-	current_scene = s.instance()
+	current_scene = s.instantiate()
 	get_tree().get_root().add_child(current_scene)
