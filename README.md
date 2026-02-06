@@ -107,7 +107,7 @@ Example GSPro-style message used for socket testing (`assets/data/drive_test_sho
 
 ## Build and Run
 ### Install Godot
-Download and install Godot 4.5 for your operating system: https://godotengine.org/download
+Download and install Godot 4.6 for your operating system: https://godotengine.org/download
 
 ### Clone Repository
 - Clone repository into a local folder:  
