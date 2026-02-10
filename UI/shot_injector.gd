@@ -65,17 +65,6 @@ func _on_button_pressed() -> void:
 	data["HLA"] = $HLASpinBox.value
 	data["VLA"] = $VLASpinBox.value
 	
-	# [pfrenette] What should be done with these two? 
-	# Is there a conversion possible from SpinAxis/TotalSpin and Back/SideSpin?
-	#if has_node("BackSpinText"):
-	#	var back_node = $BackSpinText
-	#	if back_node.text.strip_edges() != "":
-	#		data["BackSpin"] = float(back_node.text)
-	#if has_node("SideSpinText"):
-	#	var side_node = $SideSpinText
-	#	if side_node.text.strip_edges() != "":
-	#		data["SideSpin"] = float(side_node.text)
-	
 	print("Local shot injection payload: ", JSON.stringify(data))
 	
 	emit_signal("inject", data)
