@@ -26,6 +26,7 @@ func _populate_payloads() -> void:
 		"Wood Low Flight": "res://assets/data/wood_low_test_shot.json",
 		"Wedge": "res://assets/data/wedge_test_shot.json",
 		"Bump & Run": "res://assets/data/bump_test_shot.json",
+		"Flop":"res://assets/data/flop_test_shot.json",
 	}
 	var selected := 0
 	var idx := 0

@@ -23,12 +23,10 @@ func _deferred_change_scene(scene_path):
 	
 	# Load the new scene
 	var s = load(scene_path)
-	if s != null:
-		current_scene = s.instantiate()
-	else:
-		print("Could not load scene: " + scene_path)
-	
-	# Add the scene to the tree
+	if s == null:
+		push_error("Could not load scene: " + scene_path)
+		return
+	current_scene = s.instantiate()
 	get_tree().get_root().add_child(current_scene)
 	
 
@@ -45,12 +43,15 @@ func _deferred_close_scene():
 
 
 func reload_scene():
-	# Get current scene path
-	var path = current_scene.filename
-	# Remove current scene
+	if current_scene == null:
+		return
+	var path = current_scene.scene_file_path
 	current_scene.queue_free()
-	
-	# Load the new scene
-	var s = ResourceLoader.load(path)
+
+	var s = load(path)
+	if s == null:
+		push_error("Could not reload scene: " + path)
+		current_scene = null
+		return
 	current_scene = s.instantiate()
 	get_tree().get_root().add_child(current_scene)
