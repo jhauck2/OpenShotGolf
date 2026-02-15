@@ -1,14 +1,14 @@
-[gd_scene load_steps=4 format=3 uid="uid://w55fmvo7ly8g"]
+[gd_scene format=3 uid="uid://w55fmvo7ly8g"]
 
 [ext_resource type="Script" uid="uid://bqimll8b8vom6" path="res://Player/player.gd" id="1_btcbx"]
 [ext_resource type="Script" uid="uid://j86sopbu1jca" path="res://Player/ball_trail.gd" id="3_g0ryd"]
 
 [sub_resource type="ImmediateMesh" id="ImmediateMesh_d1a0v"]
 
-[node name="Player" type="Node3D"]
+[node name="Player" type="Node3D" unique_id=1934355220]
 script = ExtResource("1_btcbx")
 
-[node name="BallTrail" type="MeshInstance3D" parent="."]
+[node name="BallTrail" type="MeshInstance3D" parent="." unique_id=1188357607]
 mesh = SubResource("ImmediateMesh_d1a0v")
 skeleton = NodePath("../..")
 script = ExtResource("3_g0ryd")

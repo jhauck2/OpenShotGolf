@@ -14,7 +14,7 @@ var tracers : Array = []
 var current_tracer : MeshInstance3D = null
 var BallTrailScript = preload("res://Player/ball_trail.gd")
 
-var ball : GolfBall = null
+var ball : PhysicsBall = null
 
 signal good_data
 signal bad_data
@@ -24,7 +24,7 @@ signal manual_hit
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	# Create new golf ball
-	ball = GolfBall.new(GolfBall.BallType.STANDARD)
+	ball = PhysicsBall.new(GolfBall.BallType.STANDARD)
 	ball.position.y = 3.0
 	add_child(ball)
 	ball.rest.connect(_on_ball_rest)

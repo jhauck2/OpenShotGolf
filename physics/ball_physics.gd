@@ -53,7 +53,7 @@ static func calculate_forces(
 	on_ground: bool,
 	params: PhysicsParams
 ) -> Vector3:
-	var gravity := Vector3(0.0, -9.81 * MASS, 0.0)
+	var gravity := Vector3(0.0, -0.0 * MASS, 0.0)
 
 	if on_ground:
 		return gravity + calculate_ground_forces(velocity, omega, params)
