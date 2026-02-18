@@ -1,13 +1,13 @@
-name: Release
+name: Release Game
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'game-v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing release tag (e.g. v1.0.0)'
+        description: 'Release tag (e.g. game-v1.0.0)'
         required: true
         type: string
 
@@ -28,26 +28,47 @@ jobs:
       run: |
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           TAG="${{ inputs.tag }}"
-          git fetch --tags --force
-          git checkout "refs/tags/${TAG}"
         else
           TAG="${GITHUB_REF_NAME}"
         fi
 
-        if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "Error: Tag must match format v#.#.# (e.g. v1.0.0)"
+        if [[ ! "$TAG" =~ ^game-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Tag must match format game-v#.#.# (e.g. game-v1.0.0)"
           exit 1
         fi
 
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          git fetch --tags --force
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            git checkout "refs/tags/${TAG}"
+            echo "Using existing tag ${TAG}."
+          else
+            echo "Tag ${TAG} does not exist yet; release will target current commit."
+          fi
+        fi
+
         echo "RELEASE_TAG=${TAG}" >> "$GITHUB_ENV"
+        echo "RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
 
+    - name: Resolve project file
+      run: |
+        if [[ -f "OpenShotGolf.csproj" ]]; then
+          echo "PROJECT_FILE=OpenShotGolf.csproj" >> "$GITHUB_ENV"
+        elif [[ -f "OpenShotGolf.csproj" ]]; then
+          echo "PROJECT_FILE=OpenShotGolf.csproj" >> "$GITHUB_ENV"
+        else
+          echo "Error: No root project file found (expected OpenShotGolf.csproj or OpenShotGolf.csproj)."
+          ls -la
+          exit 1
+        fi
+
     - name: Build solution
-      run: dotnet build OpenShotGolf.csproj --configuration Release
+      run: dotnet build "${{ env.PROJECT_FILE }}" --configuration Release
 
     - name: Export Godot build
       id: export
@@ -63,7 +84,8 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ env.RELEASE_TAG }}
-        name: OpenShotGolf ${{ env.RELEASE_TAG }}
+        target_commitish: ${{ env.RELEASE_SHA }}
+        name: OpenShotGolf Game ${{ env.RELEASE_TAG }}
         files: |
           ${{ steps.export.outputs.archive_directory }}/*
         generate_release_notes: true
