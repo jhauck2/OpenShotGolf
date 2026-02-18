@@ -163,7 +163,7 @@ public partial class BallPhysics : RefCounted
             friction = frictionDir * (-effectiveRollingFriction * MASS * 9.81f);
             if (shouldDebug)
             {
-                GD.Print($"  ROLLING: vel={velocity.Length():F2} m/s, spin={omega.Length() / 0.10472f:F0} rpm, c_rr={effectiveRollingFriction:F3} (×{spinMultiplier:F2})");
+                PhysicsLogger.Verbose($"  ROLLING: vel={velocity.Length():F2} m/s, spin={omega.Length() / 0.10472f:F0} rpm, c_rr={effectiveRollingFriction:F3} (×{spinMultiplier:F2})");
             }
         }
         else
@@ -194,7 +194,7 @@ public partial class BallPhysics : RefCounted
             friction = slipDir * (-effectiveFriction * MASS * 9.81f);
             if (shouldDebug)
             {
-                GD.Print($"  SLIPPING: vel={velocityMag:F2} m/s, spin={omega.Length() / 0.10472f:F0} rpm, tangent_vel={tangentVelMag:F2}, μ_eff={effectiveFriction:F3} (×{spinMultiplier:F2})");
+                PhysicsLogger.Verbose($"  SLIPPING: vel={velocityMag:F2} m/s, spin={omega.Length() / 0.10472f:F0} rpm, tangent_vel={tangentVelMag:F2}, μ_eff={effectiveFriction:F3} (×{spinMultiplier:F2})");
             }
         }
 
@@ -377,7 +377,7 @@ public partial class BallPhysics : RefCounted
 
         if (newState == PhysicsEnums.BallState.Rollout)
         {
-            GD.Print($"  Bounce: spin={currentSpinRpm:F0} rpm, retention={tangentialRetention:F3}");
+            PhysicsLogger.Verbose($"  Bounce: spin={currentSpinRpm:F0} rpm, retention={tangentialRetention:F3}");
         }
 
         // Calculate new tangential speed
@@ -401,21 +401,21 @@ public partial class BallPhysics : RefCounted
                 newTangentSpeed = speedTangent * tangentialRetention;
                 if (impactSpeed < 20.0f)
                 {
-                    GD.Print($"  Bounce: Low energy ({impactSpeed:F2} m/s < 20 m/s) - using simple retention");
+                    PhysicsLogger.Verbose($"  Bounce: Low energy ({impactSpeed:F2} m/s < 20 m/s) - using simple retention");
                 }
                 else
                 {
-                    GD.Print($"  Bounce: Shallow angle ({impactAngleDeg:F2}° < {criticalAngleDeg:F2}°) - using simple retention");
+                    PhysicsLogger.Verbose($"  Bounce: Shallow angle ({impactAngleDeg:F2}° < {criticalAngleDeg:F2}°) - using simple retention");
                 }
-                GD.Print($"    speedTangent={speedTangent:F2} m/s, newTangentSpeed={newTangentSpeed:F2} m/s");
+                PhysicsLogger.Verbose($"    speedTangent={speedTangent:F2} m/s, newTangentSpeed={newTangentSpeed:F2} m/s");
             }
             else
             {
                 // Steep angle AND high energy (full wedge): Use Penner model - backspin creates reverse velocity
                 newTangentSpeed = tangentialRetention * vel.Length() * Mathf.Sin(impactAngle - parameters.CriticalAngle) -
                     2.0f * RADIUS * omegaTangentMagnitude / 7.0f;
-                GD.Print($"  Bounce: High energy ({impactSpeed:F2} m/s) steep angle ({impactAngleDeg:F2}° > {criticalAngleDeg:F2}°) - using Penner model");
-                GD.Print($"    speedTangent={speedTangent:F2} m/s, newTangentSpeed={newTangentSpeed:F2} m/s");
+                PhysicsLogger.Verbose($"  Bounce: High energy ({impactSpeed:F2} m/s) steep angle ({impactAngleDeg:F2}° > {criticalAngleDeg:F2}°) - using Penner model");
+                PhysicsLogger.Verbose($"    speedTangent={speedTangent:F2} m/s, newTangentSpeed={newTangentSpeed:F2} m/s");
             }
         }
         else
@@ -538,9 +538,9 @@ public partial class BallPhysics : RefCounted
             // Debug output for first bounce
             if (newState == PhysicsEnums.BallState.Rollout)
             {
-                GD.Print($"    speedNormal={speedNormal:F2} m/s, spin={spinRpm:F0} rpm");
-                GD.Print($"    baseCOR={baseCor:F3}, spinReduction={spinCORReduction:F2}, finalCOR={cor:F3}");
-                GD.Print($"    velNormal will be {speedNormal * cor:F2} m/s");
+                PhysicsLogger.Verbose($"    speedNormal={speedNormal:F2} m/s, spin={spinRpm:F0} rpm");
+                PhysicsLogger.Verbose($"    baseCOR={baseCor:F3}, spinReduction={spinCORReduction:F2}, finalCOR={cor:F3}");
+                PhysicsLogger.Verbose($"    velNormal will be {speedNormal * cor:F2} m/s");
             }
         }
         else
@@ -557,7 +557,7 @@ public partial class BallPhysics : RefCounted
 
             if (speedNormal > 0.5f)
             {
-                GD.Print($"    speedNormal={speedNormal:F2} m/s, COR={cor:F3}, velNormal will be {speedNormal * cor:F2} m/s");
+                PhysicsLogger.Verbose($"    speedNormal={speedNormal:F2} m/s, COR={cor:F3}, velNormal will be {speedNormal * cor:F2} m/s");
             }
         }
 

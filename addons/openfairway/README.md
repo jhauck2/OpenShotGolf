@@ -15,6 +15,8 @@ Realistic golf ball physics engine with aerodynamics, bounce, and surface intera
   - [PhysicsEnums](#physicsenums)
   - [ShotSetup](#shotsetup)
   - [PhysicsAdapter](#physicsadapter)
+  - [PhysicsLogger](#physicslogger)
+- [Controlling Log Output](#controlling-log-output)
 - [Full Example — GDScript Physics Loop](#full-example--gdscript-physics-loop)
 - [Full Example — Headless Shot Simulation](#full-example--headless-shot-simulation-gdscript)
 - [Units Convention](#units-convention)
@@ -262,6 +264,68 @@ var adapter = PhysicsAdapter.new()
 # simulate_shot_from_json takes a Dictionary with a "BallData" sub-dictionary
 # Returns { "carry_yd": float, "total_yd": float }
 var result: Dictionary = adapter.simulate_shot_from_json(shot_dict)
+```
+
+### PhysicsLogger
+
+Controls how much the addon prints to the Godot console. The default is `Error` — only genuine errors are emitted. No calls to `GD.Print` or `GD.PrintErr` exist anywhere else in the addon; all output goes through this class.
+
+**Log levels:**
+
+| Value | C# name   | GDScript int | Output                                                     |
+|-------|-----------|--------------|------------------------------------------------------------|
+| 0     | `Off`     | `0`          | Nothing                                                    |
+| 1     | `Error`   | `1`          | Errors only — `GD.PrintErr` / `GD.PushError` (default)    |
+| 2     | `Info`    | `2`          | Shot launch summary, first-impact details, spin warnings   |
+| 3     | `Verbose` | `3`          | Per-frame rolling/slipping state, bounce details, COR      |
+
+**GDScript:**
+
+```gdscript
+# Set once, early in your scene tree (e.g. _ready() of your main scene or autoload)
+PhysicsLogger.set_level(2)   # Info
+PhysicsLogger.set_level(3)   # Verbose
+PhysicsLogger.set_level(0)   # Silent
+PhysicsLogger.set_level(1)   # Errors only (default)
+
+var current: int = PhysicsLogger.get_level()
+```
+
+**C#:**
+
+```csharp
+PhysicsLogger.LogLevel = PhysicsLogger.Level.Info;
+PhysicsLogger.LogLevel = PhysicsLogger.Level.Verbose;
+PhysicsLogger.LogLevel = PhysicsLogger.Level.Off;
+
+PhysicsLogger.Level current = PhysicsLogger.LogLevel;
+```
+
+The log level is a process-global static field, so a single call covers all physics classes. A natural place to set it is your project's autoload `_Ready()`:
+
+```gdscript
+# autoload/GameSettings.gd
+func _ready():
+    PhysicsLogger.set_level(2)  # show shot summaries in all builds
+```
+
+Or conditionally in C# for debug-only verbose output:
+
+```csharp
+// In your autoload or main scene _Ready()
+#if DEBUG
+PhysicsLogger.LogLevel = PhysicsLogger.Level.Info;
+#endif
+```
+
+## Controlling Log Output
+
+By default the addon is silent except for errors. To see shot-level summaries (launch params, first-impact position, spin warnings) set level 2; for per-frame detail set level 3:
+
+```gdscript
+PhysicsLogger.set_level(2)   # recommended for development
+PhysicsLogger.set_level(3)   # maximum detail (high volume per shot)
+PhysicsLogger.set_level(0)   # production — suppress everything including errors
 ```
 
 ## Full Example — GDScript Physics Loop

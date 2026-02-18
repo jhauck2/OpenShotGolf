@@ -100,7 +100,7 @@ func _physics_process(delta: float) -> void:
 	if track_points and current_tracer != null:
 		apex = max(apex, ball.position.y)
 		side_distance = ball.position.z
-		if ball.state == PhysicsEnums.BallState.Flight:
+		if ball.state == PhysicsEnums.BallState.FLIGHT:
 			carry = ball.get_downrange_yards() / 1.09361  # Convert yards back to meters for consistency
 		trail_timer += delta
 		if trail_timer >= trail_resolution:

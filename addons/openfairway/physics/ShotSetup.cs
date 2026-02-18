@@ -62,7 +62,7 @@ public partial class ShotSetup : RefCounted
             float computedTotal = Mathf.Sqrt(backspin * backspin + sidespin * sidespin);
             if (Mathf.Abs(computedTotal - totalSpin) > 1.0f)
             {
-                GD.Print($"  Spin data inconsistent: TotalSpin={totalSpin:F0} but sqrt(BS²+SS²)={computedTotal:F0}, using computed value");
+                PhysicsLogger.Info($"  Spin data inconsistent: TotalSpin={totalSpin:F0} but sqrt(BS²+SS²)={computedTotal:F0}, using computed value");
                 totalSpin = computedTotal;
                 spinAxis = Mathf.RadToDeg(Mathf.Atan2(sidespin, backspin));
             }

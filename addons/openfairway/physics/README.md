@@ -132,6 +132,6 @@ The bounce response decomposes velocity and spin into normal/tangent components,
 
 ### Golf Simulation References
 
-5. **Other Sim Software** - Other sim software was used to compare OSG shots
-   - Real world launch monitor and range shots were taken to compare against OSG shots
+5. **Other Sim Software** - Other sim software was used to compare OpenFairway shots
+   - Real world launch monitor and range shots were taken to compare against OpenFairway shots
    - Simulated shots were used for calibration, distance calculation, and flight

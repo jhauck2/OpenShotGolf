@@ -48,10 +48,10 @@ func _ready() -> void:
 
 	# Surface type options
 	surface_option.clear()
-	surface_option.add_item("Fairway", PhysicsEnums.SurfaceType.Fairway)
-	surface_option.add_item("Soft Fairway", PhysicsEnums.SurfaceType.FairwaySoft)
-	surface_option.add_item("Rough", PhysicsEnums.SurfaceType.Rough)
-	surface_option.add_item("Firm", PhysicsEnums.SurfaceType.Firm)
+	surface_option.add_item("Fairway", PhysicsEnums.SurfaceType.FAIRWAY)
+	surface_option.add_item("Soft Fairway", PhysicsEnums.SurfaceType.FAIRWAY_SOFT)
+	surface_option.add_item("Rough", PhysicsEnums.SurfaceType.ROUGH)
+	surface_option.add_item("Firm", PhysicsEnums.SurfaceType.FIRM)
 	var surface_id: int = GlobalSettings.range_settings.surface_type.value
 	var surface_index := surface_option.get_item_index(surface_id)
 	if surface_index >= 0:
@@ -71,7 +71,7 @@ func _ready() -> void:
 
 	# Initialize toggle button states
 	$MarginContainer/VBoxContainer/Units/CheckButton.set_pressed_no_signal(
-		GlobalSettings.range_settings.range_units.value == PhysicsEnums.Units.Metric
+		GlobalSettings.range_settings.range_units.value == PhysicsEnums.Units.METRIC
 	)
 	$MarginContainer/VBoxContainer/CameraFollow/CheckButton.set_pressed_no_signal(
 		GlobalSettings.range_settings.camera_follow_mode.value
@@ -105,9 +105,9 @@ func _on_exit_button_pressed() -> void:
 
 func _on_units_check_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
-		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.Metric)
+		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.METRIC)
 	else:
-		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.Imperial)
+		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.IMPERIAL)
 
 
 func _on_camer_check_button_toggled(toggled_on: bool) -> void:
@@ -161,7 +161,7 @@ func update_units(value) -> void:
 	temperature_spin_box.set_block_signals(true)
 	altitude_spin_box.set_block_signals(true)
 
-	if value == PhysicsEnums.Units.Imperial:
+	if value == PhysicsEnums.Units.IMPERIAL:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "F"
 		var temp_f = GlobalSettings.range_settings.temperature.value * 9.0 / 5.0 + 32.0
 		temperature_spin_box.value = temp_f

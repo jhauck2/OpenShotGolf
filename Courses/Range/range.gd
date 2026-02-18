@@ -47,7 +47,7 @@ func _process(_delta: float) -> void:
 	var player = get_node_or_null("Player")
 	if player == null:
 		return
-	if player.get_ball_state() != PhysicsEnums.BallState.Rest:
+	if player.get_ball_state() != PhysicsEnums.BallState.REST:
 		_update_ball_display()
 
 

@@ -29,7 +29,7 @@ public partial class PhysicsAdapter : RefCounted
         var ballDict = shot.ContainsKey("BallData") ? (Dictionary)shot["BallData"] : shot;
         if (ballDict == null || ballDict.Count == 0)
         {
-            GD.PushError("Shot JSON missing BallData");
+            PhysicsLogger.PushError("Shot JSON missing BallData");
             return new Dictionary();
         }
 

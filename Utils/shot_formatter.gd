@@ -24,7 +24,7 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 		if not has_sidespin:
 			sidespin = total_spin * sin(deg_to_rad(spin_axis))
 	
-	if units == PhysicsEnums.Units.Imperial:
+	if units == PhysicsEnums.Units.IMPERIAL:
 		if show_distance:
 			ball_data["Distance"] = "%.1f" % (player.get_distance()*m2yd)
 		else:

@@ -1,14 +1,14 @@
 class_name RangeSettings
 extends SettingCollector
 
-var range_units := Setting.new(PhysicsEnums.Units.Imperial)
+var range_units := Setting.new(PhysicsEnums.Units.IMPERIAL)
 var camera_follow_mode := Setting.new(true)
 var shot_injector_enabled := Setting.new(false)
 var auto_ball_reset := Setting.new(false)
 var ball_reset_timer := Setting.new(3.0, 1.0, 15.0)
 var temperature := Setting.new(75, -40, 120)
 var altitude := Setting.new(0.0, -1000.0, 10000.0)
-var surface_type := Setting.new(PhysicsEnums.SurfaceType.Fairway)
+var surface_type := Setting.new(PhysicsEnums.SurfaceType.FAIRWAY)
 var shot_tracer_count := Setting.new(1, 0, 4)
 var ball_type := Setting.new(GolfBall.BallType.STANDARD)
 
