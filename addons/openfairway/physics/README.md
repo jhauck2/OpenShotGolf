@@ -49,8 +49,14 @@ Friction force is split into two regimes:
 - Rolling: `|v_tangent| < 0.05`, use rolling resistance `F = -c_rr * m * g` along flat velocity
 - Slipping: use blended friction based on speed (0 to 15 m/s), `F = -mu_eff * m * g` along slip
 
+**Spin-Velocity Friction Scaling**: High backspin increases effective friction ("bite"), but this effect scales with ball speed:
+- Low speed (< 20 m/s / chip shots): 30-70% of spin friction multiplier
+- Medium speed (20-35 m/s / pitch shots): 70-100% of spin friction multiplier
+- High speed (> 35 m/s / full wedges): 100% of spin friction multiplier
+- This prevents low-energy chip shots from gripping excessively while preserving wedge check-up behavior
+
 ### Torques
-- Air spin decay: `tau = -I * omega / SPIN_DECAY_TAU` (in flight)
+- Air spin decay: `tau = -I * omega / SPIN_DECAY_TAU` (in flight, SPIN_DECAY_TAU = 5.0 seconds)
 - Ground torque from friction: `T = (-n * R) x F_friction`
 - Grass torque: `T_grass = -6 * pi * nu_g * R * omega`
 
@@ -62,8 +68,11 @@ The bounce response decomposes velocity and spin into normal/tangent components,
 - Rollout bounces: retention depends on spin ratio
 
 ### Tangential Speed Update
-- Shallow impact: `v_tangent_new = v_tangent * retention`
-- Steep impact: Penner model: `v_tangent_new = retention * |v| * sin(impactAngle - criticalAngle) - 2 * R * |omega_tangent| / 7`
+- **Low energy** (< 20 m/s / chip shots): Always use simple retention `v_tangent_new = v_tangent * retention`
+- **High energy** (> 20 m/s / full shots):
+  - Shallow impact: `v_tangent_new = v_tangent * retention`
+  - Steep impact: Penner model: `v_tangent_new = retention * |v| * sin(impactAngle - criticalAngle) - 2 * R * |omega_tangent| / 7`
+- The velocity threshold prevents chip shots from rolling backward even with high spin
 
 ### Spin Update
 - First bounce: `omega_tangent` is limited to `v_tangent_new / R`
@@ -71,6 +80,10 @@ The bounce response decomposes velocity and spin into normal/tangent components,
 
 ### Normal Response (COR)
 - `COR(speedNormal)` uses a speed-dependent curve
+- **High-spin COR reduction** scales with impact velocity to prevent chip shots from "sticking":
+  - Low-speed impacts (< 12 m/s): 0-50% of spin COR penalty
+  - Medium-speed impacts (12-25 m/s): 50-100% of spin COR penalty
+  - High-speed impacts (> 25 m/s): 100% of spin COR penalty
 - Rollout bounces reduce COR and kill small normal speeds
 
 ## Units and Conventions

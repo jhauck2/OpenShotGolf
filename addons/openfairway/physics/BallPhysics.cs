@@ -22,6 +22,20 @@ public partial class BallPhysics : RefCounted
     [Export] public float BallMomentOfInertia { get => MOMENT_OF_INERTIA; private set { } }
     [Export] public float SpinDecayTau { get => SPIN_DECAY_TAU; private set { } }
 
+    // Spin friction tuning constants
+    private const float CHIP_SPEED_THRESHOLD = 20.0f;     // m/s — below this, reduced spin friction
+    private const float PITCH_SPEED_THRESHOLD = 35.0f;    // m/s — transition to full spin friction
+    private const float CHIP_VELOCITY_SCALE_MIN = 0.60f;  // Minimum velocity scale for chip shots
+    private const float CHIP_VELOCITY_SCALE_MAX = 0.87f;  // Maximum velocity scale for chip shots
+    private const float LOW_SPIN_THRESHOLD = 1250.0f;     // RPM — grooves don't "bite" below this
+    private const float MID_SPIN_THRESHOLD = 1750.0f;     // RPM — bump/pitch transition
+    private const float LOW_SPIN_MULTIPLIER_MAX = 1.30f;  // Friction multiplier at LOW_SPIN_THRESHOLD
+    private const float MID_SPIN_MULTIPLIER_MAX = 2.25f;  // Friction multiplier at MID_SPIN_THRESHOLD
+    private const float HIGH_SPIN_MULTIPLIER_MAX = 2.50f;  // Maximum friction multiplier (high spin wedges)
+
+    // Friction blending
+    private const float FRICTION_BLEND_SPEED = 15.0f;     // m/s — blending threshold for rolling/kinetic friction
+
     private readonly Aerodynamics _aero = new();
 
     /// <summary>
@@ -55,34 +69,63 @@ public partial class BallPhysics : RefCounted
     /// Uses the IMPACT spin (when ball first landed) to determine friction,
     /// as the "bite" happens at impact, not during rolling
     /// </summary>
-    private float GetSpinFrictionMultiplier(Vector3 omega, float impactSpinRpm)
+    private float GetSpinFrictionMultiplier(Vector3 omega, float impactSpinRpm, float ballSpeed)
     {
         // Use the higher of current spin or impact spin
         // This preserves the "bite" effect even as spin decays during rollout
         float currentSpinRpm = omega.Length() / 0.10472f;
         float effectiveSpinRpm = Mathf.Max(currentSpinRpm, impactSpinRpm);
 
-        // Non-linear with threshold: Grooves don't really "bite" until >1250 rpm
-        // Below 1250 rpm: Minimal effect (drivers/woods should roll)
-        // Above 1250 rpm: Strong increase (wedges should check up)
-        float spinMultiplier;
-
-        if (effectiveSpinRpm < 1250.0f)
+        // Calculate velocity scaling factor
+        // The "bite" effect from spin depends on impact energy, not just spin rate
+        // Low-speed chip shots shouldn't bite as hard as high-speed wedge shots
+        float velocityScale;
+        if (ballSpeed < CHIP_SPEED_THRESHOLD)
         {
-            // Low spin (drivers/woods): Minimal friction increase (1.0x to 1.15x)
-            spinMultiplier = 1.0f + (effectiveSpinRpm / 1250.0f) * 0.15f;
+            // Chip/bump shots: Moderate spin friction
+            velocityScale = Mathf.Lerp(CHIP_VELOCITY_SCALE_MIN, CHIP_VELOCITY_SCALE_MAX,
+                ballSpeed / CHIP_SPEED_THRESHOLD);
+        }
+        else if (ballSpeed < PITCH_SPEED_THRESHOLD)
+        {
+            // Transition zone: Pitch shots
+            velocityScale = Mathf.Lerp(CHIP_VELOCITY_SCALE_MAX, 1.0f,
+                (ballSpeed - CHIP_SPEED_THRESHOLD) / (PITCH_SPEED_THRESHOLD - CHIP_SPEED_THRESHOLD));
         }
         else
         {
-            // High spin (wedges): Strong friction increase (1.15x to 2.5x)
-            // At 1250 rpm: 1.15x
-            // At 2750+ rpm: 2.5x (maximum)
-            float excessSpin = effectiveSpinRpm - 1250.0f;
-            float spinFactor = Mathf.Min(excessSpin / 1500.0f, 1.0f);
-            spinMultiplier = 1.15f + spinFactor * 1.35f;
+            // Full wedges: Full spin friction
+            velocityScale = 1.0f;
         }
 
-        return spinMultiplier;
+        // Non-linear with threshold: Grooves don't really "bite" until >LOW_SPIN_THRESHOLD rpm
+        float spinMultiplier;
+
+        if (effectiveSpinRpm < LOW_SPIN_THRESHOLD)
+        {
+            // Low spin (drivers/woods): Minimal friction increase (1.0x to LOW_SPIN_MULTIPLIER_MAX)
+            spinMultiplier = 1.0f + (effectiveSpinRpm / LOW_SPIN_THRESHOLD) * (LOW_SPIN_MULTIPLIER_MAX - 1.0f);
+        }
+        else if (effectiveSpinRpm < MID_SPIN_THRESHOLD)
+        {
+            // Bump/pitch shots: Steep increase (LOW_SPIN_MULTIPLIER_MAX to MID_SPIN_MULTIPLIER_MAX)
+            float excessSpin = effectiveSpinRpm - LOW_SPIN_THRESHOLD;
+            float midRange = MID_SPIN_THRESHOLD - LOW_SPIN_THRESHOLD;
+            spinMultiplier = LOW_SPIN_MULTIPLIER_MAX +
+                (excessSpin / midRange) * (MID_SPIN_MULTIPLIER_MAX - LOW_SPIN_MULTIPLIER_MAX);
+        }
+        else
+        {
+            // High spin (wedges): Gradual increase to maximum
+            float excessSpin = effectiveSpinRpm - MID_SPIN_THRESHOLD;
+            float spinFactor = Mathf.Min(excessSpin / 1000.0f, 1.0f);
+            spinMultiplier = MID_SPIN_MULTIPLIER_MAX +
+                spinFactor * (HIGH_SPIN_MULTIPLIER_MAX - MID_SPIN_MULTIPLIER_MAX);
+        }
+
+        // Apply velocity scaling to reduce spin effect for low-speed shots
+        float scaledMultiplier = 1.0f + (spinMultiplier - 1.0f) * velocityScale;
+        return scaledMultiplier;
     }
 
     /// <summary>
@@ -103,7 +146,7 @@ public partial class BallPhysics : RefCounted
 
         // Spin-based friction multiplier (high spin = more grip)
         // Uses impact spin to preserve "bite" effect even as spin decays
-        float spinMultiplier = GetSpinFrictionMultiplier(omega, parameters.RolloutImpactSpin);
+        float spinMultiplier = GetSpinFrictionMultiplier(omega, parameters.RolloutImpactSpin, velocity.Length());
 
         Vector3 friction = Vector3.Zero;
         float tangentVelMag = tangentVelocity.Length();
@@ -130,11 +173,13 @@ public partial class BallPhysics : RefCounted
             float velocityMag = velocity.Length();
             float baseFriction;
 
-            if (velocityMag < 15.0f)
+            if (velocityMag < FRICTION_BLEND_SPEED)
             {
                 // Blend between rolling resistance and kinetic friction based on velocity
-                // At v=0: use rolling resistance, at v=15: use kinetic friction
-                float blendFactor = Mathf.Clamp(velocityMag / 15.0f, 0.0f, 1.0f);
+                // At v=0: use rolling resistance, at v=FRICTION_BLEND_SPEED: use kinetic friction
+                // Use exponential curve for gentler low-speed friction
+                float blendFactor = Mathf.Clamp(velocityMag / FRICTION_BLEND_SPEED, 0.0f, 1.0f);
+                blendFactor = blendFactor * blendFactor;  // Square for gentler low-speed friction
                 baseFriction = Mathf.Lerp(parameters.RollingFriction, parameters.KineticFriction, blendFactor);
             }
             else
@@ -225,7 +270,7 @@ public partial class BallPhysics : RefCounted
         Vector3 tangentVelocity = contactVelocity - parameters.FloorNormal * contactVelocity.Dot(parameters.FloorNormal);
 
         // Spin-based friction multiplier (same as in CalculateGroundForces)
-        float spinMultiplier = GetSpinFrictionMultiplier(omega, parameters.RolloutImpactSpin);
+        float spinMultiplier = GetSpinFrictionMultiplier(omega, parameters.RolloutImpactSpin, velocity.Length());
 
         Vector3 frictionForce = Vector3.Zero;
         float tangentVelMag = tangentVelocity.Length();
@@ -341,25 +386,35 @@ public partial class BallPhysics : RefCounted
         if (currentState == PhysicsEnums.BallState.Flight)
         {
             // First bounce from flight
-            // The Penner model only works when impactAngle > criticalAngle (steep impacts with high spin)
-            // For shallow-angle driver shots (impactAngle < criticalAngle), use simple retention model
+            // The Penner model only works for HIGH-ENERGY steep impacts (full wedge shots)
+            // For low-energy impacts (chip shots), use simple retention even if angle is steep
+            // For shallow-angle impacts (driver shots), use simple retention
             float impactAngleDeg = Mathf.RadToDeg(impactAngle);
             float criticalAngleDeg = Mathf.RadToDeg(parameters.CriticalAngle);
+            float impactSpeed = vel.Length();
 
-            if (impactAngle < parameters.CriticalAngle)
+            // Use Penner model only if BOTH: steep angle AND high energy (> 20 m/s ≈ 45 mph)
+            if (impactAngle < parameters.CriticalAngle || impactSpeed < 20.0f)
             {
-                // Shallow impact (driver/wood): preserve tangential velocity with retention factor
-                // This is appropriate for low-spin, low-trajectory shots that should roll out
+                // Shallow angle OR low energy (chip shots): use simple retention
+                // This prevents chip shots from rolling backward even with high spin
                 newTangentSpeed = speedTangent * tangentialRetention;
-                GD.Print($"  Bounce: Shallow angle ({impactAngleDeg:F2}° < {criticalAngleDeg:F2}°) - using simple retention");
+                if (impactSpeed < 20.0f)
+                {
+                    GD.Print($"  Bounce: Low energy ({impactSpeed:F2} m/s < 20 m/s) - using simple retention");
+                }
+                else
+                {
+                    GD.Print($"  Bounce: Shallow angle ({impactAngleDeg:F2}° < {criticalAngleDeg:F2}°) - using simple retention");
+                }
                 GD.Print($"    speedTangent={speedTangent:F2} m/s, newTangentSpeed={newTangentSpeed:F2} m/s");
             }
             else
             {
-                // Steep impact (wedge): Use Penner model - backspin creates reverse velocity
+                // Steep angle AND high energy (full wedge): Use Penner model - backspin creates reverse velocity
                 newTangentSpeed = tangentialRetention * vel.Length() * Mathf.Sin(impactAngle - parameters.CriticalAngle) -
                     2.0f * RADIUS * omegaTangentMagnitude / 7.0f;
-                GD.Print($"  Bounce: Steep angle ({impactAngleDeg:F2}° > {criticalAngleDeg:F2}°) - using Penner model");
+                GD.Print($"  Bounce: High energy ({impactSpeed:F2} m/s) steep angle ({impactAngleDeg:F2}° > {criticalAngleDeg:F2}°) - using Penner model");
                 GD.Print($"    speedTangent={speedTangent:F2} m/s, newTangentSpeed={newTangentSpeed:F2} m/s");
             }
         }
@@ -407,7 +462,7 @@ public partial class BallPhysics : RefCounted
             // Rollout: preserve existing spin, don't force it to match rolling velocity
             // The ball will slip initially, but forcing high spin kills rollout energy
             // Natural spin decay will occur through ground torques
-            if (newTangentSpeed > 0.1f)
+            if (newTangentSpeed > 0.05f)
             {
                 // Keep existing spin magnitude but ensure it's in the right direction
                 float existingSpinMag = omegaTangent.Length();
@@ -415,7 +470,7 @@ public partial class BallPhysics : RefCounted
                 Vector3 rollingAxis = normal.Cross(tangentDir).Normalized();
 
                 // Gradually adjust spin toward rolling direction, but don't increase magnitude
-                if (existingSpinMag > 0.1f)
+                if (existingSpinMag > 0.05f)
                 {
                     omegaTangent = rollingAxis * existingSpinMag;
                 }
@@ -440,6 +495,26 @@ public partial class BallPhysics : RefCounted
 
             // Spin-based COR reduction
             float spinRpm = omega.Length() / 0.10472f;
+
+            // Velocity scaling: High-spin COR reduction should only apply to high-energy impacts
+            // The "bite" effect from spin depends on impact energy, not just spin rate
+            float corVelocityScale;
+            if (speedNormal < 12.0f)
+            {
+                // Low-speed impacts (chip shots): Reduced COR penalty
+                corVelocityScale = Mathf.Lerp(0.0f, 0.50f, speedNormal / 12.0f);
+            }
+            else if (speedNormal < 25.0f)
+            {
+                // Medium-speed impacts: Transition
+                corVelocityScale = Mathf.Lerp(0.50f, 1.0f, (speedNormal - 12.0f) / 13.0f);
+            }
+            else
+            {
+                // High-speed impacts: Full penalty
+                corVelocityScale = 1.0f;
+            }
+
             float spinCORReduction;
 
             if (spinRpm < 1500.0f)
@@ -454,7 +529,8 @@ public partial class BallPhysics : RefCounted
                 // At 3000+ rpm: 70% reduction (flop shots stick!)
                 float excessSpin = spinRpm - 1500.0f;
                 float spinFactor = Mathf.Min(excessSpin / 1500.0f, 1.0f);
-                spinCORReduction = 0.30f + spinFactor * 0.40f;
+                float maxReduction = 0.30f + spinFactor * 0.40f;
+                spinCORReduction = maxReduction * corVelocityScale;
             }
 
             cor = baseCor * (1.0f - spinCORReduction);

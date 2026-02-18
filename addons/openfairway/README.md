@@ -98,7 +98,7 @@ var physics = BallPhysics.new()
 | `physics.ball_radius`      | 0.02134 m            | Regulation golf ball radius  |
 | `physics.ball_cross_section` | pi * r^2 m^2       | Cross-sectional area         |
 | `physics.ball_moment_of_inertia` | 0.4 * m * r^2 | Moment of inertia            |
-| `physics.spin_decay_tau`   | 5.0 s                | Spin decay time constant     |
+| `physics.spin_decay_tau`   | 3.0 s                | Spin decay time constant     |
 
 **Methods:**
 

@@ -1,0 +1,35 @@
+{
+    "DeviceID": "PiTrac LM 0.1",
+    "Units": "Yards",
+    "ShotNumber": 13,
+    "APIversion": "1",
+    "BallData" : {
+    "Speed": 75.0547040,
+    "SpinAxis": 5.7414904 ,
+    "TotalSpin": 10700.8457 ,
+    "BackSpin": 10500.7803545724255,
+    "SideSpin": 699.266167598911,
+    "HLA": 1.3455228805541992,
+    "VLA": 38.503028869628906,
+    "CarryDistance": 0.0
+    },
+    "ClubData": {
+        "Speed": 0.0,
+        "AngleOfAttack": 0.0,
+        "FaceToTarget": 0.0,
+        "Lie": 0.0,
+        "Loft": 0.0,
+        "Path": 0.0,
+        "SpeedAtImpact": 0.0,
+        "VerticalFaceImpact": 0.0,
+        "HorizontalFaceImpact": 0.0,
+        "ClosureRate": 0.0
+    },
+    "ShotDataOptions": {
+        "ContainsBallData": true,
+        "ContainsClubData": false,
+        "LaunchMonitorIsReady": true,
+        "LaunchMonitorBallDetected": true,
+        "IsHeartBeat": false
+    }
+}
