@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag (e.g. v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Resolve release tag
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          TAG="${{ inputs.tag }}"
+          git fetch --tags --force
+          git checkout "refs/tags/${TAG}"
+        else
+          TAG="${GITHUB_REF_NAME}"
+        fi
+
+        if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Tag must match format v#.#.# (e.g. v1.0.0)"
+          exit 1
+        fi
+
+        echo "RELEASE_TAG=${TAG}" >> "$GITHUB_ENV"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build solution
+      run: dotnet build OpenShotGolf.csproj --configuration Release
+
+    - name: Export Godot build
+      id: export
+      uses: firebelley/godot-export@v7.0.0
+      with:
+        godot_executable_download_url: https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=mono_linux_x86_64.zip&version=4.6.1
+        godot_export_templates_download_url: https://downloads.godotengine.org/?flavor=stable&platform=templates&slug=mono_export_templates.tpz&version=4.6.1
+        relative_project_path: ./
+        presets_to_export: Linux
+        archive_output: true
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ env.RELEASE_TAG }}
+        name: OpenShotGolf ${{ env.RELEASE_TAG }}
+        files: |
+          ${{ steps.export.outputs.archive_directory }}/*
+        generate_release_notes: true
