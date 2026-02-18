@@ -62,7 +62,7 @@ func _deferred_close_scene():
 func reload_scene():
 	if current_scene == null:
 		return
-	var path := current_scene.scene_file_path
+	var path: String = str(current_scene.scene_file_path)
 	var packed := load(path) as PackedScene
 	if packed == null:
 		push_error("Could not reload scene: " + path)
