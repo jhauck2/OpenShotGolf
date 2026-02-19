@@ -15,6 +15,10 @@ public partial class PhysicsParams : Resource
     [Export] public float RollingFriction { get; set; }
     [Export] public float GrassViscosity { get; set; }
     [Export] public float CriticalAngle { get; set; }
+    /// <summary>
+    /// Surface/Floor normal at the ball's ground contact point.
+    /// Expected to be a unit vector; zero-length is treated as Vector3.Up (flat ground).
+    /// </summary>
     [Export] public Vector3 FloorNormal { get; set; }
     [Export] public float RolloutImpactSpin { get; set; }  // Spin RPM when ball first landed for rollout
 

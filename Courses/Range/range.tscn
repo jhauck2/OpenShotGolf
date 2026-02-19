@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3 uid="uid://b1idtxfp7eoke"]
+[gd_scene format=3 uid="uid://b1idtxfp7eoke"]
 
 [ext_resource type="Script" uid="uid://c4whkfuiysonu" path="res://Courses/Range/range.gd" id="1_sunpe"]
 [ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://TCP/tcp_server.gd" id="2_d1a0v"]
@@ -52,7 +52,7 @@ _shader_parameters = {
 &"depth_blur": 0.0,
 &"enable_macro_variation": true,
 &"enable_projection": true,
-&"height_blending": true,
+&"flat_terrain_normals": false,
 &"macro_variation1": Color(1, 1, 1, 1),
 &"macro_variation2": Color(1, 1, 1, 1),
 &"macro_variation_slope": 0.333,
@@ -61,11 +61,8 @@ _shader_parameters = {
 &"noise1_offset": Vector2(0.5, 0.5),
 &"noise1_scale": 0.04,
 &"noise2_scale": 0.076,
-&"noise3_scale": 0.225,
 &"noise_texture": SubResource("NoiseTexture2D_emsks"),
-&"projection_angular_division": 2.0,
-&"projection_threshold": 0.8,
-&"world_space_normal_blend": true
+&"projection_threshold": 0.8
 }
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oe2rx"]
@@ -197,21 +194,21 @@ tonemap_white = 6.0
 [sub_resource type="Resource" id="Resource_hbh3r"]
 script = ExtResource("18_gqfs3")
 
-[node name="Range" type="Node3D"]
+[node name="Range" type="Node3D" unique_id=639527421]
 script = ExtResource("1_sunpe")
 
-[node name="TCPServer" type="Node" parent="."]
+[node name="TCPServer" type="Node" parent="." unique_id=1693664298]
 script = ExtResource("2_d1a0v")
 
-[node name="Player" parent="." instance=ExtResource("3_4jr3s")]
+[node name="Player" parent="." unique_id=1089437952 instance=ExtResource("3_4jr3s")]
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1789725117]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 174.334, 165.881, 0)
 light_indirect_energy = 6.592
 
-[node name="RangeUI" parent="." instance=ExtResource("4_d1a0v")]
+[node name="RangeUI" parent="." unique_id=1289874115 instance=ExtResource("4_d1a0v")]
 
-[node name="Terrain3D" type="Terrain3D" parent="."]
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=115405078]
 data_directory = "res://Courses/Range/Terrain"
 material = SubResource("Terrain3DMaterial_ls2bl")
 assets = SubResource("Terrain3DAssets_emsks")
@@ -220,7 +217,7 @@ collision_shape_size = 48
 top_level = true
 metadata/_edit_lock_ = true
 
-[node name="Sky3D" type="WorldEnvironment" parent="."]
+[node name="Sky3D" type="WorldEnvironment" parent="." unique_id=295672964]
 environment = SubResource("Environment_2xe6u")
 camera_attributes = SubResource("CameraAttributesPractical_ainke")
 script = ExtResource("12_6rpr1")
@@ -228,23 +225,23 @@ enable_editor_time = false
 current_time = 15.682
 metadata/_custom_type_script = "uid://deo0gxkmk2ahd"
 
-[node name="SunLight" type="DirectionalLight3D" parent="Sky3D"]
+[node name="SunLight" type="DirectionalLight3D" parent="Sky3D" unique_id=889199116]
 transform = Transform3D(0, -0.6049699, -0.7962483, -0.36520752, -0.7412484, 0.5631823, -0.9309262, 0.29079586, -0.22093955, -0.7962483, 0.5631823, -0.22093955)
 shadow_enabled = true
 
-[node name="MoonLight" type="DirectionalLight3D" parent="Sky3D"]
+[node name="MoonLight" type="DirectionalLight3D" parent="Sky3D" unique_id=1624375170]
 transform = Transform3D(0, -0.51897305, -0.8547907, -0.35659954, 0.79859453, -0.48485434, 0.9342574, 0.30481797, -0.18506554, -0.8547906, -0.4848543, -0.18506552)
 light_color = Color(0.572549, 0.776471, 0.956863, 1)
 light_energy = 0.0
 
-[node name="Skydome" type="Node" parent="Sky3D"]
+[node name="Skydome" type="Node" parent="Sky3D" unique_id=1305888805]
 script = ExtResource("13_til7k")
 sun_azimuth = -285.5079178078127
 sun_altitude = -55.72381487797508
 moon_azimuth = -282.21609447769833
 moon_altitude = -119.00287765558052
 
-[node name="TimeOfDay" type="Node" parent="Sky3D"]
+[node name="TimeOfDay" type="Node" parent="Sky3D" unique_id=1966364158]
 script = ExtResource("14_oe2rx")
 update_in_editor = false
 dome_path = NodePath("../Skydome")
@@ -252,7 +249,7 @@ total_hours = 15.682
 day = 28
 month = 5
 
-[node name="PhantomCamera3D" type="Node3D" parent="."]
+[node name="PhantomCamera3D" type="Node3D" parent="." unique_id=482822968]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -6.04467, 3.02244, 0)
 script = ExtResource("17_i3bow")
 tween_resource = SubResource("Resource_hbh3r")
@@ -261,52 +258,52 @@ follow_damping = true
 follow_damping_value = Vector3(0.4, 0.1, 0.1)
 dead_zone_height = 0.204
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=574000253]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -6.04467, 3.02244, 0)
 
-[node name="PhantomCameraHost" type="Node" parent="Camera3D"]
+[node name="PhantomCameraHost" type="Node" parent="Camera3D" unique_id=1886001609]
 process_priority = 300
 process_physics_priority = 300
 script = ExtResource("19_gqfs3")
 
-[node name="CenterLine" type="Decal" parent="."]
+[node name="CenterLine" type="Decal" parent="." unique_id=1930229983]
 transform = Transform3D(1.19249e-08, 0, -1, 0, 1, 0, 1, 0, 1.19249e-08, 182.88, 0, 0)
 size = Vector3(5, 2, 365.76)
 texture_albedo = ExtResource("20_hbh3r")
 modulate = Color(1, 1, 1, 0.25098)
 
-[node name="YardMarkers" type="Node3D" parent="."]
+[node name="YardMarkers" type="Node3D" parent="." unique_id=1211939616]
 
-[node name="50Yards" type="Label3D" parent="YardMarkers"]
+[node name="50Yards" type="Label3D" parent="YardMarkers" unique_id=1257972579]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 45.72, 0.379, -0.5)
 pixel_size = 0.02
 text = "50"
 
-[node name="100Yards" type="Label3D" parent="YardMarkers"]
+[node name="100Yards" type="Label3D" parent="YardMarkers" unique_id=1257043098]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 91.4, 0.379, -0.7)
 pixel_size = 0.02
 text = "100
 "
 
-[node name="150Yards" type="Label3D" parent="YardMarkers"]
+[node name="150Yards" type="Label3D" parent="YardMarkers" unique_id=881875828]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 137.16, 0.379, -0.7)
 pixel_size = 0.02
 text = "150
 "
 
-[node name="200" type="Label3D" parent="YardMarkers"]
+[node name="200" type="Label3D" parent="YardMarkers" unique_id=1554265224]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 182.88, 0.379, -0.7)
 pixel_size = 0.02
 text = "200
 "
 
-[node name="250" type="Label3D" parent="YardMarkers"]
+[node name="250" type="Label3D" parent="YardMarkers" unique_id=2053921063]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 228.6, 0.379, -0.7)
 pixel_size = 0.02
 text = "250
 "
 
-[node name="SessionRecorder" type="Node" parent="."]
+[node name="SessionRecorder" type="Node" parent="." unique_id=18851557]
 script = ExtResource("21_6rpr1")
 
 [connection signal="hit_ball" from="TCPServer" to="." method="_on_tcp_client_hit_ball"]
