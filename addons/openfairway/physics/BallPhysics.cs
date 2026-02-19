@@ -190,7 +190,7 @@ public partial class BallPhysics : RefCounted
             // Apply spin multiplier to increase friction for high-spin shots
             float effectiveFriction = baseFriction * spinMultiplier;
 
-            Vector3 slipDir = tangentVelocity.Normalized();
+            Vector3 slipDir = tangentVelMag > 0.01f ? tangentVelocity.Normalized() : Vector3.Zero;
             friction = slipDir * (-effectiveFriction * MASS * 9.81f);
             if (shouldDebug)
             {
@@ -302,7 +302,7 @@ public partial class BallPhysics : RefCounted
             // Apply spin multiplier to increase friction for high-spin shots
             float effectiveFriction = baseFriction * spinMultiplier;
 
-            Vector3 slipDir = tangentVelocity.Normalized();
+            Vector3 slipDir = tangentVelMag > 0.01f ? tangentVelocity.Normalized() : Vector3.Zero;
             frictionForce = slipDir * (-effectiveFriction * MASS * 9.81f);
         }
 

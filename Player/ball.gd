@@ -365,6 +365,14 @@ func _physics_process(delta: float) -> void:
 	velocity += (total_force / _ball_mass) * delta
 	omega += (total_torque / _ball_moi) * delta
 
+	# Safety: catch NaN/infinity before it reaches the physics engine
+	# Without this, ROUGH appears to error with FINITE bug. Do not remove until someone
+	# better understands this. 
+	if not velocity.is_finite() or not omega.is_finite():
+		push_warning("BallPhysics: non-finite velocity or omega detected, entering rest")
+		_enter_rest_state()
+		return
+
 	# Safety bounds check
 	if _check_out_of_bounds():
 		return
@@ -482,9 +490,10 @@ func _try_recover_to_ground() -> bool:
 
 	var hit_position: Vector3 = hit["position"]
 	var hit_normal: Vector3 = hit["normal"]
-	hit_normal = hit_normal.normalized()
 	if hit_normal.length_squared() < 0.000001:
 		hit_normal = Vector3.UP
+	else:
+		hit_normal = hit_normal.normalized()
 
 	global_position = hit_position + hit_normal * (_ball_radius + GROUND_SNAP_OFFSET)
 	floor_normal = hit_normal
@@ -515,9 +524,10 @@ func _try_probe_ground() -> Dictionary:
 		return {"hit": false, "normal": Vector3.UP}
 
 	var ground_normal: Vector3 = hit["normal"]
-	ground_normal = ground_normal.normalized()
 	if ground_normal.length_squared() < 0.000001:
 		ground_normal = Vector3.UP
+	else:
+		ground_normal = ground_normal.normalized()
 	return {"hit": true, "normal": ground_normal}
 
 
