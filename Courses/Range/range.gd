@@ -44,9 +44,7 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 
 func _process(_delta: float) -> void:
 	# Refresh UI during flight/rollout so carry/apex update live; distance updates only at rest.
-	var player = get_node_or_null("Player")
-	if player == null:
-		return
+	var player = $Player
 	if player.get_ball_state() != PhysicsEnums.BallState.REST:
 		_update_ball_display()
 
@@ -66,32 +64,24 @@ func _on_golf_ball_rest(_ball_data) -> void:
 		await get_tree().create_timer(GlobalSettings.range_settings.ball_reset_timer.value).timeout
 		_reset_display_data()
 		$RangeUI.set_data(display_data)
-		var player = get_node_or_null("Player")
-		if player != null:
-			player.reset_ball()
+		var player = $Player
+		player.reset_ball()
 		return
 
 	# No auto reset: leave final numbers visible
 
 func set_camera_follow_mode(value) -> void:
-	var camera = get_node_or_null("PhantomCamera3D")
-	if camera == null:
-		return
+	var camera = $PhantomCamera3D
 
 	if value:
 		camera.follow_mode = PhantomCamera3D.FollowMode.FRAMED
-		var player = get_node_or_null("Player")
-		if player != null:
-			camera.follow_target = player.ball
-		else:
-			camera.follow_target = null
+		var player = $Player
+		camera.follow_target = player.ball
 	else:
 		camera.follow_mode = PhantomCamera3D.FollowMode.NONE
 
 func reset_camera_to_start() -> void:
-	var camera = get_node_or_null("PhantomCamera3D")
-	if camera == null:
-		return
+	var camera = $PhantomCamera3D
 
 	# Temporarily disable follow mode
 	camera.follow_mode = PhantomCamera3D.FollowMode.NONE
@@ -106,8 +96,8 @@ func reset_camera_to_start() -> void:
 	await tween.finished
 
 	# Reset ball to starting position
-	var player = get_node_or_null("Player")
-	if player != null and player.ball != null:
+	var player = $Player
+	if player.ball != null:
 		player.ball.reset()
 
 
@@ -146,9 +136,7 @@ func _reset_display_data() -> void:
 
 func _update_ball_display() -> void:
 	# Show distance continuously (updates during flight/rollout, final at rest)
-	var player = get_node_or_null("Player")
-	if player == null:
-		return
+	var player = $Player
 	var show_distance: bool = true
 	display_data = ShotFormatter.format_ball_display(raw_ball_data, player, GlobalSettings.range_settings.range_units.value, show_distance, display_data)
 	last_display = display_data.duplicate()
