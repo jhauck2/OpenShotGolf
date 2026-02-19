@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. game-v1.0.0)'
+        description: 'Release tag (e.g. OpenShotGolf-v1.0.0)'
         required: true
         type: string
 
@@ -32,7 +32,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
         fi
 
-        if [[ ! "$TAG" =~ ^game-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ ! "$TAG" =~ ^OpenShotGolf-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           echo "Error: Tag must match format game-v#.#.# (e.g. game-v1.0.0)"
           exit 1
         fi
