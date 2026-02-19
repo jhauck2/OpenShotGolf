@@ -3,7 +3,7 @@ name: Release Game
 on:
   push:
     tags:
-      - 'game-v*'
+      - 'OpenShotGolf-v*'
   workflow_dispatch:
     inputs:
       tag:
