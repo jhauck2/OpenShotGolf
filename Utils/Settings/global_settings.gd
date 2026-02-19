@@ -4,7 +4,7 @@ signal settings_changed
 
 # Range Settings
 var range_settings := RangeSettings.new()
-const OPENFAIRWAY_LOG_LEVEL_INFO := 1
+const OPENFAIRWAY_LOG_LEVEL_INFO := 2
 
 
 func _ready() -> void:

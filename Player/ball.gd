@@ -6,6 +6,13 @@ signal rest
 enum BallType {STANDARD, PREMIUM}
 
 const START_HEIGHT := 0.02
+const COLLISION_SAFE_MARGIN := 0.0005
+const BELOW_GROUND_RECOVERY_Y := -0.5
+const FALLTHROUGH_FAILSAFE_Y := -5.0
+const GROUND_SNAP_OFFSET := 0.001
+const GROUND_RAYCAST_UP := 2.0
+const GROUND_RAYCAST_DOWN := 8.0
+const GROUND_PROBE_DISTANCE := 0.08
 
 var ball_scene : PackedScene = preload("res://assets/models/balls/golf_ball.glb")
 
@@ -20,11 +27,13 @@ var omega := Vector3.ZERO  # Angular velocity (rad/s)
 var on_ground := false
 var floor_normal := Vector3.UP
 var _settings_connected := false
+var _range_settings: RangeSettings = null
 
 # Surface parameters (base values from C# Surface addon, then multiplied below).
 # TODO - some of these values should not be in ball. Ball type shouldn't matter grass viscosity.
 # Change the *_mult values to create a different "feel" for this ball without touching global settings.
 var surface_type: int = PhysicsEnums.SurfaceType.FAIRWAY
+var _surface_zone_stack: Array[int] = []
 var _kinetic_friction: float = 0.42
 var _rolling_friction: float = 0.18
 var _grass_viscosity: float = 0.0020
@@ -46,7 +55,9 @@ var _lift_mult := 1.0
 # Shot tracking
 var shot_start_pos := Vector3.ZERO
 var shot_dir := Vector3(1.0, 0.0, 0.0)  # Normalized horizontal direction
+var aim_yaw_offset_deg := 0.0  # Camera/world rotation offset applied at launch
 var launch_spin_rpm := 0.0  # Stored for bounce calculations
+var rollout_impact_spin_rpm := 0.0  # Spin on first impact; used for rollout friction
 
 # Ball physics constants (cached from C# addon in _init)
 var _ball_mass: float
@@ -178,7 +189,7 @@ func _try_initialize_ball() -> bool:
 func initialize_ball() -> void:
 	_connect_settings()
 	_update_environment()
-	set_surface(GlobalSettings.range_settings.surface_type.value)
+	set_surface(_get_configured_surface_type())
 
 
 func _create_collision_and_model():
@@ -195,7 +206,8 @@ func _create_collision_and_model():
 	add_child(mesh)
 
 func _connect_settings() -> void:
-	var settings := GlobalSettings.range_settings
+	_range_settings = GlobalSettings.range_settings
+	var settings := _range_settings
 
 	if not settings.temperature.setting_changed.is_connected(_on_environment_changed):
 		settings.temperature.setting_changed.connect(_on_environment_changed)
@@ -203,11 +215,27 @@ func _connect_settings() -> void:
 		settings.altitude.setting_changed.connect(_on_environment_changed)
 	if not settings.range_units.setting_changed.is_connected(_on_environment_changed):
 		settings.range_units.setting_changed.connect(_on_environment_changed)
+	if not settings.surface_type.setting_changed.is_connected(_on_surface_type_changed):
+		settings.surface_type.setting_changed.connect(_on_surface_type_changed)
 	if not settings.ball_type.setting_changed.is_connected(_ball_type_changed):
 		settings.ball_type.setting_changed.connect(_ball_type_changed)
-	_drag_scale = _drag_mult
-	_lift_scale = _lift_mult
+	_ball_type_changed(settings.ball_type.value)
 	_settings_connected = true
+
+
+func _exit_tree() -> void:
+	if _range_settings == null:
+		return
+	if _range_settings.temperature.setting_changed.is_connected(_on_environment_changed):
+		_range_settings.temperature.setting_changed.disconnect(_on_environment_changed)
+	if _range_settings.altitude.setting_changed.is_connected(_on_environment_changed):
+		_range_settings.altitude.setting_changed.disconnect(_on_environment_changed)
+	if _range_settings.range_units.setting_changed.is_connected(_on_environment_changed):
+		_range_settings.range_units.setting_changed.disconnect(_on_environment_changed)
+	if _range_settings.surface_type.setting_changed.is_connected(_on_surface_type_changed):
+		_range_settings.surface_type.setting_changed.disconnect(_on_surface_type_changed)
+	if _range_settings.ball_type.setting_changed.is_connected(_ball_type_changed):
+		_range_settings.ball_type.setting_changed.disconnect(_ball_type_changed)
 
 func _ball_type_changed(value):
 	if value == BallType.PREMIUM:
@@ -222,6 +250,11 @@ func _ball_type_changed(value):
 
 func _on_environment_changed(_value) -> void:
 	_update_environment()
+
+
+func _on_surface_type_changed(value) -> void:
+	if _surface_zone_stack.is_empty():
+		set_surface(int(value))
 
 
 func _on_drag_scale_changed(_value) -> void:
@@ -260,6 +293,29 @@ func _update_environment() -> void:
 func set_surface(surface: int) -> void:
 	surface_type = surface
 	_apply_surface_params()
+
+
+func enter_surface_zone(surface: int) -> void:
+	_surface_zone_stack.append(surface)
+	set_surface(surface)
+
+
+func exit_surface_zone(surface: int) -> void:
+	for i in range(_surface_zone_stack.size() - 1, -1, -1):
+		if _surface_zone_stack[i] == surface:
+			_surface_zone_stack.remove_at(i)
+			break
+
+	if not _surface_zone_stack.is_empty():
+		set_surface(_surface_zone_stack[_surface_zone_stack.size() - 1])
+	else:
+		set_surface(_get_configured_surface_type())
+
+
+func _get_configured_surface_type() -> int:
+	if _range_settings != null:
+		return int(_range_settings.surface_type.value)
+	return PhysicsEnums.SurfaceType.FAIRWAY
 
 
 func _apply_surface_params() -> void:
@@ -314,7 +370,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Move and handle collisions
-	var collision := move_and_collide(velocity * delta)
+	var collision := move_and_collide(velocity * delta, false, COLLISION_SAFE_MARGIN)
 	_handle_collision(collision, was_on_ground, prev_velocity)
 
 	# Check for rest
@@ -335,7 +391,7 @@ func _create_physics_params():
 	_set_openfairway_property(params, &"grass_viscosity", &"GrassViscosity", _grass_viscosity)
 	_set_openfairway_property(params, &"critical_angle", &"CriticalAngle", _critical_angle)
 	_set_openfairway_property(params, &"floor_normal", &"FloorNormal", floor_normal)
-	_set_openfairway_property(params, &"rollout_impact_spin", &"RolloutImpactSpin", 0.0)
+	_set_openfairway_property(params, &"rollout_impact_spin", &"RolloutImpactSpin", rollout_impact_spin_rpm)
 	return params
 
 
@@ -345,9 +401,12 @@ func _check_out_of_bounds() -> bool:
 		_enter_rest_state()
 		return true
 
-	if position.y < -0.5:
-		print("WARNING: Ball fell through ground at: ", position)
-		position.y = 0.0
+	if global_position.y < BELOW_GROUND_RECOVERY_Y:
+		if _try_recover_to_ground():
+			return false
+		if global_position.y > FALLTHROUGH_FAILSAFE_Y:
+			return false
+		print("WARNING: Ball fell through ground at: ", global_position)
 		_enter_rest_state()
 		return true
 
@@ -355,18 +414,18 @@ func _check_out_of_bounds() -> bool:
 
 
 func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, prev_velocity: Vector3) -> void:
-	var should_debug := Engine.get_physics_frames() % 60 == 0
-
 	if collision:
 		var normal := collision.get_normal()
 
 		if _is_ground_normal(normal):
 			floor_normal = normal
-			var is_landing := (state == PhysicsEnums.BallState.FLIGHT) or prev_velocity.y < -0.5
+			var prev_normal_velocity := prev_velocity.dot(normal)
+			var is_landing := (state == PhysicsEnums.BallState.FLIGHT) or prev_normal_velocity < -0.5
 
 			if is_landing:
 				if state == PhysicsEnums.BallState.FLIGHT:
 					_print_impact_debug()
+					rollout_impact_spin_rpm = omega.length() / 0.10472
 
 				var params = _create_physics_params()
 				if params == null:
@@ -379,29 +438,99 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 				state = int(_get_openfairway_property(bounce_result, &"new_state", &"NewState", state))
 
 				print("  Velocity after bounce: ", velocity, " (%.2f m/s)" % velocity.length())
-				on_ground = false
+				var normal_velocity := velocity.dot(normal)
+				if absf(normal_velocity) < 0.5 and state == PhysicsEnums.BallState.ROLLOUT:
+					on_ground = true
+					velocity = _remove_velocity_along_normal(velocity, normal, true)
+					print("  -> Ball grounded, continuing roll at %.2f m/s" % velocity.length())
+				else:
+					on_ground = false
 			else:
 				on_ground = true
-				if velocity.y < 0:
-					velocity.y = 0
+				velocity = _remove_velocity_along_normal(velocity, normal, false)
 		else:
 			# Wall collision - damped reflection
 			on_ground = false
 			floor_normal = Vector3.UP
 			velocity = velocity.bounce(normal) * 0.30
 	else:
-		# No collision - check rolling continuity
-		if state != PhysicsEnums.BallState.FLIGHT and was_on_ground and position.y < 0.02 and velocity.y <= 0.0:
-			if should_debug and not on_ground:
-				print("  NO COLLISION: setting on_ground=true (pos.y=%.4f, vel.y=%.2f)" % [position.y, velocity.y])
+		# No collision - only stay grounded if terrain is still directly beneath the ball.
+		var probe := _try_probe_ground()
+		if state != PhysicsEnums.BallState.FLIGHT and was_on_ground and bool(probe.get("hit", false)):
 			on_ground = true
+			floor_normal = probe.get("normal", Vector3.UP)
 		else:
 			on_ground = false
 			floor_normal = Vector3.UP
 
 
+func _try_recover_to_ground() -> bool:
+	var world := get_world_3d()
+	if world == null:
+		return false
+
+	var ray_start := global_position + Vector3.UP * GROUND_RAYCAST_UP
+	var ray_end := global_position + Vector3.DOWN * GROUND_RAYCAST_DOWN
+	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [get_rid()]
+
+	var hit := world.direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return false
+
+	var hit_position: Vector3 = hit["position"]
+	var hit_normal: Vector3 = hit["normal"]
+	hit_normal = hit_normal.normalized()
+	if hit_normal.length_squared() < 0.000001:
+		hit_normal = Vector3.UP
+
+	global_position = hit_position + hit_normal * (_ball_radius + GROUND_SNAP_OFFSET)
+	floor_normal = hit_normal
+	velocity = _remove_velocity_along_normal(velocity, hit_normal, false)
+	on_ground = true
+
+	if state == PhysicsEnums.BallState.FLIGHT:
+		state = PhysicsEnums.BallState.ROLLOUT
+
+	print("Recovered ball-to-ground at %s (normal: %s)" % [str(global_position), str(hit_normal)])
+	return true
+
+
+func _try_probe_ground() -> Dictionary:
+	var world := get_world_3d()
+	if world == null:
+		return {"hit": false, "normal": Vector3.UP}
+
+	var ray_start := global_position + Vector3.UP * 0.05
+	var ray_end := global_position + Vector3.DOWN * (_ball_radius + GROUND_PROBE_DISTANCE)
+	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [get_rid()]
+
+	var hit := world.direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return {"hit": false, "normal": Vector3.UP}
+
+	var ground_normal: Vector3 = hit["normal"]
+	ground_normal = ground_normal.normalized()
+	if ground_normal.length_squared() < 0.000001:
+		ground_normal = Vector3.UP
+	return {"hit": true, "normal": ground_normal}
+
+
 func _is_ground_normal(normal: Vector3) -> bool:
 	return normal.y > 0.7
+
+
+func _remove_velocity_along_normal(source_velocity: Vector3, normal: Vector3, remove_both_directions: bool) -> Vector3:
+	var safe_normal := normal.normalized() if normal.length_squared() > 0.000001 else Vector3.UP
+	var normal_component := source_velocity.dot(safe_normal)
+	if not remove_both_directions and normal_component >= 0.0:
+		return source_velocity
+	return source_velocity - safe_normal * normal_component
 
 
 func _print_impact_debug() -> void:
@@ -422,7 +551,11 @@ func reset() -> void:
 	position = Vector3(0.0, START_HEIGHT, 0.0)
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
+	aim_yaw_offset_deg = 0.0
 	launch_spin_rpm = 0.0
+	rollout_impact_spin_rpm = 0.0
+	_surface_zone_stack.clear()
+	set_surface(_get_configured_surface_type())
 	state = PhysicsEnums.BallState.REST
 	on_ground = false
 
@@ -457,11 +590,6 @@ func hit_from_data(data: Dictionary) -> void:
 	var total_spin: float = spin_data.total
 	var spin_axis: float = spin_data.axis
 
-	# Set state
-	state = PhysicsEnums.BallState.FLIGHT
-	on_ground = false
-	position = Vector3(0.0, START_HEIGHT, 0.0)
-
 	var launch_data: Dictionary = {}
 	if _shot_setup != null:
 		var launch_result = _call_openfairway_method(
@@ -473,18 +601,42 @@ func hit_from_data(data: Dictionary) -> void:
 		if typeof(launch_result) == TYPE_DICTIONARY:
 			launch_data = launch_result
 
+	var launch_velocity: Vector3
+	var launch_omega: Vector3
+	var launch_direction: Vector3
 	if launch_data.is_empty():
-		velocity = Vector3(speed_mps, 0, 0) \
+		launch_velocity = Vector3(speed_mps, 0, 0) \
 			.rotated(Vector3.FORWARD, deg_to_rad(-vla_deg)) \
 			.rotated(Vector3.UP, deg_to_rad(-hla_deg))
-		var flat_velocity := Vector3(velocity.x, 0.0, velocity.z)
-		shot_dir = flat_velocity.normalized() if flat_velocity.length() > 0.001 else Vector3.RIGHT
-		omega = Vector3(0.0, 0.0, total_spin * 0.10472) \
+		var flat_velocity := Vector3(launch_velocity.x, 0.0, launch_velocity.z)
+		launch_direction = flat_velocity.normalized() if flat_velocity.length() > 0.001 else Vector3.RIGHT
+		launch_omega = Vector3(0.0, 0.0, total_spin * 0.10472) \
 			.rotated(Vector3.RIGHT, deg_to_rad(spin_axis))
 	else:
-		velocity = launch_data.get("velocity", Vector3.ZERO)
-		omega = launch_data.get("omega", Vector3.ZERO)
-		shot_dir = launch_data.get("shot_direction", Vector3.RIGHT)
+		launch_velocity = launch_data.get("velocity", Vector3.ZERO)
+		launch_omega = launch_data.get("omega", Vector3.ZERO)
+		launch_direction = launch_data.get("shot_direction", Vector3.RIGHT)
+
+	if absf(aim_yaw_offset_deg) > 0.0001:
+		var aim_yaw_rad := deg_to_rad(aim_yaw_offset_deg)
+		launch_velocity = launch_velocity.rotated(Vector3.UP, aim_yaw_rad)
+		launch_omega = launch_omega.rotated(Vector3.UP, aim_yaw_rad)
+		launch_direction = launch_direction.rotated(Vector3.UP, aim_yaw_rad)
+	launch_direction.y = 0.0
+	if launch_direction.length_squared() < 0.000001:
+		launch_direction = Vector3.RIGHT
+	launch_direction = launch_direction.normalized()
+
+	state = PhysicsEnums.BallState.FLIGHT
+	on_ground = false
+	rollout_impact_spin_rpm = 0.0
+	_surface_zone_stack.clear()
+	set_surface(_get_configured_surface_type())
+	position = Vector3(0.0, START_HEIGHT, 0.0)
+
+	velocity = launch_velocity
+	omega = launch_omega
+	shot_dir = launch_direction
 
 	shot_start_pos = position
 	launch_spin_rpm = total_spin
@@ -530,6 +682,7 @@ func _print_launch_debug(data: Dictionary, speed_mps: float, vla: float, hla: fl
 	print("Ball: %s" % _get_ball_label())
 	print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
 	print("VLA: %.2f deg, HLA: %.2f deg" % [vla, hla])
+	print("Aim yaw offset: %.2f deg" % aim_yaw_offset_deg)
 	print("Spin: %.0f rpm, Axis: %.2f deg" % [spin, axis])
 	print("drag_cf: %.2f, lift_cf: %.2f" % [_drag_scale, _lift_scale])
 	print("Air density: %.4f kg/m^3" % _air_density)

@@ -23,53 +23,57 @@ public partial class Surface : RefCounted
         return surface switch
         {
             PhysicsEnums.SurfaceType.Rough =>
-                // High grip, more friction - ball checks up quickly
+                // Tall grass rough: shortest rollout.
+                // TODO, more testing needed here. 
+                // 1. Need game/consumer to dictate these values. 
+                // 2. These values are not reacting as state, rough slower, firm faster. 
                 new Dictionary
                 {
-                    { "u_k", 0.15f },
-                    { "u_kr", 0.05f },
-                    { "nu_g", 0.0005f },
-                    { "theta_c", 0.38f }  // ~22°
+                    { "u_k", 0.62f },      // High slip friction
+                    { "u_kr", 0.095f },    // High rolling resistance
+                    { "nu_g", 0.0032f },   // Strong vegetation drag
+                    { "theta_c", 0.35f }   // ~20°
                 },
 
             PhysicsEnums.SurfaceType.Fairway =>
-                // Firm fairway - good conditions with 50-70 yd rollout for low-spin drivers
+                // Default fairway tuned to roll ~40% less than prior baseline.
                 new Dictionary
                 {
-                    { "u_k", 0.30f },      // Kinetic friction (sliding)
-                    { "u_kr", 0.030f },    // Rolling resistance for firm fairway grass
-                    { "nu_g", 0.0010f },   // Grass drag viscosity
-                    { "theta_c", 0.25f }   // ~14° critical angle - firmer surface
+                    { "u_k", 0.50f },      // Higher slip friction than prior baseline
+                    { "u_kr", 0.050f },    // ~1.67x rolling resistance vs prior baseline
+                    { "nu_g", 0.0017f },   // ~1.7x grass drag vs prior baseline
+                    { "theta_c", 0.29f }   // ~17°
                 },
 
             PhysicsEnums.SurfaceType.FairwaySoft =>
-                // Soft/wet fairway - reduced rollout (~20-30 yds)
+                // Soft/wet fairway: slower than normal fairway but faster than rough.
                 new Dictionary
                 {
-                    { "u_k", 0.42f },      // Higher kinetic friction
-                    { "u_kr", 0.18f },     // Higher rolling resistance
-                    { "nu_g", 0.0020f },   // More grass drag
-                    { "theta_c", 0.30f }   // ~17° - softer surface
+                    { "u_k", 0.56f },
+                    { "u_kr", 0.070f },
+                    { "nu_g", 0.0024f },
+                    { "theta_c", 0.32f }   // ~18°
                 },
 
             PhysicsEnums.SurfaceType.Firm =>
-                // Low grip - ball runs out more
-                new Dictionary
-                {
-                    { "u_k", 0.08f },
-                    { "u_kr", 0.02f },
-                    { "nu_g", 0.0002f },
-                    { "theta_c", 0.21f }  // ~12°
-                },
-
-            _ =>
-                // Default to normal fairway
+                // Hard pavement/concrete style lie.
+                // Intentionally set to the prior fairway baseline (fast rollout).
                 new Dictionary
                 {
                     { "u_k", 0.30f },
-                    { "u_kr", 0.015f },
+                    { "u_kr", 0.030f },
                     { "nu_g", 0.0010f },
-                    { "theta_c", 0.25f }
+                    { "theta_c", 0.25f }  // ~14°
+                },
+
+            _ =>
+                // Default to current normal fairway tuning
+                new Dictionary
+                {
+                    { "u_k", 0.50f },
+                    { "u_kr", 0.050f },
+                    { "nu_g", 0.0017f },
+                    { "theta_c", 0.29f }
                 }
         };
     }

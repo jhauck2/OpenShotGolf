@@ -20,6 +20,15 @@ public partial class ShotSetup : RefCounted
     /// </summary>
     public Dictionary ParseSpin(Dictionary data)
     {
+        return ParseSpin(data, true);
+    }
+
+    /// <summary>
+    /// Internal overload that allows callers (such as per-frame UI formatting)
+    /// to opt out of emitting consistency warnings every frame.
+    /// </summary>
+    public Dictionary ParseSpin(Dictionary data, bool emitConsistencyWarnings)
+    {
         bool hasBackspin = data.ContainsKey("BackSpin");
         bool hasSidespin = data.ContainsKey("SideSpin");
         bool hasTotal = data.ContainsKey("TotalSpin");
@@ -62,7 +71,10 @@ public partial class ShotSetup : RefCounted
             float computedTotal = Mathf.Sqrt(backspin * backspin + sidespin * sidespin);
             if (Mathf.Abs(computedTotal - totalSpin) > 1.0f)
             {
-                PhysicsLogger.Info($"  Spin data inconsistent: TotalSpin={totalSpin:F0} but sqrt(BS²+SS²)={computedTotal:F0}, using computed value");
+                if (emitConsistencyWarnings)
+                {
+                    PhysicsLogger.Info($"  Spin data inconsistent: TotalSpin={totalSpin:F0} but sqrt(BS²+SS²)={computedTotal:F0}, using computed value");
+                }
                 totalSpin = computedTotal;
                 spinAxis = Mathf.RadToDeg(Mathf.Atan2(sidespin, backspin));
             }
