@@ -48,10 +48,10 @@ func _ready() -> void:
 
 	# Surface type options
 	surface_option.clear()
-	surface_option.add_item("Fairway", Surface.SurfaceType.FAIRWAY)
-	surface_option.add_item("Soft Fairway", Surface.SurfaceType.FAIRWAY_SOFT)
-	surface_option.add_item("Rough", Surface.SurfaceType.ROUGH)
-	surface_option.add_item("Firm", Surface.SurfaceType.FIRM)
+	surface_option.add_item("Fairway", PhysicsEnums.SurfaceType.FAIRWAY)
+	surface_option.add_item("Soft Fairway", PhysicsEnums.SurfaceType.FAIRWAY_SOFT)
+	surface_option.add_item("Rough", PhysicsEnums.SurfaceType.ROUGH)
+	surface_option.add_item("Firm", PhysicsEnums.SurfaceType.FIRM)
 	var surface_id: int = GlobalSettings.range_settings.surface_type.value
 	var surface_index := surface_option.get_item_index(surface_id)
 	if surface_index >= 0:
@@ -71,7 +71,7 @@ func _ready() -> void:
 
 	# Initialize toggle button states
 	$MarginContainer/VBoxContainer/Units/CheckButton.set_pressed_no_signal(
-		GlobalSettings.range_settings.range_units.value == Enums.Units.METRIC
+		GlobalSettings.range_settings.range_units.value == PhysicsEnums.Units.METRIC
 	)
 	$MarginContainer/VBoxContainer/CameraFollow/CheckButton.set_pressed_no_signal(
 		GlobalSettings.range_settings.camera_follow_mode.value
@@ -105,9 +105,9 @@ func _on_exit_button_pressed() -> void:
 
 func _on_units_check_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
-		GlobalSettings.range_settings.range_units.set_value(Enums.Units.METRIC)
+		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.METRIC)
 	else:
-		GlobalSettings.range_settings.range_units.set_value(Enums.Units.IMPERIAL)
+		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.IMPERIAL)
 
 
 func _on_camer_check_button_toggled(toggled_on: bool) -> void:
@@ -155,20 +155,32 @@ func _on_ball_type_option_item_selected(index: int) -> void:
 
 func update_units(value) -> void:
 	const m2ft = 3.28084
-	
-	if value == Enums.Units.IMPERIAL:
+
+	# Block spin box signals to prevent _on_*_value_changed from firing
+	# during conversion, which would double-write the setting.
+	temperature_spin_box.set_block_signals(true)
+	altitude_spin_box.set_block_signals(true)
+
+	if value == PhysicsEnums.Units.IMPERIAL:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "F"
-		temperature_spin_box.value = GlobalSettings.range_settings.temperature.value*9/5 + 32
-		GlobalSettings.range_settings.temperature.set_value(temperature_spin_box.value)
-		
+		var temp_f = GlobalSettings.range_settings.temperature.value * 9.0 / 5.0 + 32.0
+		temperature_spin_box.value = temp_f
+		GlobalSettings.range_settings.temperature.set_value(temp_f)
+
 		$MarginContainer/VBoxContainer/Altitude/Label2.text = "ft"
-		altitude_spin_box.value = GlobalSettings.range_settings.altitude.value*m2ft
-		GlobalSettings.range_settings.altitude.set_value(altitude_spin_box.value)
+		var alt_ft = GlobalSettings.range_settings.altitude.value * m2ft
+		altitude_spin_box.value = alt_ft
+		GlobalSettings.range_settings.altitude.set_value(alt_ft)
 	else:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "C"
-		temperature_spin_box.value = (GlobalSettings.range_settings.temperature.value - 32) * 5/9
-		GlobalSettings.range_settings.temperature.set_value(temperature_spin_box.value)
-		
+		var temp_c = (GlobalSettings.range_settings.temperature.value - 32.0) * 5.0 / 9.0
+		temperature_spin_box.value = temp_c
+		GlobalSettings.range_settings.temperature.set_value(temp_c)
+
 		$MarginContainer/VBoxContainer/Altitude/Label2.text = "m"
-		altitude_spin_box.value = GlobalSettings.range_settings.altitude.value/m2ft
-		GlobalSettings.range_settings.altitude.set_value(altitude_spin_box.value)
+		var alt_m = GlobalSettings.range_settings.altitude.value / m2ft
+		altitude_spin_box.value = alt_m
+		GlobalSettings.range_settings.altitude.set_value(alt_m)
+
+	temperature_spin_box.set_block_signals(false)
+	altitude_spin_box.set_block_signals(false)

@@ -44,7 +44,8 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 
 func _process(_delta: float) -> void:
 	# Refresh UI during flight/rollout so carry/apex update live; distance updates only at rest.
-	if $Player.get_ball_state() != GolfBall.BallState.REST:
+	var player = $Player
+	if player.get_ball_state() != PhysicsEnums.BallState.REST:
 		_update_ball_display()
 
 
@@ -63,33 +64,41 @@ func _on_golf_ball_rest(_ball_data) -> void:
 		await get_tree().create_timer(GlobalSettings.range_settings.ball_reset_timer.value).timeout
 		_reset_display_data()
 		$RangeUI.set_data(display_data)
-		$Player.reset_ball()
+		var player = $Player
+		player.reset_ball()
 		return
 
 	# No auto reset: leave final numbers visible
 
 func set_camera_follow_mode(value) -> void:
+	var camera = $PhantomCamera3D
+
 	if value:
-		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.FRAMED
-		$PhantomCamera3D.follow_target = $Player.ball
+		camera.follow_mode = PhantomCamera3D.FollowMode.FRAMED
+		var player = $Player
+		camera.follow_target = player.ball
 	else:
-		$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
+		camera.follow_mode = PhantomCamera3D.FollowMode.NONE
 
 func reset_camera_to_start() -> void:
+	var camera = $PhantomCamera3D
+
 	# Temporarily disable follow mode
-	$PhantomCamera3D.follow_mode = PhantomCamera3D.FollowMode.NONE
+	camera.follow_mode = PhantomCamera3D.FollowMode.NONE
 
 	# Tween camera back to starting position
 	var start_pos := Vector3(-2.5, 1.5, 0)  # Starting camera offset from ball at origin
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC)
 	tween.set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property($PhantomCamera3D, "global_position", start_pos, 1.5)
+	tween.tween_property(camera, "global_position", start_pos, 1.5)
 
 	await tween.finished
 
 	# Reset ball to starting position
-	$Player.ball.reset()
+	var player = $Player
+	if player.ball != null:
+		player.ball.reset()
 
 
 func _on_range_ui_hit_shot(data: Dictionary) -> void:
@@ -127,8 +136,9 @@ func _reset_display_data() -> void:
 
 func _update_ball_display() -> void:
 	# Show distance continuously (updates during flight/rollout, final at rest)
+	var player = $Player
 	var show_distance: bool = true
-	display_data = ShotFormatter.format_ball_display(raw_ball_data, $Player, GlobalSettings.range_settings.range_units.value, show_distance, display_data)
+	display_data = ShotFormatter.format_ball_display(raw_ball_data, player, GlobalSettings.range_settings.range_units.value, show_distance, display_data)
 	last_display = display_data.duplicate()
 	$RangeUI.set_data(display_data)
 	

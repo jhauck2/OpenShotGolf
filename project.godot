@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="OpenShotGolf"
 run/main_scene="uid://dgyd437dgyv0y"
-config/features=PackedStringArray("4.6", "Mobile")
+config/features=PackedStringArray("4.6", "C#", "Mobile")
 
 [autoload]
 
@@ -53,6 +53,7 @@ reset={
 
 [physics]
 
+3d/physics_engine="JoltPhysics3D"
 common/physics_interpolation=true
 
 [rendering]

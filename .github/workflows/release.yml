@@ -1,0 +1,91 @@
+name: Release Game
+
+on:
+  push:
+    tags:
+      - 'game-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. game-v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Resolve release tag
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          TAG="${{ inputs.tag }}"
+        else
+          TAG="${GITHUB_REF_NAME}"
+        fi
+
+        if [[ ! "$TAG" =~ ^game-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Tag must match format game-v#.#.# (e.g. game-v1.0.0)"
+          exit 1
+        fi
+
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          git fetch --tags --force
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            git checkout "refs/tags/${TAG}"
+            echo "Using existing tag ${TAG}."
+          else
+            echo "Tag ${TAG} does not exist yet; release will target current commit."
+          fi
+        fi
+
+        echo "RELEASE_TAG=${TAG}" >> "$GITHUB_ENV"
+        echo "RELEASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Resolve project file
+      run: |
+        if [[ -f "OpenShotGolf.csproj" ]]; then
+          echo "PROJECT_FILE=OpenShotGolf.csproj" >> "$GITHUB_ENV"
+        elif [[ -f "OpenShotGolf.csproj" ]]; then
+          echo "PROJECT_FILE=OpenShotGolf.csproj" >> "$GITHUB_ENV"
+        else
+          echo "Error: No root project file found (expected OpenShotGolf.csproj or OpenShotGolf.csproj)."
+          ls -la
+          exit 1
+        fi
+
+    - name: Build solution
+      run: dotnet build "${{ env.PROJECT_FILE }}" --configuration Release
+
+    - name: Export Godot build
+      id: export
+      uses: firebelley/godot-export@v7.0.0
+      with:
+        godot_executable_download_url: https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=mono_linux_x86_64.zip&version=4.6.1
+        godot_export_templates_download_url: https://downloads.godotengine.org/?flavor=stable&platform=templates&slug=mono_export_templates.tpz&version=4.6.1
+        relative_project_path: ./
+        presets_to_export: Linux
+        archive_output: true
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ env.RELEASE_TAG }}
+        target_commitish: ${{ env.RELEASE_SHA }}
+        name: OpenShotGolf Game ${{ env.RELEASE_TAG }}
+        files: |
+          ${{ steps.export.outputs.archive_directory }}/*
+        generate_release_notes: true

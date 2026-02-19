@@ -3,7 +3,7 @@ class_name ShotFormatter
 
 # Formats ball/shot data for UI display, with unit conversion and derived spin.
 # If show_distance is false, Distance is left unchanged from prev_data (or set to "---" if not provided).
-static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: Enums.Units, show_distance: bool, prev_data: Dictionary = {}) -> Dictionary:
+static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: int, show_distance: bool, prev_data: Dictionary = {}) -> Dictionary:
 	var ball_data: Dictionary = {}
 	var m2yd := 1.09361
 	var has_backspin := raw_ball_data.has("BackSpin")
@@ -24,7 +24,7 @@ static func format_ball_display(raw_ball_data: Dictionary, player: Node, units: 
 		if not has_sidespin:
 			sidespin = total_spin * sin(deg_to_rad(spin_axis))
 	
-	if units == Enums.Units.IMPERIAL:
+	if units == PhysicsEnums.Units.IMPERIAL:
 		if show_distance:
 			ball_data["Distance"] = "%.1f" % (player.get_distance()*m2yd)
 		else:

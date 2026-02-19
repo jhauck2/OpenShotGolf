@@ -16,7 +16,7 @@ func _process(_delta: float) -> void:
 
 
 func set_data(data: Dictionary) -> void:
-	if GlobalSettings.range_settings.range_units.value == Enums.Units.IMPERIAL:
+	if GlobalSettings.range_settings.range_units.value == PhysicsEnums.Units.IMPERIAL:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
 		$GridCanvas/Side.set_data(data["Offline"])

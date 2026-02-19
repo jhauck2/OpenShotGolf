@@ -68,7 +68,7 @@ func _notification(what):
 		get_tree().quit()  # Actually close the game after saving
 		
 func set_units(value):
-	if value == Enums.Units.IMPERIAL:
+	if value == PhysicsEnums.Units.IMPERIAL:
 		$Distance.set_units("yd")
 		$Carry.set_units("yd")
 		$Side.set_units("yd")
