@@ -484,12 +484,12 @@ func _try_recover_to_ground() -> bool:
 	query.collide_with_bodies = true
 	query.exclude = [get_rid()]
 
-	var hit := world.direct_space_state.intersect_ray(query)
-	if hit.is_empty():
+	var ray_hit := world.direct_space_state.intersect_ray(query)
+	if ray_hit.is_empty():
 		return false
 
-	var hit_position: Vector3 = hit["position"]
-	var hit_normal: Vector3 = hit["normal"]
+	var hit_position: Vector3 = ray_hit["position"]
+	var hit_normal: Vector3 = ray_hit["normal"]
 	if hit_normal.length_squared() < 0.000001:
 		hit_normal = Vector3.UP
 	else:
@@ -519,11 +519,11 @@ func _try_probe_ground() -> Dictionary:
 	query.collide_with_bodies = true
 	query.exclude = [get_rid()]
 
-	var hit := world.direct_space_state.intersect_ray(query)
-	if hit.is_empty():
+	var ray_hit := world.direct_space_state.intersect_ray(query)
+	if ray_hit.is_empty():
 		return {"hit": false, "normal": Vector3.UP}
 
-	var ground_normal: Vector3 = hit["normal"]
+	var ground_normal: Vector3 = ray_hit["normal"]
 	if ground_normal.length_squared() < 0.000001:
 		ground_normal = Vector3.UP
 	else:
