@@ -22,6 +22,7 @@ func _ready() -> void:
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
+	# Handle camera and player rotation
 	var camera_rotation = Input.get_axis("look_right", "look_left")
 	$PhantomCamera3D.rotation.y += camera_rotation*delta
 
