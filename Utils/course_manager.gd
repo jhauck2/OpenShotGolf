@@ -1,5 +1,12 @@
 extends Node3D
 
+class Player:
+	var name : String
+	var total_score : int
+	var scores : Array[int]
+	
+var players : Array[Player]
+var camera_rotation_speed : float = 10.0
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -7,8 +14,9 @@ func _ready() -> void:
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(_delta: float) -> void:
-	pass
+func _process(delta: float) -> void:
+	var camera_rotation = Input.get_axis("look_right", "look_left")
+	$PhantomCamera3D.rotation.y += camera_rotation*delta
 
 func start_course(course_folder_path : String, metadata : Dictionary, players : Array) -> void:
 	# Load the course
