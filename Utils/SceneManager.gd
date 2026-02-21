@@ -41,7 +41,7 @@ func _deferred_change_scene(scene_path) -> void:
 	
 func play_course(course_folder_path : String, metadata : Dictionary, players : Array) -> void:
 	close_scene()
-	change_scene("res://Utils/course_manager.tscn")
+	change_scene("res://Courses/CourseManager/course_manager.tscn")
 	# wait for the scene change. probably a better way to do this
 	while current_scene.name != "CourseManager":
 		await get_tree().process_frame # bad practice
