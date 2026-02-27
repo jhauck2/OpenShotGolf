@@ -41,7 +41,7 @@ func _update_version_label():
 		var _configured_version = str(ProjectSettings.get_setting(_version_setting_path)).strip_edges()
 		_version_text = _configured_version;
 
-		_version_label.text = "Version %s" % _version_text
+	_version_label.text = "Version %s" % _version_text
 	
 func _on_settings_pressed() -> void:
 	pass # Replace with function body.
