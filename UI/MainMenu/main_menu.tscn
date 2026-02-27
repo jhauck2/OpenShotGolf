@@ -28,18 +28,6 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bddxb"]
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-bg_color = Color(0, 0, 0, 0.6)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-corner_detail = 5
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iau2q"]
 content_margin_left = 4.0
 content_margin_top = 4.0
@@ -51,39 +39,6 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 corner_detail = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pbebc"]
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-bg_color = Color(0.1, 0.1, 0.1, 0.3)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-corner_detail = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_u0e1r"]
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-bg_color = Color(1, 1, 1, 0.75)
-draw_center = false
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-corner_detail = 5
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
 
 [node name="Main Menu" type="Control" unique_id=96381789]
 layout_mode = 3
@@ -218,6 +173,11 @@ vertical_alignment = 2
 layout_mode = 0
 offset_right = 217.0
 offset_bottom = 217.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/hover = SubResource("StyleBoxFlat_iau2q")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bddxb")
 
 [node name="CoursesTile" type="PanelContainer" parent="TilesRow" unique_id=833852705]
 custom_minimum_size = Vector2(221, 221)
@@ -251,10 +211,11 @@ vertical_alignment = 2
 layout_mode = 0
 offset_right = 217.0
 offset_bottom = 217.0
-theme_override_styles/pressed = SubResource("StyleBoxFlat_bddxb")
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_bddxb")
 theme_override_styles/hover = SubResource("StyleBoxFlat_iau2q")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_pbebc")
-theme_override_styles/focus = SubResource("StyleBoxFlat_u0e1r")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bddxb")
 
 [node name="VersionLabel" type="Label" parent="." unique_id=1316645986]
 layout_mode = 0

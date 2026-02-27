@@ -1,5 +1,5 @@
 extends Control
-
+# TODO - add settings menu system on future PR. 
 @onready var _settings_button: Button = $TopBanner/LeftButtons/SettingsButton
 @onready var _exit_button: Button = $TopBanner/LeftButtons/ExitButton
 @onready var _courses_button: Button = $TilesRow/CoursesTile/CoursesTextBackdrop/CoursesButton
@@ -12,16 +12,11 @@ var _version_text: String
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	if _exit_button != null:
-		_exit_button.pressed.connect(_on_exit_pressed)
-		
-	if _settings_button != null:
-		_settings_button.pressed.connect(_on_settings_pressed)
-		
-	if _range_button != null:
-		_range_button.pressed.connect(_on_range_pressed)
-	if _courses_button != null:
-		_courses_button.pressed.connect(_on_courses_pressed)
+	
+	_exit_button.pressed.connect(_on_exit_pressed)
+	_settings_button.pressed.connect(_on_settings_pressed)
+	_range_button.pressed.connect(_on_range_pressed)
+	_courses_button.pressed.connect(_on_courses_pressed)
 		
 	_update_version_label()
 	SceneManager.current_scene = self
