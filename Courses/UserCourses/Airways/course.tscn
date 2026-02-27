@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://b1idtxfp7eoke"]
+[gd_scene format=3 uid="uid://ecp4h3om36dt"]
 
 [ext_resource type="Script" uid="uid://c4whkfuiysonu" path="res://Courses/UserCourses/Airways/course.gd" id="1_sunpe"]
 [ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://TCP/tcp_server.gd" id="2_d1a0v"]
@@ -209,7 +209,7 @@ light_indirect_energy = 6.592
 [node name="RangeUI" parent="." unique_id=1289874115 instance=ExtResource("4_d1a0v")]
 
 [node name="Terrain3D" type="Terrain3D" parent="." unique_id=115405078]
-data_directory = "res://Courses/Range/Terrain"
+data_directory = "res://Courses/UserCourses/Range/Terrain"
 material = SubResource("Terrain3DMaterial_ls2bl")
 assets = SubResource("Terrain3DAssets_emsks")
 collision_mode = 3

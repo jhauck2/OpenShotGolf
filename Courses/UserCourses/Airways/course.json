@@ -1,16 +1,18 @@
 {
+	"scene_path": "course.tscn",
+	"Title": "Airways",
 	"Course Info": {
 		"Tee Colors": ["Black", "Blue", "White", "Red"],
+		"Title": "Airways",
 		"Texture Indices": {
 			"Green": [0],
 			"Fairway": [1],
-			"Rough" : [2],
+			"Rough": [2],
 			"Sand": [3],
 			"Water": [4],
 			"Penalty": [5]
 		}
 	},
-
 	"Hole Info": {
 		"Hole 1": {
 			"Par": 4,

@@ -1,147 +1,226 @@
-[gd_scene load_steps=5 format=3 uid="uid://dr0gfofofdh2b"]
+[gd_scene format=3 uid="uid://dr0gfofofdh2b"]
 
 [ext_resource type="Script" uid="uid://ccvtnhokw412d" path="res://Courses/CourseSelector/course_selector.gd" id="1_eghlt"]
-[ext_resource type="Script" uid="uid://f4w4aq3kcgu7" path="res://Courses/CourseSelector/course_directory_text.gd" id="1_os4aj"]
-[ext_resource type="Script" uid="uid://xcef4iu3er4x" path="res://Courses/CourseSelector/course_list.gd" id="2_eghlt"]
-[ext_resource type="Script" uid="uid://qe58f0ve1mcv" path="res://Courses/CourseSelector/players.gd" id="4_y1rf8"]
+[ext_resource type="Script" uid="uid://f4w4aq3kcgu7" path="res://Courses/CourseSelector/course_directory_text.gd" id="2_os4aj"]
+[ext_resource type="Script" uid="uid://xcef4iu3er4x" path="res://Courses/CourseSelector/course_list.gd" id="3_eghlt"]
+[ext_resource type="Texture2D" uid="uid://0xknvfy0wumb" path="res://assets/images/menu/beautiful_green_bnw.png" id="4_37cdx"]
 
-[node name="CourseSelector" type="MarginContainer"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6c7yh"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pef24"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ka8tw"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jx5fx"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_xjqb6"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_9ya2x"]
+bg_color = Color(0.0666667, 0.0666667, 0.0666667, 0.62)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.2, 0.2, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d6a6h"]
+bg_color = Color(0.792157, 0.890196, 1, 0.5)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.98, 1, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_muy52"]
+bg_color = Color(0.792157, 0.890196, 1, 0.35)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9, 0.96, 1, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="CourseSelector" type="Control" unique_id=316159801]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
 script = ExtResource("1_eghlt")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 2
-theme_override_constants/separation = 16
+[node name="Background" type="TextureRect" parent="." unique_id=2019139008]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_37cdx")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Title" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "Select a Course"
+[node name="BackgroundTint" type="ColorRect" parent="." unique_id=423827965]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 64.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.0431373, 0.180392, 0.309804, 0.921569)
 
-[node name="CourseDirectory" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
+[node name="TopBanner" type="ColorRect" parent="." unique_id=1839826400]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 64.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.0431373, 0.180392, 0.309804, 0.921569)
 
-[node name="Label" type="Label" parent="VBoxContainer/CourseDirectory"]
-layout_mode = 2
-text = "Course Directory: "
+[node name="LeftButtons" type="BoxContainer" parent="TopBanner" unique_id=422245545]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 258.0
+offset_bottom = 52.0
 
-[node name="CourseDirectoryText" type="TextEdit" parent="VBoxContainer/CourseDirectory"]
+[node name="MainMenuButton" type="Button" parent="TopBanner/LeftButtons" unique_id=1244649058]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxEmpty_6c7yh")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_pef24")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_ka8tw")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_jx5fx")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_xjqb6")
+text = "MAIN MENU"
+
+[node name="TitleLabel" type="Label" parent="TopBanner" unique_id=990890750]
+layout_mode = 0
+offset_left = 571.0
+offset_right = 1157.0
+offset_bottom = 64.0
+theme_override_font_sizes/font_size = 44
+text = "Course Finder"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopBannerBottomStrip" type="ColorRect" parent="." unique_id=1463765346]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 64.0
+offset_bottom = 82.0
+grow_horizontal = 2
+color = Color(0.0627451, 0.0862745, 0.12549, 0.858824)
+
+[node name="ContentPanel" type="PanelContainer" parent="." unique_id=1423278671]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = 112.0
+offset_right = -64.0
+offset_bottom = -64.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_9ya2x")
+
+[node name="ContentMargin" type="MarginContainer" parent="ContentPanel" unique_id=762221380]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ContentPanel/ContentMargin" unique_id=1120334059]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "res://Courses/UserCourses"
-script = ExtResource("1_os4aj")
+size_flags_vertical = 3
+theme_override_constants/separation = 16
 
-[node name="Control2" type="Control" parent="VBoxContainer/CourseDirectory"]
+[node name="CourseDirectory" type="HBoxContainer" parent="ContentPanel/ContentMargin/VBoxContainer" unique_id=2052990276]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Label" type="Label" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=387064210]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 24
+text = "Course Directory:"
+
+[node name="CourseDirectoryText" type="TextEdit" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=1738895751]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "res://Courses/UserCourses"
+script = ExtResource("2_os4aj")
+
+[node name="Spacer" type="Control" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=1683116838]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.05
 
-[node name="Button" type="Button" parent="VBoxContainer/CourseDirectory"]
+[node name="LoadButton" type="Button" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=1668280504]
 layout_mode = 2
-text = "Load Courses"
+theme_override_font_sizes/font_size = 22
+text = "Load"
 
-[node name="Control" type="Control" parent="VBoxContainer/CourseDirectory"]
+[node name="RefreshButton" type="Button" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=213961343]
+custom_minimum_size = Vector2(51, 51)
+layout_mode = 2
+tooltip_text = "Refresh"
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_constants/icon_max_width = 33
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxEmpty_6c7yh")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_d6a6h")
+theme_override_styles/hover = SubResource("StyleBoxFlat_muy52")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_jx5fx")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_xjqb6")
+text = "Refresh"
+
+[node name="StatusLabel" type="Label" parent="ContentPanel/ContentMargin/VBoxContainer" unique_id=1305899824]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.98, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "Ready"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="ContentPanel/ContentMargin/VBoxContainer" unique_id=1329050525]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.5
-
-[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/HBoxContainer2"]
+[node name="CourseList" type="ItemList" parent="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer" unique_id=1976974427]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_font_sizes/font_size = 28
+script = ExtResource("3_eghlt")
 
-[node name="CourseList" type="ItemList" parent="VBoxContainer/HBoxContainer2/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_font_sizes/font_size = 30
-script = ExtResource("2_eghlt")
-
-[node name="Players" type="VBoxContainer" parent="VBoxContainer/HBoxContainer2"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.5
-script = ExtResource("4_y1rf8")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer2/Players"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer2/Players/HBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "Players"
-
-[node name="Control" type="Control" parent="VBoxContainer/HBoxContainer2/Players/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="AddButton" type="Button" parent="VBoxContainer/HBoxContainer2/Players/HBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "Add"
-
-[node name="Control2" type="Control" parent="VBoxContainer/HBoxContainer2/Players/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="RemoveButton" type="Button" parent="VBoxContainer/HBoxContainer2/Players/HBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 25
-text = "Remove"
-
-[node name="Control3" type="Control" parent="VBoxContainer/HBoxContainer2/Players/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="LineEdit" type="LineEdit" parent="VBoxContainer/HBoxContainer2/Players"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "Player 1"
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Control" type="Control" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="BackButton" type="Button" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Back to Main Menu"
-
-[node name="Control2" type="Control" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="PlayButton" type="Button" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Play Course"
-
-[node name="Control3" type="Control" parent="VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[connection signal="course_directory" from="VBoxContainer/CourseDirectory/CourseDirectoryText" to="VBoxContainer/HBoxContainer2/ScrollContainer/CourseList" method="parse_directory"]
-[connection signal="pressed" from="VBoxContainer/CourseDirectory/Button" to="VBoxContainer/CourseDirectory/CourseDirectoryText" method="verify_directory"]
-[connection signal="play_course" from="VBoxContainer/HBoxContainer2/ScrollContainer/CourseList" to="." method="_on_course_list_play_course"]
-[connection signal="send_players" from="VBoxContainer/HBoxContainer2/Players" to="VBoxContainer/HBoxContainer2/ScrollContainer/CourseList" method="_on_players_send_players"]
-[connection signal="pressed" from="VBoxContainer/HBoxContainer2/Players/HBoxContainer/AddButton" to="VBoxContainer/HBoxContainer2/Players" method="add_player"]
-[connection signal="pressed" from="VBoxContainer/HBoxContainer2/Players/HBoxContainer/RemoveButton" to="VBoxContainer/HBoxContainer2/Players" method="remove_player"]
-[connection signal="pressed" from="VBoxContainer/HBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
-[connection signal="pressed" from="VBoxContainer/HBoxContainer/PlayButton" to="VBoxContainer/HBoxContainer2/Players" method="_on_play_button_pressed"]
+[connection signal="pressed" from="TopBanner/LeftButtons/MainMenuButton" to="." method="_on_main_menu_button_pressed"]
+[connection signal="course_directory" from="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory/CourseDirectoryText" to="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer/CourseList" method="parse_directory"]
+[connection signal="pressed" from="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory/LoadButton" to="." method="_on_load_button_pressed"]
+[connection signal="pressed" from="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory/RefreshButton" to="." method="_on_refresh_button_pressed"]
+[connection signal="item_activated" from="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer/CourseList" to="." method="_on_course_list_item_activated"]
+[connection signal="play_course" from="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer/CourseList" to="." method="_on_course_list_play_course"]
