@@ -1,6 +1,44 @@
 [gd_scene format=3 uid="uid://dgyd437dgyv0y"]
 
 [ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="1_jld46"]
+[ext_resource type="Texture2D" uid="uid://de6jxkjax3ee5" path="res://assets/images/menu/cabo_openfairway_bnw.png" id="2_h8rmy"]
+[ext_resource type="Texture2D" uid="uid://dqmpeykcpbwto" path="res://UI/MainMenu/images/menu.svg" id="3_iyy2y"]
+[ext_resource type="Texture2D" uid="uid://7h84ji1c4crd" path="res://UI/MainMenu/images/exit_door.svg" id="4_trkrl"]
+[ext_resource type="Texture2D" uid="uid://cjj74w7djkfgf" path="res://assets/images/menu/range_small.png" id="5_iyy2y"]
+[ext_resource type="Texture2D" uid="uid://cvbxn5mtc5xeh" path="res://assets/images/menu/airways_small.png" id="6_trkrl"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bddxb"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_iau2q"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pbebc"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_u0e1r"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ejg71"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iyy2y"]
+bg_color = Color(0.1, 0.1, 0.1, 0.6)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iau2q"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.225, 0.225, 0.225, 0.6)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
 
 [node name="Main Menu" type="Control" unique_id=96381789]
 layout_mode = 3
@@ -11,74 +49,182 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_jld46")
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1792198341]
+[node name="Background" type="TextureRect" parent="." unique_id=1108104200]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+texture = ExtResource("2_h8rmy")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1818387515]
-layout_mode = 2
-alignment = 1
+[node name="BackgroundTint" type="ColorRect" parent="." unique_id=116081111]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 64.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.043137256, 0.18039216, 0.30980393, 0.92156863)
 
-[node name="Control3" type="Control" parent="MarginContainer/VBoxContainer" unique_id=517992265]
-layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.5
+[node name="TopBanner" type="ColorRect" parent="." unique_id=839817903]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.043137256, 0.18039216, 0.30980393, 0.92156863)
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1426295602]
+[node name="LeftButtons" type="BoxContainer" parent="TopBanner" unique_id=1638083319]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 330.0
+offset_bottom = 52.0
+
+[node name="SettingsButton" type="Button" parent="TopBanner/LeftButtons" unique_id=7225641]
 layout_mode = 2
-size_flags_vertical = 1
-size_flags_stretch_ratio = 0.0
-theme_override_font_sizes/font_size = 100
+theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_iau2q")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_pbebc")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_u0e1r")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_ejg71")
+text = "SETTINGS"
+icon = ExtResource("3_iyy2y")
+
+[node name="ExitButton" type="Button" parent="TopBanner/LeftButtons" unique_id=801750399]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
+theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_iau2q")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_pbebc")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_u0e1r")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_ejg71")
+text = "EXIT"
+icon = ExtResource("4_trkrl")
+
+[node name="TitleLabel" type="Label" parent="TopBanner" unique_id=1261978394]
+layout_mode = 0
+offset_left = 594.0
+offset_right = 1134.0
+offset_bottom = 64.0
+theme_override_font_sizes/font_size = 44
 text = "Open Shot Golf"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Control" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1976035900]
+[node name="TopBannerBottomStrip" type="ColorRect" parent="." unique_id=47812395]
+layout_mode = 0
+offset_top = 64.0
+offset_right = 1728.0
+offset_bottom = 82.0
+color = Color(0.0627451, 0.08627451, 0.1254902, 0.85882354)
+
+[node name="TilesRow" type="HBoxContainer" parent="." unique_id=10469375]
+layout_mode = 0
+offset_left = 623.0
+offset_top = 691.0
+offset_right = 1105.0
+offset_bottom = 912.0
+theme_override_constants/separation = 40
+
+[node name="RangeTile" type="PanelContainer" parent="TilesRow" unique_id=901128909]
+custom_minimum_size = Vector2(221, 221)
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.5
+theme_override_styles/panel = SubResource("StyleBoxFlat_iyy2y")
 
-[node name="Range" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1166012794]
-custom_minimum_size = Vector2(200, 0)
+[node name="RangeImage" type="TextureRect" parent="TilesRow/RangeTile" unique_id=511829533]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Range"
+texture = ExtResource("5_iyy2y")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Courses" type="Button" parent="MarginContainer/VBoxContainer" unique_id=2068207240]
-custom_minimum_size = Vector2(200, 0)
+[node name="RangeTextBackdrop" type="ColorRect" parent="TilesRow/RangeTile" unique_id=648304962]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Courses"
+color = Color(0, 0, 0, 0.34901962)
 
-[node name="Settings" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1359918767]
-custom_minimum_size = Vector2(200, 0)
+[node name="RangeLabel" type="Label" parent="TilesRow/RangeTile/RangeTextBackdrop" unique_id=861476676]
+layout_mode = 0
+offset_right = 217.0
+offset_bottom = 215.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.7490196)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 38
+text = "RANGE
+"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="RangeButton" type="Button" parent="TilesRow/RangeTile/RangeTextBackdrop" unique_id=1561429347]
+layout_mode = 0
+offset_right = 217.0
+offset_bottom = 217.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/hover = SubResource("StyleBoxFlat_iau2q")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bddxb")
+
+[node name="CoursesTile" type="PanelContainer" parent="TilesRow" unique_id=833852705]
+custom_minimum_size = Vector2(221, 221)
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Settings"
+theme_override_styles/panel = SubResource("StyleBoxFlat_iyy2y")
 
-[node name="Exit" type="Button" parent="MarginContainer/VBoxContainer" unique_id=1757594502]
-custom_minimum_size = Vector2(200, 0)
+[node name="CoursesImage" type="TextureRect" parent="TilesRow/CoursesTile" unique_id=1182025324]
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 30
-text = "Exit"
+texture = ExtResource("6_trkrl")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Control2" type="Control" parent="MarginContainer/VBoxContainer" unique_id=894350518]
+[node name="CoursesTextBackdrop" type="ColorRect" parent="TilesRow/CoursesTile" unique_id=1527802554]
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.5
+color = Color(0, 0, 0, 0.34901962)
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Range" to="." method="_on_range_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Courses" to="." method="_on_courses_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Settings" to="." method="_on_settings_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Exit" to="." method="_on_exit_pressed"]
+[node name="CoursesLabel" type="Label" parent="TilesRow/CoursesTile/CoursesTextBackdrop" unique_id=759733965]
+layout_mode = 0
+offset_right = 217.0
+offset_bottom = 215.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.7490196)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 38
+text = "COURSES
+"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="CoursesButton" type="Button" parent="TilesRow/CoursesTile/CoursesTextBackdrop" unique_id=1072632761]
+layout_mode = 0
+offset_right = 217.0
+offset_bottom = 217.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/hover = SubResource("StyleBoxFlat_iau2q")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_bddxb")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bddxb")
+
+[node name="VersionLabel" type="Label" parent="." unique_id=1316645986]
+layout_mode = 0
+offset_left = 1508.0
+offset_top = 928.0
+offset_right = 1704.0
+offset_bottom = 954.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 2
+vertical_alignment = 1
