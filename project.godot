@@ -57,9 +57,6 @@ reset={
 3d/physics_engine="JoltPhysics3D"
 common/physics_interpolation=true
 
-[plugins]
-
-claude_api/api_key=""
 
 [rendering]
 
