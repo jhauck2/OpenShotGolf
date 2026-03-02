@@ -95,6 +95,7 @@ size_flags_stretch_ratio = 0.01
 [node name="SettingsButton" type="Button" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=7225641]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
 theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
@@ -112,6 +113,7 @@ icon = ExtResource("3_iyy2y")
 [node name="ExitButton" type="Button" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=801750399]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
 theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
@@ -143,7 +145,7 @@ vertical_alignment = 1
 [node name="Control2" type="Control" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=751780754]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
+size_flags_stretch_ratio = 2.0
 
 [node name="TopStripAccent" type="ColorRect" parent="VerticalLayout" unique_id=47812395]
 custom_minimum_size = Vector2(0, 10)
