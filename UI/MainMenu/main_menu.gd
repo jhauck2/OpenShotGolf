@@ -1,10 +1,10 @@
 extends Control
 # TODO - add settings menu system on future PR. 
-@onready var _settings_button: Button = $TopBanner/LeftButtons/SettingsButton
-@onready var _exit_button: Button = $TopBanner/LeftButtons/ExitButton
-@onready var _courses_button: Button = $TilesRow/CoursesTile/CoursesTextBackdrop/CoursesButton
-@onready var _range_button: Button = $TilesRow/RangeTile/RangeTextBackdrop/RangeButton
-@onready var _version_label: Label = $VersionLabel
+@onready var _settings_button: Button = $VerticalLayout/TopStrip/HBoxContainer/SettingsButton
+@onready var _exit_button: Button = $VerticalLayout/TopStrip/HBoxContainer/ExitButton
+@onready var _courses_button: Button = $VerticalLayout/TilesRow/CoursesTile/CoursesTextBackdrop/CoursesButton
+@onready var _range_button: Button = $VerticalLayout/TilesRow/RangeTile/RangeTextBackdrop/RangeButton
+@onready var _version_label: Label = $VerticalLayout/VersionLabel
 var _version_fall_back: String = "dev"
 var _version_setting_path: String = "application/config/version"
 var _version_text: String
