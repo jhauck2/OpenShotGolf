@@ -1,0 +1,37 @@
+@startuml
+title Course Addition – Component Overview
+
+skinparam componentStyle rectangle
+
+actor "Course Author" as Author
+
+package "Minimal Course Files" as Files {
+    [course.json\n//Title + Hole Info//\n(Course Info optional)] as JSON
+    [course.tscn\n//3D Scene//] as TSCN
+}
+
+package "Course Selector" as Selector {
+    [CourseList\ncourse_list.gd] as CL
+    [CourseSelector\ncourse_selector.gd] as CS
+}
+
+[SceneManager\nscene_manager.gd] as SM
+
+note bottom of JSON
+  Defaults applied when
+  Course Info is missing:
+  • Tee Colors
+  • Texture Indices
+end note
+
+Author --> JSON : create
+Author --> TSCN : create
+
+CL --> JSON : parse & validate
+CL --> TSCN : check exists
+
+CS --> CL : discover courses\nget_course_info()\nget_hole_info()
+CS --> SM : change_scene()
+SM --> TSCN : load
+
+@enduml

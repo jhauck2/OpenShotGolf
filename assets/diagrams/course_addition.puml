@@ -1,0 +1,46 @@
+@startuml
+title Adding a New Course
+
+actor "Course Author" as Author
+participant "File System\nCourses/UserCourses/" as FS
+participant "CourseList\ncourse_list.gd" as CL
+participant "Course Selector\ncourse_selector.gd" as CS
+participant "SceneManager\nscene_manager.gd" as SM
+
+== Minimal Course Addition ==
+
+Author -> FS : Create folder\nUserCourses/MyNewCourse/
+Author -> FS : Add course.tscn\n(3D scene from Godot editor)
+Author -> FS : Add course.json\n(Title + Hole Info only;\nCourse Info is optional)
+
+== Course Discovery ==
+
+CS -> CL : parse_directory(course_dir)
+CL -> FS : list_dir_begin()
+
+loop each subdirectory
+    CL -> FS : file_exists(course.json)?
+    CL -> FS : file_exists(course.tscn)?
+    note right of CL : course.gd is **not** required
+    CL -> CL : Both exist → add to list
+end
+
+CL -> CS : return course count
+
+== Default Resolution (on demand) ==
+
+CS -> CL : get_course_info(course_name)
+CL -> CL : _parse_course_config()
+CL -> CL : Read "Course Info" from JSON\n(may be missing or partial)
+CL -> CL : Apply defaults for missing keys:\n• Tee Colors → ["Black","Blue","White","Red"]\n• Texture Indices → {Green:[0], Fairway:[1], …}
+CL -> CS : return merged Course Info
+
+== Course Selection & Loading ==
+
+Author -> CS : Select course from list
+CS -> CL : get_scene_path_for_index(index)
+CL -> CS : return resolved scene path
+CS -> SM : change_scene(scene_path)
+SM -> SM : Load course.tscn
+
+@enduml

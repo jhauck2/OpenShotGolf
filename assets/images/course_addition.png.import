@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwua0ibg1tsds"
-path="res://.godot/imported/Range_Distances.png-511ca177bd7729ce07f9178196071469.ctex"
+uid="uid://d4cggsbwt8ian"
+path="res://.godot/imported/course_addition.png-fe0b31ec0f0e99102ebbe82a0d6071d0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Courses/UserCourses/Airways/Range_Distances.png"
-dest_files=["res://.godot/imported/Range_Distances.png-511ca177bd7729ce07f9178196071469.ctex"]
+source_file="res://assets/images/course_addition.png"
+dest_files=["res://.godot/imported/course_addition.png-fe0b31ec0f0e99102ebbe82a0d6071d0.ctex"]
 
 [params]
 

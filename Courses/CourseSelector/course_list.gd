@@ -4,9 +4,20 @@ var course_dir := ""
 const COURSE_CONFIG_FILE := "course.json"
 const COURSE_SCENE_KEY := "scene_path"
 const COURSE_SCENE_FILE := "course.tscn"
-const COURSE_SCRIPT_FILE := "course.gd"
 const COURSE_TITLE_KEY := "Title"
 const COURSE_INFO_KEY := "Course Info"
+const HOLE_INFO_KEY := "Hole Info"
+
+# Currently we don't actually use this, but sets up the idea.
+const DEFAULT_TEE_COLORS: Array[String] = ["Black", "Blue", "White", "Red"]
+const DEFAULT_TEXTURE_INDICES := {
+	"Green": [0],
+	"Fairway": [1],
+	"Rough": [2],
+	"Sand": [3],
+	"Water": [4],
+	"Penalty": [5],
+}
 
 
 # Called when the node enters the scene tree for the first time.
@@ -45,8 +56,7 @@ func parse_directory(path: String) -> int:
 		if dir.current_is_dir() and not file_name.begins_with("."):
 			var has_config := FileAccess.file_exists(_course_config_path(file_name))
 			var has_scene := FileAccess.file_exists(_course_scene_path(file_name))
-			var has_script := FileAccess.file_exists(_course_script_path(file_name))
-			if has_config and has_scene and has_script:
+			if has_config and has_scene:
 				courses.append(file_name)
 		file_name = dir.get_next()
 	dir.list_dir_end()
@@ -110,10 +120,6 @@ func _course_scene_path(course_name: String) -> String:
 	return "%s/%s/%s" % [course_dir, course_name, COURSE_SCENE_FILE]
 
 
-func _course_script_path(course_name: String) -> String:
-	return "%s/%s/%s" % [course_dir, course_name, COURSE_SCRIPT_FILE]
-
-
 func _read_course_title(course_name: String) -> String:
 	var parsed := _parse_course_config(course_name)
 	if parsed.is_empty():
@@ -160,6 +166,35 @@ func _read_course_scene_path(course_name: String) -> String:
 		return ""
 
 	return resolved_scene_path
+
+
+func get_course_info(course_name: String) -> Dictionary:
+	var parsed := _parse_course_config(course_name)
+	if parsed.is_empty():
+		return {}
+
+	var course_info: Dictionary = parsed.get(COURSE_INFO_KEY, {})
+	if typeof(course_info) != TYPE_DICTIONARY:
+		course_info = {}
+
+	if not course_info.has("Tee Colors"):
+		course_info["Tee Colors"] = DEFAULT_TEE_COLORS.duplicate()
+	if not course_info.has("Texture Indices"):
+		course_info["Texture Indices"] = DEFAULT_TEXTURE_INDICES.duplicate()
+
+	return course_info
+
+
+func get_hole_info(course_name: String) -> Dictionary:
+	var parsed := _parse_course_config(course_name)
+	if parsed.is_empty():
+		return {}
+
+	var hole_info = parsed.get(HOLE_INFO_KEY, {})
+	if typeof(hole_info) != TYPE_DICTIONARY:
+		return {}
+
+	return hole_info
 
 
 func _parse_course_config(course_name: String) -> Dictionary:

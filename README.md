@@ -136,6 +136,11 @@ Download and install the .NET SDK version 8.0 or later.
 - `Courses/Range/`: Range scene, UI, and yardage output.
 - `Resources/`, `UI/`, `Utils/`: Art assets, UI components, and helper scripts.
 
+## Course Loader/FInder Diagram
+The idea is to reduce redundancy and simplify creating new courses. For more technical details, please view `~/assets/images/course_addition.png` 
+
+![](/assets/images/course_addition_components.png)
+
 ## Future Plans
 - Full course play (currently in early design).
 - Additional range features and recording improvements.
