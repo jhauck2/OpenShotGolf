@@ -5,6 +5,7 @@
 - [Overview](#overview)
 - [Current State](#current-state)
 - [Feature Highlights](#feature-highlights)
+- [Color Theme](#color-theme)
 - [Ball Physics and Distance Calculation](#ball-physics-and-distance-calculation)
 - [Aerodynamics and Reynolds Number Modeling](#aerodynamics-and-reynolds-number-modeling)
 - [Surface and Rollout Tuning](#surface-and-rollout-tuning)
@@ -30,6 +31,11 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 - On-range telemetry: carry, total, apex, offline, and shot trails.
 - Environment tuning for temperature and altitude, impacting air density and flight.
 - Range session recorder and basic UI for club selection and shot playback.
+
+## Color Theme
+- **Blue:** `0b2e4feb` (normalized: `#0B2E4FEB`), `#163655`
+- **Light Blue:** `101620db` (normalized: `#101620DB`), `#1620DB`
+- **Red Flag Color:** `#820000`
 
 ## Ball Physics and Distance Calculation
 - Ball flight is driven by `Player/ball.gd` using force/torque helpers in `physics/ball_physics.gd` (gravity, drag, Magnus lift, grass drag, and frictional torque for bounce and rollout).

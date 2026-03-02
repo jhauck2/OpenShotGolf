@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Golf game app icon">
+  <!-- Transparent background -->
+
+  <!-- Ground -->
+  <rect x="20" y="196" width="216" height="12" rx="6" fill="#000"></rect>
+
+  <!-- Flag pole (touches ground; square caps) -->
+  <line x1="176" y1="56" x2="176" y2="196" stroke="#000" stroke-width="10" stroke-linecap="butt"></line>
+
+  <!-- Flag -->
+  <path d="M176 56 L226 78 L176 104 Z" fill="#000"></path>
+  <path d="M182 66 L210 78 L182 92 Z" fill="#fff"></path>
+
+  <!-- Motion / landing trail balls (dotted outlines) -->
+  <circle cx="34" cy="162" r="20" fill="none" stroke="#000" stroke-width="6" stroke-dasharray="2 10" stroke-linecap="round" opacity="0.65"></circle>
+  <circle cx="60" cy="168" r="20" fill="none" stroke="#000" stroke-width="6" stroke-dasharray="2 10" stroke-linecap="round" opacity="0.75"></circle>
+
+  <!-- Final golf ball (white with black outline) -->
+  <circle cx="86" cy="174" r="20" fill="#fff" stroke="#000" stroke-width="8"></circle>
+
+  <!-- Dimples -->
+  <g fill="#000" opacity="0.65">
+    <circle cx="78" cy="166" r="2"></circle>
+    <circle cx="86" cy="162" r="2"></circle>
+    <circle cx="94" cy="166" r="2"></circle>
+    <circle cx="74" cy="174" r="2"></circle>
+    <circle cx="86" cy="174" r="2"></circle>
+    <circle cx="98" cy="174" r="2"></circle>
+    <circle cx="78" cy="182" r="2"></circle>
+    <circle cx="86" cy="186" r="2"></circle>
+    <circle cx="94" cy="182" r="2"></circle>
+  </g>
+</svg>
