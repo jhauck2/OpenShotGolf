@@ -3,7 +3,6 @@
 	"Title": "Airways",
 	"Course Info": {
 		"Tee Colors": ["Black", "Blue", "White", "Red"],
-		"Title": "Airways",
 		"Texture Indices": {
 			"Green": [0],
 			"Fairway": [1],

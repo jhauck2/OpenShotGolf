@@ -3,7 +3,6 @@
 	"Title": "Dragon Fly",
 	"Course Info": {
 		"Tee Colors": ["Black", "Blue", "White", "Red"],
-		"Title": "Dragon Fly",
 		"Texture Indices": {
 			"Green": [0],
 			"Fairway": [1],

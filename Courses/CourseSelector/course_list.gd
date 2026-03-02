@@ -8,8 +8,6 @@ const COURSE_SCRIPT_FILE := "course.gd"
 const COURSE_TITLE_KEY := "Title"
 const COURSE_INFO_KEY := "Course Info"
 
-signal play_course(path: String, players: Array)
-
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -64,21 +62,44 @@ func parse_directory(path: String) -> int:
 	return courses.size()
 
 
-func emit_play_for_index(selected_index: int, players: Array) -> void:
+func reload_courses(path: String, source: String = "Refresh") -> Dictionary:
+	var normalized_path := path.strip_edges()
+	print("[CourseList] %s requested. Path: %s" % [source, normalized_path])
+	var course_count: int = parse_directory(normalized_path)
+	var stamp := str(Time.get_ticks_msec())
+
+	if course_count < 0:
+		printerr("[CourseList] %s failed. Invalid course directory: %s" % [source, normalized_path])
+		return {
+			"course_count": course_count,
+			"status_text": "%s [%s]: invalid course directory" % [source, stamp]
+		}
+
+	if course_count == 0:
+		print("[CourseList] %s completed. No valid courses found." % source)
+		return {
+			"course_count": course_count,
+			"status_text": "%s [%s]: no valid courses found" % [source, stamp]
+		}
+
+	print("[CourseList] %s completed. Loaded %d course(s)." % [source, course_count])
+	return {
+		"course_count": course_count,
+		"status_text": "%s [%s]: loaded %d course(s)" % [source, stamp, course_count]
+	}
+
+
+func get_scene_path_for_index(selected_index: int) -> String:
 	if selected_index < 0 or selected_index >= get_item_count():
 		printerr("[CourseList] Selected course index is out of bounds.")
-		return
+		return ""
 
 	var selected_course := String(get_item_metadata(selected_index)).strip_edges()
 	if selected_course.is_empty():
 		printerr("[CourseList] Selected course metadata is invalid.")
-		return
+		return ""
 
-	var scene_path := _read_course_scene_path(selected_course)
-	if scene_path.is_empty():
-		return
-
-	emit_signal("play_course", scene_path, players)
+	return _read_course_scene_path(selected_course)
 
 
 func _course_config_path(course_name: String) -> String:

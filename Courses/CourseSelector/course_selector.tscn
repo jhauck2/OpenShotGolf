@@ -179,11 +179,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.05
 
-[node name="LoadButton" type="Button" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=1668280504]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Load"
-
 [node name="RefreshButton" type="Button" parent="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory" unique_id=213961343]
 custom_minimum_size = Vector2(51, 51)
 layout_mode = 2
@@ -220,7 +215,5 @@ script = ExtResource("3_eghlt")
 
 [connection signal="pressed" from="TopBanner/LeftButtons/MainMenuButton" to="." method="_on_main_menu_button_pressed"]
 [connection signal="course_directory" from="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory/CourseDirectoryText" to="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer/CourseList" method="parse_directory"]
-[connection signal="pressed" from="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory/LoadButton" to="." method="_on_load_button_pressed"]
 [connection signal="pressed" from="ContentPanel/ContentMargin/VBoxContainer/CourseDirectory/RefreshButton" to="." method="_on_refresh_button_pressed"]
 [connection signal="item_activated" from="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer/CourseList" to="." method="_on_course_list_item_activated"]
-[connection signal="play_course" from="ContentPanel/ContentMargin/VBoxContainer/ScrollContainer/CourseList" to="." method="_on_course_list_play_course"]
