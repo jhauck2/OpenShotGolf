@@ -112,10 +112,13 @@ theme_override_styles/focus = SubResource("StyleBoxEmpty_xjqb6")
 text = "MAIN MENU"
 
 [node name="TitleLabel" type="Label" parent="TopBanner" unique_id=990890750]
-layout_mode = 0
-offset_left = 571.0
-offset_right = 1157.0
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 24.0
+offset_right = -24.0
 offset_bottom = 64.0
+grow_horizontal = 2
 theme_override_font_sizes/font_size = 44
 text = "Course Finder"
 horizontal_alignment = 1
