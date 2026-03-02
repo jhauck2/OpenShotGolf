@@ -94,6 +94,7 @@ size_flags_stretch_ratio = 0.01
 
 [node name="SettingsButton" type="Button" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=7225641]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
@@ -110,6 +111,7 @@ icon = ExtResource("3_iyy2y")
 
 [node name="ExitButton" type="Button" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=801750399]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
@@ -130,6 +132,9 @@ size_flags_horizontal = 3
 
 [node name="TitleLabel" type="Label" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=1261978394]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+size_flags_stretch_ratio = 10.0
 theme_override_font_sizes/font_size = 44
 text = "Open Shot Golf"
 horizontal_alignment = 1
@@ -138,12 +143,12 @@ vertical_alignment = 1
 [node name="Control2" type="Control" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=751780754]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 1.3
+size_flags_stretch_ratio = 3.0
 
 [node name="TopStripAccent" type="ColorRect" parent="VerticalLayout" unique_id=47812395]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
-size_flags_vertical = 0
+size_flags_vertical = 2
 color = Color(0.0627451, 0.08627451, 0.1254902, 0.85882354)
 
 [node name="Spacer" type="Control" parent="VerticalLayout" unique_id=80362024]
@@ -153,8 +158,9 @@ size_flags_stretch_ratio = 4.0
 
 [node name="TilesRow" type="HBoxContainer" parent="VerticalLayout" unique_id=10469375]
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_vertical = 3
 theme_override_constants/separation = 40
+alignment = 1
 
 [node name="RangeTile" type="PanelContainer" parent="VerticalLayout/TilesRow" unique_id=901128909]
 custom_minimum_size = Vector2(221, 221)
