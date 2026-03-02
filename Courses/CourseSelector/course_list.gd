@@ -1,23 +1,12 @@
 extends ItemList
 
 var course_dir := ""
+# Used to parse out List data. 
 const COURSE_CONFIG_FILE := "course.json"
 const COURSE_SCENE_KEY := "scene_path"
 const COURSE_SCENE_FILE := "course.tscn"
 const COURSE_TITLE_KEY := "Title"
 const COURSE_INFO_KEY := "Course Info"
-const HOLE_INFO_KEY := "Hole Info"
-
-# Currently we don't actually use this, but sets up the idea.
-const DEFAULT_TEE_COLORS: Array[String] = ["Black", "Blue", "White", "Red"]
-const DEFAULT_TEXTURE_INDICES := {
-	"Green": [0],
-	"Fairway": [1],
-	"Rough": [2],
-	"Sand": [3],
-	"Water": [4],
-	"Penalty": [5],
-}
 
 
 # Called when the node enters the scene tree for the first time.
@@ -94,8 +83,7 @@ func reload_courses(path: String, source: String = "Refresh") -> Dictionary:
 
 	print("[CourseList] %s completed. Loaded %d course(s)." % [source, course_count])
 	return {
-		"course_count": course_count,
-		"status_text": "%s [%s]: loaded %d course(s)" % [source, stamp, course_count]
+		"course_count": course_count
 	}
 
 
@@ -110,6 +98,19 @@ func get_scene_path_for_index(selected_index: int) -> String:
 		return ""
 
 	return _read_course_scene_path(selected_course)
+
+
+func get_config_path_for_index(selected_index: int) -> String:
+	if selected_index < 0 or selected_index >= get_item_count():
+		printerr("[CourseList] Selected course index is out of bounds.")
+		return ""
+
+	var selected_course := String(get_item_metadata(selected_index)).strip_edges()
+	if selected_course.is_empty():
+		printerr("[CourseList] Selected course metadata is invalid.")
+		return ""
+
+	return _course_config_path(selected_course)
 
 
 func _course_config_path(course_name: String) -> String:
@@ -166,35 +167,6 @@ func _read_course_scene_path(course_name: String) -> String:
 		return ""
 
 	return resolved_scene_path
-
-
-func get_course_info(course_name: String) -> Dictionary:
-	var parsed := _parse_course_config(course_name)
-	if parsed.is_empty():
-		return {}
-
-	var course_info: Dictionary = parsed.get(COURSE_INFO_KEY, {})
-	if typeof(course_info) != TYPE_DICTIONARY:
-		course_info = {}
-
-	if not course_info.has("Tee Colors"):
-		course_info["Tee Colors"] = DEFAULT_TEE_COLORS.duplicate()
-	if not course_info.has("Texture Indices"):
-		course_info["Texture Indices"] = DEFAULT_TEXTURE_INDICES.duplicate()
-
-	return course_info
-
-
-func get_hole_info(course_name: String) -> Dictionary:
-	var parsed := _parse_course_config(course_name)
-	if parsed.is_empty():
-		return {}
-
-	var hole_info = parsed.get(HOLE_INFO_KEY, {})
-	if typeof(hole_info) != TYPE_DICTIONARY:
-		return {}
-
-	return hole_info
 
 
 func _parse_course_config(course_name: String) -> Dictionary:

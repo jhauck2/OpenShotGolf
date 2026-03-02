@@ -27,20 +27,16 @@ end
 
 CL -> CS : return course count
 
-== Default Resolution (on demand) ==
-
-CS -> CL : get_course_info(course_name)
-CL -> CL : _parse_course_config()
-CL -> CL : Read "Course Info" from JSON\n(may be missing or partial)
-CL -> CL : Apply defaults for missing keys:\n• Tee Colors → ["Black","Blue","White","Red"]\n• Texture Indices → {Green:[0], Fairway:[1], …}
-CL -> CS : return merged Course Info
-
 == Course Selection & Loading ==
 
 Author -> CS : Select course from list
 CS -> CL : get_scene_path_for_index(index)
 CL -> CS : return resolved scene path
-CS -> SM : change_scene(scene_path)
+CS -> CL : get_config_path_for_index(index)
+CL -> CS : return config path
+CS -> SM : change_scene(scene_path, config_path)
+SM -> SM : Parse course.json\nApply defaults for missing keys:\n• Tee Colors → ["Black","Blue","White","Red"]\n• Texture Indices → {Green:[0], Fairway:[1], …}
+SM -> SM : Store course_info / hole_info
 SM -> SM : Load course.tscn
 
 @enduml

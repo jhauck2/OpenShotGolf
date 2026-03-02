@@ -23,15 +23,16 @@ func _on_refresh_button_pressed() -> void:
 
 func _on_course_list_item_activated(index: int) -> void:
 	var path: String = _course_list.get_scene_path_for_index(index)
-	_play_course(path)
+	var config_path: String = _course_list.get_config_path_for_index(index)
+	_play_course(path, config_path)
 
 
-func _play_course(path: String) -> void:
+func _play_course(path: String, config_path: String = "") -> void:
 	if path.is_empty():
 		printerr("[CourseSelector] Play requested with an empty scene path.")
 		return
 
-	SceneManager.change_scene(path)
+	SceneManager.change_scene(path, config_path)
 
 
 func _request_course_reload(source: String = "Refresh") -> void:

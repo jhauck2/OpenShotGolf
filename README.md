@@ -136,8 +136,8 @@ Download and install the .NET SDK version 8.0 or later.
 - `Courses/Range/`: Range scene, UI, and yardage output.
 - `Resources/`, `UI/`, `Utils/`: Art assets, UI components, and helper scripts.
 
-## Course Loader/FInder Diagram
-The idea is to reduce redundancy and simplify creating new courses. For more technical details, please view `~/assets/images/course_addition.png` 
+## Course Loader/Finder Diagram
+The idea is to reduce redundancy and simplify creating new courses. CourseList discovers available courses and provides scene/config paths; SceneManager parses the `course.json` config, applies defaults, and exposes `course_info`/`hole_info` globally. For more technical details, please view `~/assets/images/course_addition.png`
 
 ![](/assets/images/course_addition_components.png)
 

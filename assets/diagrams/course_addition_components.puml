@@ -17,7 +17,7 @@ package "Course Selector" as Selector {
 
 [SceneManager\nscene_manager.gd] as SM
 
-note bottom of JSON
+note bottom of SM
   Defaults applied when
   Course Info is missing:
   • Tee Colors
@@ -27,11 +27,12 @@ end note
 Author --> JSON : create
 Author --> TSCN : create
 
-CL --> JSON : parse & validate
+CL --> JSON : discover & read title
 CL --> TSCN : check exists
 
-CS --> CL : discover courses\nget_course_info()\nget_hole_info()
-CS --> SM : change_scene()
+CS --> CL : discover courses\nget_scene_path\nget_config_path
+CS --> SM : change_scene(path, config_path)
+SM --> JSON : parse & apply defaults
 SM --> TSCN : load
 
 @enduml
