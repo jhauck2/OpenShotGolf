@@ -32,7 +32,7 @@ func _play_course(path: String, config_path: String = "") -> void:
 		printerr("[CourseSelector] Play requested with an empty scene path.")
 		return
 
-	SceneManager.change_scene(path, config_path)
+	SceneManager.load_course(path, config_path)
 
 
 func _request_course_reload() -> void:

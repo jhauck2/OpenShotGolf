@@ -1,5 +1,7 @@
 extends Node
 
+signal scene_changed
+
 # Reference to current scene
 var current_scene = null
 const LEGACY_SCENE_REDIRECTS := {
@@ -16,11 +18,11 @@ func _physics_process(_delta):
 	pass
 
 
-func change_scene(path, config_path: String = ""):
-	call_deferred("_deferred_change_scene", path, config_path)
+func change_scene(path):
+	call_deferred("_deferred_change_scene", path)
 
 
-func _deferred_change_scene(scene_path, config_path: String = "") -> void:
+func _deferred_change_scene(scene_path) -> void:
 	var normalized_path := _normalize_scene_path(str(scene_path))
 	var packed := load(normalized_path) as PackedScene
 	if packed == null:
@@ -38,7 +40,7 @@ func _deferred_change_scene(scene_path, config_path: String = "") -> void:
 
 	current_scene = next_scene
 	get_tree().get_root().add_child(current_scene)
-	CourseManager._load_course_config(config_path)
+	scene_changed.emit()
 
 
 func _normalize_scene_path(scene_path: String) -> String:
@@ -47,6 +49,12 @@ func _normalize_scene_path(scene_path: String) -> String:
 		push_warning("Redirecting legacy scene path '%s' to '%s'." % [scene_path, redirected])
 		return redirected
 	return scene_path
+
+
+func load_course(scene_path: String, config_path: String) -> void:
+	change_scene("res://Utils/CourseManager.tscn")
+	await scene_changed
+	current_scene.initialize(scene_path, config_path)
 
 
 func close_scene():
@@ -58,7 +66,6 @@ func _deferred_close_scene():
 	if current_scene != null:
 		current_scene.queue_free()
 		current_scene = null
-	CourseManager.clear_course_state()
 
 
 func reload_scene():
@@ -78,4 +85,4 @@ func reload_scene():
 	current_scene.queue_free()
 	current_scene = next_scene
 	get_tree().get_root().add_child(current_scene)
-	CourseManager.reload_current_config()
+	scene_changed.emit()

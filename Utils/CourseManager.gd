@@ -1,4 +1,4 @@
-extends Node
+extends Node3D
 
 # Course data keys from JSON file
 const COURSE_INFO_KEY := "Course Info"
@@ -22,8 +22,20 @@ var hole_info: Dictionary = {}
 var _current_config_path: String = ""
 
 
+func initialize(scene_path: String, config_path: String) -> void:
+	_load_course_config(config_path)
+	var packed := load(scene_path) as PackedScene
+	if packed == null:
+		push_error("[CourseManager] Could not load course scene: %s" % scene_path)
+		return
+	var course_scene := packed.instantiate()
+	if course_scene == null:
+		push_error("[CourseManager] Could not instantiate course scene: %s" % scene_path)
+		return
+	add_child(course_scene)
+
+
 func _load_course_config(config_path: String) -> void:
-	clear_course_state()
 	_current_config_path = config_path
 	if config_path.is_empty():
 		return
@@ -62,13 +74,6 @@ func _load_course_config(config_path: String) -> void:
 
 func reload_current_config() -> void:
 	_load_course_config(_current_config_path)
-
-
-func clear_course_state() -> void:
-	course_info = {}
-	hole_info = {}
-	_current_config_path = ""
-
 
 func get_current_config_path() -> String:
 	return _current_config_path
