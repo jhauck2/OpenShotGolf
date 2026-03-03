@@ -19,16 +19,16 @@ func _process(_delta: float) -> void:
 	pass
 
 
+# Single responsibility: scan the course directory, repopulate the list, and return a count (-1 on open failure).
 func parse_directory(path: String) -> int:
 	clear()
-	var normalized_path := path.strip_edges()
-	if normalized_path.is_empty():
+	if path.is_empty():
 		course_dir = ""
 		print("[CourseList] Skipped scan because course directory is empty.")
 		return 0
-	if normalized_path.ends_with("/"):
-		normalized_path = normalized_path.substr(0, normalized_path.length() - 1)
-	course_dir = normalized_path
+	if path.ends_with("/"):
+		path = path.substr(0, path.length() - 1)
+	course_dir = path
 	print("[CourseList] Scanning directory: %s" % course_dir)
 
 	var dir := DirAccess.open(course_dir)
@@ -40,14 +40,14 @@ func parse_directory(path: String) -> int:
 
 	# Get a list of all courses by directories within "course_dir".
 	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if dir.current_is_dir() and not file_name.begins_with("."):
-			var has_config := FileAccess.file_exists(_course_config_path(file_name))
-			var has_scene := FileAccess.file_exists(_course_scene_path(file_name))
+	var dir_name := dir.get_next()
+	while dir_name != "":
+		if dir.current_is_dir() and not dir_name.begins_with("."):
+			var has_config := FileAccess.file_exists(_course_config_path(dir_name))
+			var has_scene := FileAccess.file_exists(_course_scene_path(dir_name))
 			if has_config and has_scene:
-				courses.append(file_name)
-		file_name = dir.get_next()
+				courses.append(dir_name)
+		dir_name = dir.get_next()
 	dir.list_dir_end()
 
 	courses.sort()
@@ -61,30 +61,29 @@ func parse_directory(path: String) -> int:
 	return courses.size()
 
 
-func reload_courses(path: String, source: String = "Refresh") -> Dictionary:
+# Single responsibility: normalize a reload request and return a caller-friendly status dictionary.
+func reload_courses(path: String) -> Dictionary:
+	var source := "Refresh"
 	var normalized_path := path.strip_edges()
 	print("[CourseList] %s requested. Path: %s" % [source, normalized_path])
 	var course_count: int = parse_directory(normalized_path)
 	var stamp := str(Time.get_ticks_msec())
+	var result: Dictionary = {
+		"course_count": course_count
+	}
 
 	if course_count < 0:
 		printerr("[CourseList] %s failed. Invalid course directory: %s" % [source, normalized_path])
-		return {
-			"course_count": course_count,
-			"status_text": "%s [%s]: invalid course directory" % [source, stamp]
-		}
+		result["status_text"] = "%s [%s]: invalid course directory" % [source, stamp]
+		return result
 
 	if course_count == 0:
 		print("[CourseList] %s completed. No valid courses found." % source)
-		return {
-			"course_count": course_count,
-			"status_text": "%s [%s]: no valid courses found" % [source, stamp]
-		}
+		result["status_text"] = "%s [%s]: no valid courses found" % [source, stamp]
+		return result
 
 	print("[CourseList] %s completed. Loaded %d course(s)." % [source, course_count])
-	return {
-		"course_count": course_count
-	}
+	return result
 
 
 func get_scene_path_for_index(selected_index: int) -> String:

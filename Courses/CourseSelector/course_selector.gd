@@ -18,7 +18,7 @@ func _on_main_menu_button_pressed() -> void:
 
 func _on_refresh_button_pressed() -> void:
 	_flash_refresh_button()
-	_request_course_reload("Refresh")
+	_request_course_reload()
 
 
 func _on_course_list_item_activated(index: int) -> void:
@@ -35,8 +35,8 @@ func _play_course(path: String, config_path: String = "") -> void:
 	SceneManager.change_scene(path, config_path)
 
 
-func _request_course_reload(source: String = "Refresh") -> void:
-	var reload_result: Dictionary = _course_list.reload_courses(_course_directory_text.text, source)
+func _request_course_reload() -> void:
+	var reload_result: Dictionary = _course_list.reload_courses(_course_directory_text.text)
 	_status_label.text = String(reload_result.get("status_text", "Ready"))
 
 
