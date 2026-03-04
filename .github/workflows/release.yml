@@ -37,7 +37,7 @@ jobs:
         fi
 
         if [[ ! "$TAG" =~ ^OpenShotGolf-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "Error: Tag must match format game-v#.#.# (e.g. game-v1.0.0)"
+          echo "Error: Tag must match format OpenShotGolf-v#.#.# (e.g. OpenShotGolf-v1.0.0)"
           exit 1
         fi
 
@@ -81,8 +81,14 @@ jobs:
         godot_executable_download_url: https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=mono_linux_x86_64.zip&version=4.6.1
         godot_export_templates_download_url: https://downloads.godotengine.org/?flavor=stable&platform=templates&slug=mono_export_templates.tpz&version=4.6.1
         relative_project_path: ./
-        presets_to_export: Linux
+        presets_to_export: Linux, Windows Desktop
         archive_output: true
+
+    - name: Rename release archives
+      run: |
+        cd "${{ steps.export.outputs.archive_directory }}"
+        mv Linux.zip OpenShotGolf_Linux.zip
+        mv WindowsDesktop.zip OpenShotGolf_Windows.zip
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
