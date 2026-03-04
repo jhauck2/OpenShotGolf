@@ -1,0 +1,47 @@
+@startuml
+title Adding a New Course
+
+actor "Course Author" as Author
+participant "File System\nCourses/UserCourses/" as FS
+participant "CourseValidator\ncourse_validator.gd" as CV
+participant "CourseList\ncourse_list.gd" as CL
+participant "Course Selector\ncourse_selector.gd" as CS
+participant "SceneManager\nscene_manager.gd" as SM
+participant "CourseManager\ncourse_manager" as CM
+
+== Minimal Course Addition ==
+
+Author -> FS : Create folder\nUserCourses/MyNewCourse/
+Author -> FS : Add course.tscn\n(3D scene from Godot editor)
+Author -> FS : Add course.json\n(Title + Hole Info only;\nCourse Info is optional)
+
+== Course Discovery ==
+
+CS -> CL : parse_directory(course_dir)
+CL -> FS : list_dir_begin()
+
+loop each subdirectory
+    CL -> CV : CourseValidator.validate(course_dir, dir_name)
+    CV -> FS : file_exists(course.json)?
+    CV -> FS : parse JSON, resolve scene_path
+    CV -> FS : file_exists(scene)?
+    note right of CV : Validates config, title,\nand scene in one step
+    CV -> CL : return { title, scene_path, config_path }\nor empty on failure
+end
+
+CL -> CS : return course count
+
+== Course Selection & Loading ==
+
+Author -> CS : Select course from list
+CS -> CL : get_scene_path_for_index(index)
+CL -> CS : return scene_path from metadata
+CS -> CL : get_config_path_for_index(index)
+CL -> CS : return config_path from metadata
+CS -> SM : load_course(scene_path, config_path)
+SM -> CM : Load CourseManager scene
+CM -> CM : Parse course.json\nApply defaults for missing keys:\n• Tee Colors → ["Black","Blue","White","Red"]\n• Texture Indices → {Green:[0], Fairway:[1], …}
+CM -> CM : Store course_info / hole_info
+CM -> CM : Load course.tscn as child
+
+@enduml

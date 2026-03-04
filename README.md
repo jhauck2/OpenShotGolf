@@ -5,6 +5,7 @@
 - [Overview](#overview)
 - [Current State](#current-state)
 - [Feature Highlights](#feature-highlights)
+- [Color Theme](#color-theme)
 - [Ball Physics and Distance Calculation](#ball-physics-and-distance-calculation)
 - [Aerodynamics and Reynolds Number Modeling](#aerodynamics-and-reynolds-number-modeling)
 - [Surface and Rollout Tuning](#surface-and-rollout-tuning)
@@ -30,6 +31,11 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 - On-range telemetry: carry, total, apex, offline, and shot trails.
 - Environment tuning for temperature and altitude, impacting air density and flight.
 - Range session recorder and basic UI for club selection and shot playback.
+
+## Color Theme
+- **Blue:** `0b2e4feb` (normalized: `#0B2E4FEB`), `#163655`
+- **Light Blue:** `101620db` (normalized: `#101620DB`), `#1620DB`
+- **Red Flag Color:** `#820000`
 
 ## Ball Physics and Distance Calculation
 - Ball flight is driven by `Player/ball.gd` using force/torque helpers in `physics/ball_physics.gd` (gravity, drag, Magnus lift, grass drag, and frictional torque for bounce and rollout).
@@ -135,6 +141,11 @@ Download and install the .NET SDK version 8.0 or later.
 - `TCP/`: TCP server and GSPro-style JSON handling.
 - `Courses/Range/`: Range scene, UI, and yardage output.
 - `Resources/`, `UI/`, `Utils/`: Art assets, UI components, and helper scripts.
+
+## Course Loader/Finder Diagram
+The idea is to reduce redundancy and simplify creating new courses. CourseValidator validates each course directory during discovery (config parsing, title extraction, scene resolution). CourseList stores pre-validated data as item metadata so accessors are simple lookups. CourseManager (loaded as a scene by SceneManager) parses the `course.json` config, applies defaults, and loads the course scene. For more technical details, please view `~/assets/images/course_addition.png`
+
+![](/assets/images/course_addition_components.png)
 
 ## Future Plans
 - Full course play (currently in early design).

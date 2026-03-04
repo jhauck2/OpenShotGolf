@@ -1,19 +1,8 @@
 extends Node
 
-# Reference to current scene
+signal scene_changed
+
 var current_scene = null
-const LEGACY_SCENE_REDIRECTS := {
-	"res://game/shot_tracker.tscn": "res://Courses/Range/range.tscn",
-	"res://game/ShotTracker.tscn": "res://Courses/Range/range.tscn"
-}
-
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	pass
-
-
-func _physics_process(_delta):
-	pass
 
 
 func change_scene(path):
@@ -21,31 +10,28 @@ func change_scene(path):
 
 
 func _deferred_change_scene(scene_path) -> void:
-	var normalized_path := _normalize_scene_path(str(scene_path))
-	var packed := load(normalized_path) as PackedScene
+	var packed := load(str(scene_path)) as PackedScene
 	if packed == null:
-		push_error("Could not load scene: %s (requested: %s)" % [normalized_path, scene_path])
+		push_error("Could not load scene: %s" % scene_path)
 		return
 
 	var next_scene := packed.instantiate()
 	if next_scene == null:
-		push_error("Could not instantiate scene: %s" % normalized_path)
+		push_error("Could not instantiate scene: %s" % scene_path)
 		return
 
-	# Only swap scenes after the replacement loaded successfully.
 	if current_scene != null:
 		current_scene.queue_free()
 
 	current_scene = next_scene
 	get_tree().get_root().add_child(current_scene)
+	scene_changed.emit()
 
 
-func _normalize_scene_path(scene_path: String) -> String:
-	if LEGACY_SCENE_REDIRECTS.has(scene_path):
-		var redirected: String = LEGACY_SCENE_REDIRECTS[scene_path]
-		push_warning("Redirecting legacy scene path '%s' to '%s'." % [scene_path, redirected])
-		return redirected
-	return scene_path
+func load_course(scene_path: String, config_path: String) -> void:
+	change_scene("res://Utils/CourseManager.tscn")
+	await scene_changed
+	current_scene.initialize(scene_path, config_path)
 
 
 func close_scene():
@@ -53,7 +39,6 @@ func close_scene():
 
 
 func _deferred_close_scene():
-	# Remove current scene
 	if current_scene != null:
 		current_scene.queue_free()
 		current_scene = null
@@ -76,3 +61,4 @@ func reload_scene():
 	current_scene.queue_free()
 	current_scene = next_scene
 	get_tree().get_root().add_child(current_scene)
+	scene_changed.emit()
