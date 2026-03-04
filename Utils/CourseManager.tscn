@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b0haclbagica0"]
 
-[ext_resource type="Script" path="res://Utils/CourseManager.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bbh4p08lunkwi" path="res://Utils/CourseManager.gd" id="1_script"]
 
-[node name="CourseManager" type="Node3D"]
+[node name="CourseManager" type="Node3D" unique_id=1092963098]
 script = ExtResource("1_script")

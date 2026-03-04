@@ -143,7 +143,7 @@ Download and install the .NET SDK version 8.0 or later.
 - `Resources/`, `UI/`, `Utils/`: Art assets, UI components, and helper scripts.
 
 ## Course Loader/Finder Diagram
-The idea is to reduce redundancy and simplify creating new courses. CourseList discovers available courses and provides scene/config paths; SceneManager parses the `course.json` config, applies defaults, and exposes `course_info`/`hole_info` globally. For more technical details, please view `~/assets/images/course_addition.png`
+The idea is to reduce redundancy and simplify creating new courses. CourseValidator validates each course directory during discovery (config parsing, title extraction, scene resolution). CourseList stores pre-validated data as item metadata so accessors are simple lookups. CourseManager (loaded as a scene by SceneManager) parses the `course.json` config, applies defaults, and loads the course scene. For more technical details, please view `~/assets/images/course_addition.png`
 
 ![](/assets/images/course_addition_components.png)
 

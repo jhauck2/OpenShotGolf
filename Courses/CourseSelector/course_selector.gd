@@ -36,8 +36,8 @@ func _play_course(path: String, config_path: String = "") -> void:
 
 
 func _request_course_reload() -> void:
-	var reload_result: Dictionary = _course_list.reload_courses(_course_directory_text.text)
-	_status_label.text = String(reload_result.get("status_text", "Ready"))
+	var status_text: String = _course_list.reload_courses(_course_directory_text.text)
+	_status_label.text = status_text if not status_text.is_empty() else "Ready"
 
 
 func _flash_refresh_button() -> void:

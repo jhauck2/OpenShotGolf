@@ -11,13 +11,16 @@ package "Minimal Course Files" as Files {
 }
 
 package "Course Selector" as Selector {
+    [CourseValidator\ncourse_validator.gd] as CV
     [CourseList\ncourse_list.gd] as CL
     [CourseSelector\ncourse_selector.gd] as CS
 }
 
 [SceneManager\nscene_manager.gd] as SM
 
-note bottom of SM
+[CourseManager\ncourse_manager] as CM
+
+note bottom of CM
   Defaults applied when
   Course Info is missing:
   • Tee Colors
@@ -27,12 +30,14 @@ end note
 Author --> JSON : create
 Author --> TSCN : create
 
-CL --> JSON : discover & read title
-CL --> TSCN : check exists
+CV --> JSON : validate config & read title
+CV --> TSCN : check scene exists
+CL --> CV : validate each course dir
 
 CS --> CL : discover courses\nget_scene_path\nget_config_path
-CS --> SM : change_scene(path, config_path)
-SM --> JSON : parse & apply defaults
-SM --> TSCN : load
+CS --> SM : load_course(path, config_path)
+SM --> CM : load CourseManager scene
+CM --> JSON : parse & apply defaults
+CM --> TSCN : load as child
 
 @enduml
