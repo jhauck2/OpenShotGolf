@@ -209,7 +209,7 @@ light_indirect_energy = 6.592
 [node name="RangeUI" parent="." unique_id=1289874115 instance=ExtResource("4_d1a0v")]
 
 [node name="Terrain3D" type="Terrain3D" parent="." unique_id=115405078]
-data_directory = "res://Courses/UserCourses/Range/Terrain"
+data_directory = "res://Courses/UserCourses/Airways/Terrain"
 material = SubResource("Terrain3DMaterial_ls2bl")
 assets = SubResource("Terrain3DAssets_emsks")
 collision_mode = 3

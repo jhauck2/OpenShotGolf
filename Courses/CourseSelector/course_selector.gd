@@ -22,21 +22,21 @@ func _on_refresh_button_pressed() -> void:
 
 
 func _on_course_list_item_activated(index: int) -> void:
-	var path: String = _course_list.get_scene_path_for_index(index)
+	var scene_path: String = _course_list.get_scene_path_for_index(index)
 	var config_path: String = _course_list.get_config_path_for_index(index)
-	_play_course(path, config_path)
+	_play_course(scene_path, config_path)
 
 
-func _play_course(path: String, config_path: String = "") -> void:
-	if path.is_empty():
-		printerr("[CourseSelector] Play requested with an empty scene path.")
+func _play_course(scene_path: String, config_path: String = "") -> void:
+	if scene_path.is_empty():
+		printerr("[CourseSelector] Play requested with an empty scene scene_path.")
 		return
 
-	SceneManager.load_course(path, config_path)
+	SceneManager.load_course(scene_path, config_path)
 
 
 func _request_course_reload() -> void:
-	var status_text: String = _course_list.reload_courses(_course_directory_text.text)
+	var status_text := String(_course_list.reload_courses(_course_directory_text.text))
 	_status_label.text = status_text if not status_text.is_empty() else "Ready"
 
 

@@ -27,7 +27,7 @@ func parse_directory(path: String) -> int:
 	var dir_name := dir.get_next()
 	while dir_name != "":
 		if dir.current_is_dir() and not dir_name.begins_with("."):
-			var result := CourseValidator.validate(course_dir, dir_name)
+			var result: Dictionary = CourseValidator.validate(course_dir, dir_name)
 			if not result.is_empty():
 				result["dir_name"] = dir_name
 				validated.append(result)
