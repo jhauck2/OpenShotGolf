@@ -88,7 +88,7 @@ jobs:
       run: |
         cd "${{ steps.export.outputs.archive_directory }}"
         mv Linux.zip OpenShotGolf_Linux.zip
-        mv WindowsDesktop.zip OpenShotGolf_Windows.zip
+        mv "Windows Desktop.zip" OpenShotGolf_Windows.zip
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
