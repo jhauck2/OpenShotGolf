@@ -1,7 +1,6 @@
 class_name CourseValidator
 
 const COURSE_CONFIG_FILE := "course.json"
-const COURSE_SCENE_KEY := "scene_path"
 const COURSE_SCENE_FILE := "course.tscn"
 const COURSE_TITLE_KEY := "Title"
 const COURSE_INFO_KEY := "Course Info"
@@ -28,8 +27,9 @@ static func validate(course_dir: String, dir_name: String) -> Dictionary:
 		return {}
 
 	var title := _extract_title(parsed, dir_name)
-	var scene_path := _resolve_scene_path(parsed, course_dir, dir_name, config_path)
-	if scene_path.is_empty():
+	var scene_path := "%s/%s/%s" % [course_dir, dir_name, COURSE_SCENE_FILE]
+	if not FileAccess.file_exists(scene_path):
+		printerr("[CourseValidator] Missing %s for course '%s'." % [COURSE_SCENE_FILE, dir_name])
 		return {}
 
 	return { "title": title, "scene_path": scene_path, "config_path": config_path }
@@ -53,21 +53,3 @@ static func _extract_title(parsed: Dictionary, dir_name: String) -> String:
 	return dir_name
 
 
-static func _resolve_scene_path(parsed: Dictionary, course_dir: String, dir_name: String, config_path: String) -> String:
-	var scene_value = parsed.get(COURSE_SCENE_KEY, COURSE_SCENE_FILE)
-	if typeof(scene_value) != TYPE_STRING:
-		printerr("[CourseValidator] '%s' must be a string in %s." % [COURSE_SCENE_KEY, config_path])
-		return ""
-
-	var scene_path := String(scene_value).strip_edges()
-	if scene_path.is_empty():
-		scene_path = COURSE_SCENE_FILE
-
-	if not scene_path.begins_with("res://"):
-		scene_path = "%s/%s/%s" % [course_dir, dir_name, scene_path]
-
-	if not FileAccess.file_exists(scene_path):
-		printerr("[CourseValidator] Scene path for '%s' does not exist: %s" % [dir_name, scene_path])
-		return ""
-
-	return scene_path
