@@ -41,6 +41,8 @@ public static class PhysicsEnums
         /// <summary>Longer grass, more friction</summary>
         Rough,
         /// <summary>Hard ground, less friction</summary>
-        Firm
+        Firm,
+        /// <summary>Putting green - high spin grip at impact with low rolling resistance</summary>
+        Green
     }
 }

@@ -1,0 +1,64 @@
+@startuml
+skinparam monochrome true
+autonumber
+
+actor "Launch Monitor" as LM
+actor "Local Tester" as Tester
+participant "TcpServer" as TCP
+participant "CourseHud / GameplayUI" as UI
+participant "HoleSceneControllerBase" as Hole
+participant "ShotDisplaySession" as Session
+participant "ShotTracker" as Tracker
+participant "GolfBall" as Ball
+participant "ShotFormatter" as Formatter
+participant "CourseHud" as Hud
+
+alt TCP launch path
+  LM -> TCP : payload with BallData
+  TCP -> Hole : OnTcpClientHitBall(data)
+else UI inject path
+  Tester -> UI : HitShot(data)
+  UI -> Hole : OnGameplayUiHitShot(data)
+end
+
+Hole -> Session : SetRawPayload(data)
+Hole -> Hole : UpdateBallDisplay()
+Hole -> Session : Refresh(shotTracker, units, true)
+Session -> Formatter : FormatBallDisplaySnapshot(...)
+Formatter -> Tracker : read Apex/Carry/Distance
+Formatter --> Session : ShotDisplaySnapshot
+Session --> Hole : snapshot
+Hole -> Hud : SetData(snapshot)
+
+alt useTcpTracker
+  Hole -> Tracker : OnTcpClientHitBall(data)
+  Tracker -> Tracker : ValidateData(data)
+else useUiTracker
+  Hole -> Tracker : OnGameplayUiHitShot(data)
+end
+
+Tracker -> Tracker : StartShot()
+Tracker -> Ball : CallDeferred(HitFromData, data)
+
+loop each physics frame while tracking
+  Ball -> Tracker : _PhysicsProcess(delta)
+  Tracker -> Tracker : Apex = max(Apex, Ball.Position.Y)
+  Tracker -> Tracker : update carry/side values
+
+  Hole -> Hole : UpdateBallDisplay()
+  Hole -> Session : Refresh(...)
+  Session -> Formatter : FormatBallDisplaySnapshot(...)
+  Formatter -> Tracker : read Apex
+  Formatter --> Session : formatted Apex (ft or m)
+  Session --> Hole : snapshot
+  Hole -> Hud : SetData(snapshot)
+end
+
+Ball -> Tracker : BallAtRest signal
+Tracker -> Tracker : OnBallRest()
+Tracker -> Tracker : ShotData["Apex"] = (int)Apex
+Tracker -> Hole : ShotComplete(data)
+Hole -> Hole : UpdateBallDisplay()
+Hole -> Hud : final Apex shown
+
+@enduml
