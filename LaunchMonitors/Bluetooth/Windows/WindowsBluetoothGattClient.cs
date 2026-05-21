@@ -77,10 +77,10 @@ internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
         _connectionOptions = options;
         await DisconnectAsync(cancellationToken);
 
-        _device = await OpenDeviceAsync(deviceId);
+        _device = await OpenDeviceWithRetryAsync(deviceId, cancellationToken);
         if (_device is null)
         {
-            throw new InvalidOperationException("Could not open the selected Bluetooth device.");
+            throw new TimeoutException("The selected Bluetooth device is not ready yet. Wait a moment and try connecting again.");
         }
 
         await PairIfNeededAsync(_device);
@@ -181,6 +181,28 @@ internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
         }
 
         return await BluetoothLEDevice.FromIdAsync(deviceId);
+    }
+
+    private async Task<BluetoothLEDevice?> OpenDeviceWithRetryAsync(string deviceId, CancellationToken cancellationToken)
+    {
+        var attempts = Math.Max(1, _connectionOptions.ServiceDiscoveryMaxAttempts);
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var device = await OpenDeviceAsync(deviceId);
+            if (device is not null)
+            {
+                return device;
+            }
+
+            if (attempt < attempts)
+            {
+                await Task.Delay(_connectionOptions.ServiceDiscoveryRetryDelay, cancellationToken);
+            }
+        }
+
+        return null;
     }
 
     private static async Task PairIfNeededAsync(BluetoothLEDevice device)

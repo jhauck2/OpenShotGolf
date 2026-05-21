@@ -9,6 +9,8 @@ namespace OpenShotGolf.LaunchMonitors.Square;
 
 internal sealed class SquareConnectionSession : IAsyncDisposable
 {
+    private const string DeviceNotReadyMessage = "Square device was detected but is not ready yet. Wait a moment and try connecting again.";
+
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly IBluetoothGattClient _bluetoothClient;
@@ -96,6 +98,13 @@ internal sealed class SquareConnectionSession : IAsyncDisposable
             await SetReadyAsync(cancellationToken);
             StartHeartbeat();
             _logInfo("Connection sequence complete.");
+        }
+        catch (Exception ex) when (IsTransientConnectFailure(ex))
+        {
+            EmitError(DeviceNotReadyMessage);
+            EmitStatus("Disconnected");
+            _logInfo($"ConnectToDeviceAsync deferred: {ex.Message}");
+            await DisconnectCoreAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -378,5 +387,18 @@ internal sealed class SquareConnectionSession : IAsyncDisposable
         }
 
         return text;
+    }
+
+    private static bool IsTransientConnectFailure(Exception ex)
+    {
+        if (ex is TimeoutException)
+        {
+            return true;
+        }
+
+        return ex is InvalidOperationException invalidOperationException
+            && invalidOperationException.Message.Contains(
+                "Could not open the selected Bluetooth device.",
+                StringComparison.OrdinalIgnoreCase);
     }
 }

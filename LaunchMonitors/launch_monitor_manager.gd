@@ -15,6 +15,10 @@ const SQUARE_SCRIPT_PATH := "res://LaunchMonitors/Square/SquareLaunchMonitor.cs"
 const SQUARE_LOG_PREFIX := "[SquareLM]"
 const SQUARE_DEVICE_PREFIX := "squaregolf"
 const BLUEZ_DEVICE_PATH_PREFIX := "/org/bluez/"
+const TRANSIENT_CONNECT_ERROR_MARKERS := [
+	"not ready yet",
+	"could not open the selected bluetooth device"
+]
 
 var devices: Dictionary = {}
 var status := "Disconnected"
@@ -187,7 +191,10 @@ func _on_square_status_changed(value: String) -> void:
 
 
 func _on_square_error_occurred(message: String) -> void:
-	_debug_error("Square runtime error: %s" % message)
+	if _is_transient_square_connect_error(message):
+		_debug_log("Square runtime warning: %s" % message)
+	else:
+		_debug_error("Square runtime error: %s" % message)
 	emit_signal("error_occurred", message)
 
 
@@ -241,6 +248,14 @@ func _debug_log(message: String) -> void:
 
 func _debug_error(message: String) -> void:
 	push_error("%s %s" % [SQUARE_LOG_PREFIX, message])
+
+
+func _is_transient_square_connect_error(message: String) -> bool:
+	var normalized := message.strip_edges().to_lower()
+	for marker in TRANSIENT_CONNECT_ERROR_MARKERS:
+		if normalized.contains(marker):
+			return true
+	return false
 
 
 func _is_square_device_name(name: String) -> bool:

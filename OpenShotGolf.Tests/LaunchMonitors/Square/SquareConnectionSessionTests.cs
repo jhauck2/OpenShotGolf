@@ -74,6 +74,29 @@ public sealed class SquareConnectionSessionTests
     }
 
     [Test]
+    public async Task ConnectDeviceNotReadyUsesTransientPath()
+    {
+        var bluetoothClient = new FakeBluetoothGattClient
+        {
+            ConnectException = new TimeoutException("The selected Bluetooth device is not ready yet. Wait a moment and try connecting again.")
+        };
+        var statuses = new List<string>();
+        var errors = new List<string>();
+        var errorLogs = new List<string>();
+        var session = CreateSession(bluetoothClient, logError: errorLogs.Add);
+        session.StatusChanged += statuses.Add;
+        session.ErrorOccurred += errors.Add;
+
+        await session.ConnectToDeviceAsync("square-device");
+
+        CollectionAssert.AreEqual(new[] { "Connecting", "Disconnected" }, statuses);
+        CollectionAssert.AreEqual(
+            new[] { "Square device was detected but is not ready yet. Wait a moment and try connecting again." },
+            errors);
+        Assert.That(errorLogs, Is.Empty);
+    }
+
+    [Test]
     public async Task ShotNotificationEmitsOnceAndSetsReadyAgain()
     {
         var options = SquareConnectionOptions.Default;
@@ -116,7 +139,10 @@ public sealed class SquareConnectionSessionTests
         Assert.That(readyStates[^1], Is.True);
     }
 
-    private static SquareConnectionSession CreateSession(FakeBluetoothGattClient bluetoothClient)
+    private static SquareConnectionSession CreateSession(
+        FakeBluetoothGattClient bluetoothClient,
+        Action<string>? logInfo = null,
+        Action<string>? logError = null)
     {
         return new SquareConnectionSession(
             bluetoothClient,
@@ -126,7 +152,9 @@ public sealed class SquareConnectionSessionTests
                 ConnectionReadyDelay = TimeSpan.Zero,
                 HeartbeatInterval = Timeout.InfiniteTimeSpan
             },
-            static (delay, cancellationToken) => Task.CompletedTask);
+            static (delay, cancellationToken) => Task.CompletedTask,
+            logInfo,
+            logError);
     }
 
     private static byte[] CreateShotPacket()
@@ -196,6 +224,8 @@ public sealed class SquareConnectionSessionTests
 
         public BluetoothConnectionOptions? ConnectionOptions { get; private set; }
 
+        public Exception? ConnectException { get; set; }
+
         public event Action<BluetoothDevice>? DeviceDiscovered;
 
         public event Action<BluetoothCharacteristicValue>? CharacteristicValueChanged;
@@ -214,6 +244,11 @@ public sealed class SquareConnectionSessionTests
 
         public Task ConnectAsync(string deviceId, BluetoothConnectionOptions options, CancellationToken cancellationToken)
         {
+            if (ConnectException is not null)
+            {
+                throw ConnectException;
+            }
+
             ConnectedDeviceId = deviceId;
             ConnectionOptions = options;
             return Task.CompletedTask;
