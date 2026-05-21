@@ -15,6 +15,11 @@ using GodotDictionary = Godot.Collections.Dictionary;
 [GlobalClass]
 public partial class SquareLaunchMonitor : Node
 {
+    private const string LogPrefix = "[SquareLaunchMonitor]";
+    private const string SquareDevicePrefix = "SquareGolf";
+    private const bool AttemptWindowsPairing = false;
+    private const int ServiceDiscoveryMaxAttempts = 4;
+    private static readonly TimeSpan ServiceDiscoveryRetryDelay = TimeSpan.FromMilliseconds(700);
     private static readonly Guid CommandCharacteristicUuid = Guid.Parse("86602101-6b7e-439a-bdd1-489a3213e9bb");
     private static readonly Guid EventCharacteristicUuid = Guid.Parse("86602102-6b7e-439a-bdd1-489a3213e9bb");
     private static readonly Guid BatteryCharacteristicUuid = GattCharacteristicUuids.BatteryLevel;
@@ -57,14 +62,21 @@ public partial class SquareLaunchMonitor : Node
     [Signal]
     public delegate void ShotReceivedEventHandler(GodotDictionary shotData);
 
+    public override void _Ready()
+    {
+        LogInfo("Node ready.");
+    }
+
     public override void _ExitTree()
     {
+        LogInfo("Node exiting tree. Stopping scan and disconnecting.");
         StopScan();
         _ = DisconnectAsync();
     }
 
     public void StartScan()
     {
+        LogInfo("StartScan requested.");
         try
         {
             StopScan();
@@ -73,6 +85,7 @@ public partial class SquareLaunchMonitor : Node
             _deviceWatcher = DeviceInformation.CreateWatcher(BluetoothLEDevice.GetDeviceSelector());
             _deviceWatcher.Added += OnDeviceAdded;
             _deviceWatcher.Start();
+            LogInfo("Device watcher started.");
 
             _advertisementWatcher = new BluetoothLEAdvertisementWatcher
             {
@@ -80,21 +93,25 @@ public partial class SquareLaunchMonitor : Node
             };
             _advertisementWatcher.Received += OnAdvertisementReceived;
             _advertisementWatcher.Start();
+            LogInfo("Advertisement watcher started.");
         }
         catch (Exception ex)
         {
             EmitError($"Bluetooth scan failed: {ex.Message}");
+            LogError($"StartScan failed: {ex}");
         }
     }
 
     public void StopScan()
     {
+        LogInfo("StopScan requested.");
         if (_deviceWatcher is not null)
         {
             _deviceWatcher.Added -= OnDeviceAdded;
             if (_deviceWatcher.Status is DeviceWatcherStatus.Started or DeviceWatcherStatus.EnumerationCompleted)
             {
                 _deviceWatcher.Stop();
+                LogInfo("Device watcher stopped.");
             }
             _deviceWatcher = null;
         }
@@ -105,6 +122,7 @@ public partial class SquareLaunchMonitor : Node
             if (_advertisementWatcher.Status == BluetoothLEAdvertisementWatcherStatus.Started)
             {
                 _advertisementWatcher.Stop();
+                LogInfo("Advertisement watcher stopped.");
             }
             _advertisementWatcher = null;
         }
@@ -112,11 +130,13 @@ public partial class SquareLaunchMonitor : Node
 
     public void ConnectToDevice(string deviceId)
     {
+        LogInfo($"ConnectToDevice requested for deviceId={deviceId}");
         _ = RunAsync(() => ConnectToDeviceAsync(deviceId));
     }
 
     public void DisconnectFromDevice()
     {
+        LogInfo("DisconnectFromDevice requested.");
         _ = DisconnectAsync();
     }
 
@@ -128,6 +148,7 @@ public partial class SquareLaunchMonitor : Node
         }
 
         _clubCode = clubCode;
+        LogInfo($"SetClub requested. clubCode={_clubCode}");
         _ = RunAsync(async () =>
         {
             if (_commandCharacteristic is not null)
@@ -140,10 +161,12 @@ public partial class SquareLaunchMonitor : Node
     public void SetHandedness(int handedness)
     {
         _handedness = handedness == 1 ? 1 : 0;
+        LogInfo($"SetHandedness requested. handedness={_handedness}");
     }
 
     public void SetReady()
     {
+        LogInfo("SetReady requested.");
         _ = RunAsync(SetReadyAsync);
     }
 
@@ -161,34 +184,51 @@ public partial class SquareLaunchMonitor : Node
             StopScan();
             await DisconnectCoreAsync();
             EmitStatus("Connecting");
+            LogInfo("Opening Bluetooth LE device.");
 
             _device = await OpenDeviceAsync(deviceId);
             if (_device is null)
             {
                 EmitError("Could not open the selected Bluetooth device.");
                 EmitStatus("Disconnected");
+                LogError("OpenDeviceAsync returned null.");
+                return;
+            }
+            LogInfo($"Device opened. Name={_device.Name}");
+            if (!IsSquareDeviceName(_device.Name))
+            {
+                EmitError($"Selected device '{_device.Name}' is not a Square device. Expected name prefix '{SquareDevicePrefix}'.");
+                EmitStatus("Disconnected");
+                LogError($"Rejected non-Square device: {_device.Name}");
+                await DisconnectCoreAsync();
                 return;
             }
 
             await PairIfNeededAsync(_device);
+            LogInfo("Pairing check complete.");
             _session = await GattSession.FromDeviceIdAsync(_device.BluetoothDeviceId);
             _session.MaintainConnection = true;
+            LogInfo("GATT session created and MaintainConnection set.");
 
             _commandCharacteristic = await GetCharacteristicAsync(CommandCharacteristicUuid);
             _eventCharacteristic = await GetCharacteristicAsync(EventCharacteristicUuid);
             _batteryCharacteristic = await GetCharacteristicAsync(BatteryCharacteristicUuid, required: false);
             _firmwareCharacteristic = await GetCharacteristicAsync(FirmwareCharacteristicUuid, required: false);
+            LogInfo("Characteristic discovery completed.");
 
             if (_commandCharacteristic is null || _eventCharacteristic is null)
             {
                 EmitError("The selected Bluetooth device does not expose the Square command and event channels.");
                 await DisconnectCoreAsync();
                 EmitStatus("Disconnected");
+                LogError("Missing required Square command/event characteristics.");
                 return;
             }
 
             await ReadDeviceInfoAsync();
+            LogInfo("Device info read completed.");
             await SubscribeToNotificationsAsync();
+            LogInfo("Notification subscriptions configured.");
             EmitStatus("Connected");
             await WriteCommandAsync(SquareCommandBuilder.Heartbeat(NextSequence()));
             await Task.Delay(2000);
@@ -197,11 +237,13 @@ public partial class SquareLaunchMonitor : Node
             await SetReadyAsync();
 
             _heartbeatTimer = new System.Threading.Timer(OnHeartbeatTimer, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            LogInfo("Connection sequence complete; heartbeat timer started.");
         }
         catch (Exception ex)
         {
             EmitError($"Square connection failed: {ex.Message}");
             EmitStatus("Disconnected");
+            LogError($"ConnectToDeviceAsync failed: {ex}");
             await DisconnectCoreAsync();
         }
         finally
@@ -214,25 +256,43 @@ public partial class SquareLaunchMonitor : Node
     {
         if (ulong.TryParse(deviceId, out var address))
         {
+            LogInfo($"Opening via Bluetooth address {address}.");
             return await BluetoothLEDevice.FromBluetoothAddressAsync(address);
         }
 
+        LogInfo("Opening via Windows device Id.");
         return await BluetoothLEDevice.FromIdAsync(deviceId);
     }
 
     private static async Task PairIfNeededAsync(BluetoothLEDevice device)
     {
         var pairing = device.DeviceInformation.Pairing;
-        if (pairing.IsPaired || !pairing.CanPair)
+        if (pairing.IsPaired)
         {
+            LogInfo("Device already paired in Windows.");
+            return;
+        }
+
+        if (!AttemptWindowsPairing)
+        {
+            LogInfo("Skipping explicit Windows pairing and attempting direct GATT connection.");
+            return;
+        }
+
+        if (!pairing.CanPair)
+        {
+            LogInfo("Device cannot be paired via Windows API. Continuing without pairing.");
             return;
         }
 
         var result = await pairing.PairAsync(DevicePairingProtectionLevel.None);
-        if (result.Status is not DevicePairingResultStatus.Paired and not DevicePairingResultStatus.AlreadyPaired)
+        if (result.Status is DevicePairingResultStatus.Paired or DevicePairingResultStatus.AlreadyPaired)
         {
-            throw new InvalidOperationException($"Bluetooth pairing returned {result.Status}.");
+            LogInfo($"Pairing result: {result.Status}");
+            return;
         }
+
+        LogError($"Bluetooth pairing returned {result.Status}. Continuing without pairing.");
     }
 
     private async Task<GattCharacteristic?> GetCharacteristicAsync(Guid uuid, bool required = true)
@@ -242,7 +302,7 @@ public partial class SquareLaunchMonitor : Node
             return null;
         }
 
-        var servicesResult = await _device.GetGattServicesAsync(BluetoothCacheMode.Uncached);
+        var servicesResult = await GetGattServicesWithRetryAsync(_device);
         if (servicesResult.Status != GattCommunicationStatus.Success)
         {
             if (required)
@@ -267,6 +327,30 @@ public partial class SquareLaunchMonitor : Node
         }
 
         return null;
+    }
+
+    private static async Task<GattDeviceServicesResult> GetGattServicesWithRetryAsync(BluetoothLEDevice device)
+    {
+        GattDeviceServicesResult? lastResult = null;
+
+        for (var attempt = 1; attempt <= ServiceDiscoveryMaxAttempts; attempt++)
+        {
+            var cacheMode = attempt == 1 ? BluetoothCacheMode.Cached : BluetoothCacheMode.Uncached;
+            var result = await device.GetGattServicesAsync(cacheMode);
+            if (result.Status == GattCommunicationStatus.Success)
+            {
+                return result;
+            }
+
+            lastResult = result;
+            LogError($"GetGattServicesAsync attempt {attempt}/{ServiceDiscoveryMaxAttempts} failed with {result.Status} ({cacheMode}).");
+            if (attempt < ServiceDiscoveryMaxAttempts)
+            {
+                await Task.Delay(ServiceDiscoveryRetryDelay);
+            }
+        }
+
+        return lastResult!;
     }
 
     private async Task ReadDeviceInfoAsync()
@@ -340,17 +424,20 @@ public partial class SquareLaunchMonitor : Node
         {
             throw new InvalidOperationException($"Bluetooth notification setup returned {status}.");
         }
+        LogInfo($"Event notifications configured using {descriptorValue}.");
 
         if (_batteryCharacteristic is not null)
         {
             _batteryCharacteristic.ValueChanged += OnBatteryValueChanged;
             await _batteryCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
                 GattClientCharacteristicConfigurationDescriptorValue.Notify);
+            LogInfo("Battery notifications configured.");
         }
     }
 
     private async Task SetReadyAsync()
     {
+        LogInfo("Sending DetectBall ready command.");
         await WriteCommandAsync(SquareCommandBuilder.DetectBall(NextSequence(), mode: 1, spinMode: 1));
         EmitReady(true);
         EmitStatus("Ready");
@@ -376,6 +463,7 @@ public partial class SquareLaunchMonitor : Node
             {
                 throw new InvalidOperationException($"Bluetooth write returned {result.Status}.");
             }
+            LogInfo($"Wrote command ({command.Length} bytes).");
         }
         finally
         {
@@ -385,6 +473,7 @@ public partial class SquareLaunchMonitor : Node
 
     private async Task DisconnectAsync()
     {
+        LogInfo("DisconnectAsync requested.");
         await _connectionLock.WaitAsync();
         try
         {
@@ -400,6 +489,7 @@ public partial class SquareLaunchMonitor : Node
 
     private async Task DisconnectCoreAsync()
     {
+        LogInfo("DisconnectCoreAsync started.");
         _heartbeatTimer?.Dispose();
         _heartbeatTimer = null;
 
@@ -424,21 +514,33 @@ public partial class SquareLaunchMonitor : Node
         _session = null;
         _device?.Dispose();
         _device = null;
+        LogInfo("DisconnectCoreAsync completed.");
     }
 
     private void OnDeviceAdded(DeviceWatcher sender, DeviceInformation args)
     {
-        var name = string.IsNullOrWhiteSpace(args.Name) ? "Bluetooth LE device" : args.Name;
+        var name = args.Name?.Trim() ?? string.Empty;
+        if (!IsSquareDeviceName(name))
+        {
+            return;
+        }
+
+        LogInfo($"Device watcher added device: {name} ({args.Id})");
         EmitDeviceDiscovered(args.Id, name, 0);
     }
 
     private void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
     {
-        var deviceId = args.BluetoothAddress.ToString();
-        var name = string.IsNullOrWhiteSpace(args.Advertisement.LocalName)
-            ? $"Bluetooth {args.BluetoothAddress:X12}"
-            : args.Advertisement.LocalName;
+        var advertisedName = args.Advertisement.LocalName?.Trim() ?? string.Empty;
+        if (!IsSquareDeviceName(advertisedName))
+        {
+            return;
+        }
 
+        var deviceId = args.BluetoothAddress.ToString();
+        var name = advertisedName;
+
+        LogInfo($"Advertisement received: {name} ({deviceId}), RSSI={args.RawSignalStrengthInDBm}");
         EmitDeviceDiscovered(deviceId, name, args.RawSignalStrengthInDBm);
     }
 
@@ -452,6 +554,7 @@ public partial class SquareLaunchMonitor : Node
         catch (Exception ex)
         {
             EmitError($"Square notification failed: {ex.Message}");
+            LogError($"Notification handler failed: {ex}");
         }
     }
 
@@ -470,6 +573,7 @@ public partial class SquareLaunchMonitor : Node
         {
             var ready = sensor.BallReady && sensor.BallDetected;
             EmitReady(ready);
+            LogInfo($"Sensor packet parsed. ready={ready}");
             return;
         }
 
@@ -487,6 +591,7 @@ public partial class SquareLaunchMonitor : Node
         _lastPayload = payload;
         EmitReady(false);
         EmitShot(SquareGodotMapper.ToBallData(metrics));
+        LogInfo($"Shot packet parsed. speed={metrics.BallSpeedMps} m/s, spin={metrics.TotalSpinRpm} rpm");
         await Task.Delay(3000);
         await SetReadyAsync();
     }
@@ -529,6 +634,7 @@ public partial class SquareLaunchMonitor : Node
         catch (Exception ex)
         {
             EmitError(ex.Message);
+            LogError($"RunAsync failed: {ex}");
         }
     }
 
@@ -565,5 +671,21 @@ public partial class SquareLaunchMonitor : Node
     private void EmitShot(GodotDictionary shotData)
     {
         CallDeferred("emit_signal", SignalName.ShotReceived, shotData);
+    }
+
+    private static void LogInfo(string message)
+    {
+        GD.Print($"{LogPrefix} {message}");
+    }
+
+    private static void LogError(string message)
+    {
+        GD.PrintErr($"{LogPrefix} {message}");
+    }
+
+    private static bool IsSquareDeviceName(string? name)
+    {
+        return !string.IsNullOrWhiteSpace(name)
+            && name.Trim().StartsWith(SquareDevicePrefix, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -21,6 +21,7 @@ var square_firmware_label : Label = null
 var square_club_option : OptionButton = null
 var square_handedness_option : OptionButton = null
 
+const SQUARE_UI_LOG_PREFIX := "[SquareUI]"
 const SQUARE_CLUBS := {
 	"Driver": "0204",
 	"Putter": "0107",
@@ -184,9 +185,11 @@ func _on_ball_type_option_item_selected(index: int) -> void:
 
 func _setup_square_monitor_section() -> void:
 	if not has_node("/root/LaunchMonitorManager"):
+		_square_debug("LaunchMonitorManager singleton not found; Square section not created.")
 		return
 
 	var launch_monitor = get_node("/root/LaunchMonitorManager")
+	_square_debug("Creating Square settings section. Initial status=%s" % str(launch_monitor.status))
 	var root := $MarginContainer/VBoxContainer
 	var section := VBoxContainer.new()
 	section.name = "SquareMonitor"
@@ -316,9 +319,6 @@ func _refresh_square_devices() -> void:
 		square_device_option.set_item_metadata(index, device_id)
 		if device_id == selected_device:
 			square_device_option.select(index)
-	if square_device_option.item_count == 0 and selected_device != "":
-		square_device_option.add_item("Saved Square")
-		square_device_option.set_item_metadata(0, selected_device)
 
 
 func _update_square_status_labels() -> void:
@@ -337,6 +337,7 @@ func _update_square_status_labels() -> void:
 
 
 func _on_square_enabled_toggled(toggled_on: bool) -> void:
+	_square_debug("Enabled toggled: %s" % str(toggled_on))
 	var launch_monitor = get_node("/root/LaunchMonitorManager")
 	launch_monitor.set_enabled(toggled_on)
 	if not toggled_on:
@@ -344,14 +345,17 @@ func _on_square_enabled_toggled(toggled_on: bool) -> void:
 
 
 func _on_square_scan_pressed() -> void:
+	_square_debug("Scan pressed")
 	get_node("/root/LaunchMonitorManager").start_scan()
 
 
 func _on_square_connect_pressed() -> void:
 	if square_device_option == null or square_device_option.item_count == 0:
+		_square_debug("Connect pressed with no selectable device.")
 		return
 	var index := square_device_option.selected
 	var device_id := str(square_device_option.get_item_metadata(index))
+	_square_debug("Connect pressed for device_id=%s" % device_id)
 	var launch_monitor = get_node("/root/LaunchMonitorManager")
 	launch_monitor.set_enabled(true)
 	square_enabled_button.set_pressed_no_signal(true)
@@ -359,10 +363,12 @@ func _on_square_connect_pressed() -> void:
 
 
 func _on_square_disconnect_pressed() -> void:
+	_square_debug("Disconnect pressed")
 	get_node("/root/LaunchMonitorManager").disconnect_device()
 
 
 func _on_square_ready_pressed() -> void:
+	_square_debug("Ready pressed")
 	get_node("/root/LaunchMonitorManager").set_ready()
 
 
@@ -377,14 +383,17 @@ func _on_square_handedness_selected(index: int) -> void:
 
 
 func _on_square_device_discovered(_device_id: String, _name: String, _rssi: int) -> void:
+	_square_debug("Device discovered event received")
 	_refresh_square_devices()
 
 
-func _on_square_status_changed(_status: String) -> void:
+func _on_square_status_changed(status: String) -> void:
+	_square_debug("Status changed: %s" % status)
 	_update_square_status_labels()
 
 
 func _on_square_error_occurred(message: String) -> void:
+	_square_debug("Error occurred: %s" % message)
 	if square_status_label != null:
 		square_status_label.text = "Status: %s" % message
 
@@ -399,6 +408,10 @@ func _on_square_firmware_changed(_firmware: String) -> void:
 
 func _on_square_ready_changed(_is_ready: bool) -> void:
 	_update_square_status_labels()
+
+
+func _square_debug(message: String) -> void:
+	print("%s %s" % [SQUARE_UI_LOG_PREFIX, message])
 
 
 func update_units(value) -> void:
