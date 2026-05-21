@@ -25,6 +25,10 @@ var last_display: Dictionary = {}
 func _ready() -> void:
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	set_camera_follow_mode(GlobalSettings.range_settings.camera_follow_mode.value)
+	if has_node("/root/LaunchMonitorManager"):
+		var launch_monitor = get_node("/root/LaunchMonitorManager")
+		if not launch_monitor.hit_ball.is_connected(_on_launch_monitor_hit_ball):
+			launch_monitor.hit_ball.connect(_on_launch_monitor_hit_ball)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -40,6 +44,11 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 	# Re-enable camera follow if the setting is on
 	if GlobalSettings.range_settings.camera_follow_mode.value:
 		set_camera_follow_mode(true)
+
+
+func _on_launch_monitor_hit_ball(data: Dictionary) -> void:
+	_on_tcp_client_hit_ball(data)
+	$Player._on_tcp_client_hit_ball(data)
 
 
 func _process(_delta: float) -> void:
