@@ -12,6 +12,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\LaunchMonitors\Bluetooth\BluetoothCharacteristicValue.cs" Link="LaunchMonitors\Bluetooth\BluetoothCharacteristicValue.cs" />
+    <Compile Include="..\LaunchMonitors\Bluetooth\BluetoothConnectionOptions.cs" Link="LaunchMonitors\Bluetooth\BluetoothConnectionOptions.cs" />
+    <Compile Include="..\LaunchMonitors\Bluetooth\BluetoothDevice.cs" Link="LaunchMonitors\Bluetooth\BluetoothDevice.cs" />
+    <Compile Include="..\LaunchMonitors\Bluetooth\BluetoothScanOptions.cs" Link="LaunchMonitors\Bluetooth\BluetoothScanOptions.cs" />
+    <Compile Include="..\LaunchMonitors\Bluetooth\BluetoothWriteMode.cs" Link="LaunchMonitors\Bluetooth\BluetoothWriteMode.cs" />
+    <Compile Include="..\LaunchMonitors\Bluetooth\IBluetoothGattClient.cs" Link="LaunchMonitors\Bluetooth\IBluetoothGattClient.cs" />
+    <Compile Include="..\LaunchMonitors\Bluetooth\Linux\BlueZMapper.cs" Link="LaunchMonitors\Bluetooth\Linux\BlueZMapper.cs" />
+    <Compile Include="..\LaunchMonitors\Square\SquareCommandBuilder.cs" Link="LaunchMonitors\Square\SquareCommandBuilder.cs" />
+    <Compile Include="..\LaunchMonitors\Square\SquareConnectionOptions.cs" Link="LaunchMonitors\Square\SquareConnectionOptions.cs" />
+    <Compile Include="..\LaunchMonitors\Square\SquareConnectionSession.cs" Link="LaunchMonitors\Square\SquareConnectionSession.cs" />
     <Compile Include="..\LaunchMonitors\Square\SquareProtocol.cs" Link="LaunchMonitors\Square\SquareProtocol.cs" />
     <Compile Include="..\LaunchMonitors\Square\SquareShotDataMapper.cs" Link="LaunchMonitors\Square\SquareShotDataMapper.cs" />
     <Compile Include="..\LaunchMonitors\Square\SquareShotMetrics.cs" Link="LaunchMonitors\Square\SquareShotMetrics.cs" />

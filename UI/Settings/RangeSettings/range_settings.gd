@@ -313,7 +313,7 @@ func _refresh_square_devices() -> void:
 	square_device_option.clear()
 	for device_id in launch_monitor.devices.keys():
 		var device = launch_monitor.devices[device_id]
-		var label := "%s (%s)" % [device.get("name", "Square"), device_id]
+		var label := str(device.get("name", "Square"))
 		var index := square_device_option.item_count
 		square_device_option.add_item(label)
 		square_device_option.set_item_metadata(index, device_id)

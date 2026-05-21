@@ -1,13 +1,19 @@
 <Project Sdk="Godot.NET.Sdk/4.6.2">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
-    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'windows' Or '$(OS)' == 'Windows_NT' ">net9.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion Condition=" '$(GodotTargetPlatform)' == 'windows' Or '$(OS)' == 'Windows_NT' ">10.0.19041.0</SupportedOSPlatformVersion>
+    <EnableWindowsTargeting Condition=" '$(GodotTargetPlatform)' == 'windows' Or '$(OS)' == 'Windows_NT' ">true</EnableWindowsTargeting>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Tmds.DBus" Version="0.93.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="LaunchMonitors/Bluetooth/Windows/**/*.cs" Condition=" '$(GodotTargetPlatform)' != 'windows' And '$(OS)' != 'Windows_NT' " />
     <Compile Remove="OpenShotGolf.Tests/**/*.cs" />
   </ItemGroup>
 </Project>

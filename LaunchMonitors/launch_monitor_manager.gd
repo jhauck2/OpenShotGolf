@@ -14,6 +14,7 @@ const SQUARE_CLASS_NAME := "SquareLaunchMonitor"
 const SQUARE_SCRIPT_PATH := "res://LaunchMonitors/Square/SquareLaunchMonitor.cs"
 const SQUARE_LOG_PREFIX := "[SquareLM]"
 const SQUARE_DEVICE_PREFIX := "squaregolf"
+const BLUEZ_DEVICE_PATH_PREFIX := "/org/bluez/"
 
 var devices: Dictionary = {}
 var status := "Disconnected"
@@ -42,7 +43,7 @@ func _ready() -> void:
 	_create_square_monitor()
 	if _square == null:
 		_debug_error("Square monitor unavailable during startup: %s" % _square_init_error)
-	if bool(settings.get("enabled", false)) and str(settings.get("device_id", "")) != "":
+	if bool(settings.get("enabled", false)) and _can_auto_connect_saved_device(str(settings.get("device_id", ""))):
 		connect_to_device(str(settings["device_id"]))
 
 
@@ -217,6 +218,15 @@ func _missing_support_message() -> String:
 	if _square_init_error != "":
 		return "Square support is unavailable in this build. %s" % _square_init_error
 	return "Square support is unavailable in this build."
+
+
+func _can_auto_connect_saved_device(device_id: String) -> bool:
+	if device_id == "":
+		return false
+	if OS.get_name() == "Linux" and device_id.begins_with(BLUEZ_DEVICE_PATH_PREFIX):
+		_debug_log("skipping saved Linux Bluetooth path until scan refreshes it")
+		return false
+	return true
 
 
 func _set_status(value: String) -> void:
