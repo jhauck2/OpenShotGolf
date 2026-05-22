@@ -76,18 +76,7 @@ internal sealed class LinuxBluetoothGattClient : IBluetoothGattClient
         }
 
         _device = Connection.System.CreateProxy<IBlueZDevice>(BlueZService, devicePath);
-        try
-        {
-            await _device.ConnectAsync();
-        }
-        catch (DBusException ex) when (IsBlueZError(ex, "org.bluez.Error.AlreadyConnected"))
-        {
-        }
-        catch (DBusException ex) when (IsBlueZObjectGoneError(ex))
-        {
-            _device = null;
-            throw new InvalidOperationException("The selected Bluetooth device is no longer known to BlueZ. Scan again before connecting.", ex);
-        }
+        await ConnectDeviceWithRetryAsync(_device, cancellationToken);
 
         await WaitForServicesResolvedAsync(_device, cancellationToken);
         managedObjects = ToStringDictionary(await objectManager.GetManagedObjectsAsync());
@@ -174,6 +163,61 @@ internal sealed class LinuxBluetoothGattClient : IBluetoothGattClient
     {
         await StopScanAsync(CancellationToken.None);
         await DisconnectAsync(CancellationToken.None);
+    }
+
+    private async Task ConnectDeviceWithRetryAsync(IBlueZDevice device, CancellationToken cancellationToken)
+    {
+        var attempts = Math.Max(1, _connectionOptions.ServiceDiscoveryMaxAttempts);
+        try
+        {
+            for (var attempt = 1; attempt <= attempts; attempt++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    await device.ConnectAsync();
+                    return;
+                }
+                catch (DBusException ex) when (IsBlueZError(ex, "org.bluez.Error.AlreadyConnected"))
+                {
+                    return;
+                }
+                catch (DBusException ex) when (IsBlueZObjectGoneError(ex))
+                {
+                    _device = null;
+                    throw new InvalidOperationException("The selected Bluetooth device is no longer known to BlueZ. Scan again before connecting.", ex);
+                }
+                catch (DBusException ex) when (BlueZMapper.IsTransientConnectFailure(ex.ErrorName, ex.ErrorMessage))
+                {
+                    if (attempt >= attempts)
+                    {
+                        await TryCancelConnectAsync(device);
+                        throw new TimeoutException("The selected Bluetooth device is not ready yet. Wait a moment and try connecting again.", ex);
+                    }
+
+                    await TryCancelConnectAsync(device);
+                    await Task.Delay(_connectionOptions.ServiceDiscoveryRetryDelay, cancellationToken);
+                }
+            }
+        }
+        catch
+        {
+            _device = null;
+            throw;
+        }
+    }
+
+    private static async Task TryCancelConnectAsync(IBlueZDevice device)
+    {
+        try
+        {
+            await device.DisconnectAsync();
+        }
+        catch (DBusException ex) when (IsBlueZError(ex, "org.bluez.Error.NotConnected")
+            || IsBlueZError(ex, "org.bluez.Error.Failed")
+            || IsBlueZObjectGoneError(ex))
+        {
+        }
     }
 
     private IBlueZObjectManager GetObjectManager()

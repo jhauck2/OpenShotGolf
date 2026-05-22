@@ -126,6 +126,18 @@ internal static class BlueZMapper
             && name.Trim().StartsWith(deviceNamePrefix, StringComparison.OrdinalIgnoreCase);
     }
 
+    public static bool IsTransientConnectFailure(string? errorName, string? errorMessage)
+    {
+        if (string.Equals(errorName, "org.bluez.Error.InProgress", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return string.Equals(errorName, "org.bluez.Error.Failed", StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(errorMessage)
+            && errorMessage.Contains("le-connection-abort-by-local", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static string? GetString(IDictionary<string, object> properties, string name)
     {
         return properties.TryGetValue(name, out var value) ? value as string : null;

@@ -14,7 +14,8 @@ const SQUARE_CLASS_NAME := "SquareLaunchMonitor"
 const SQUARE_SCRIPT_PATH := "res://LaunchMonitors/Square/SquareLaunchMonitor.cs"
 const SQUARE_LOG_PREFIX := "[SquareLM]"
 const SQUARE_DEVICE_PREFIX := "squaregolf"
-const BLUEZ_DEVICE_PATH_PREFIX := "/org/bluez/"
+const BLUEZ_DEVICE_SEGMENT_PREFIX := "/dev_"
+const LINUX_AUTO_CONNECT_SCAN_SECONDS := 15.0
 const TRANSIENT_CONNECT_ERROR_MARKERS := [
 	"not ready yet",
 	"could not open the selected bluetooth device"
@@ -35,6 +36,9 @@ var settings := {
 
 var _square: Node = null
 var _config := ConfigFile.new()
+var _linux_auto_connect_active := false
+var _linux_auto_connect_target_address := ""
+var _linux_auto_connect_timer: Timer = null
 
 
 func _ready() -> void:
@@ -47,29 +51,22 @@ func _ready() -> void:
 	_create_square_monitor()
 	if _square == null:
 		_debug_error("Square monitor unavailable during startup: %s" % _square_init_error)
-	if bool(settings.get("enabled", false)) and _can_auto_connect_saved_device(str(settings.get("device_id", ""))):
-		connect_to_device(str(settings["device_id"]))
+	if bool(settings.get("enabled", false)):
+		_connect_saved_device_on_startup(str(settings.get("device_id", "")))
 
 
 func start_scan() -> void:
-	if _square == null:
-		var message := _missing_support_message()
-		_debug_error("start_scan blocked: %s" % message)
-		_set_status(message)
-		emit_signal("error_occurred", message)
-		return
-	_debug_log("start_scan requested")
-	devices.clear()
-	_square.call("StartScan")
+	_cancel_linux_auto_connect_scan()
+	_start_square_scan()
 
 
 func stop_scan() -> void:
-	if _square != null:
-		_debug_log("stop_scan requested")
-		_square.call("StopScan")
+	_cancel_linux_auto_connect_scan()
+	_stop_square_scan()
 
 
 func connect_to_device(device_id: String) -> void:
+	_cancel_linux_auto_connect_scan()
 	if _square == null:
 		var message := _missing_support_message()
 		_debug_error("connect_to_device blocked: %s" % message)
@@ -85,12 +82,33 @@ func connect_to_device(device_id: String) -> void:
 
 
 func disconnect_device() -> void:
+	_cancel_linux_auto_connect_scan()
 	if _square != null:
 		_debug_log("disconnect_device requested")
 		_square.call("DisconnectFromDevice")
 
 
+func _start_square_scan() -> void:
+	if _square == null:
+		var message := _missing_support_message()
+		_debug_error("start_scan blocked: %s" % message)
+		_set_status(message)
+		emit_signal("error_occurred", message)
+		return
+	_debug_log("start_scan requested")
+	devices.clear()
+	_square.call("StartScan")
+
+
+func _stop_square_scan() -> void:
+	if _square != null:
+		_debug_log("stop_scan requested")
+		_square.call("StopScan")
+
+
 func set_enabled(value: bool) -> void:
+	if not value:
+		_cancel_linux_auto_connect_scan()
 	settings["enabled"] = value
 	_save_settings()
 
@@ -184,6 +202,9 @@ func _on_square_device_discovered(device_id: String, name: String, rssi: int) ->
 		"rssi": rssi
 	}
 	emit_signal("device_discovered", device_id, name, rssi)
+	if _is_linux_auto_connect_match(device_id):
+		_debug_log("saved Linux Square discovered; connecting automatically")
+		connect_to_device(device_id)
 
 
 func _on_square_status_changed(value: String) -> void:
@@ -227,13 +248,111 @@ func _missing_support_message() -> String:
 	return "Square support is unavailable in this build."
 
 
-func _can_auto_connect_saved_device(device_id: String) -> bool:
+func _connect_saved_device_on_startup(device_id: String) -> void:
 	if device_id == "":
+		return
+	if _square == null:
+		connect_to_device(device_id)
+		return
+	if OS.get_name() != "Linux":
+		connect_to_device(device_id)
+		return
+	_start_linux_auto_connect_scan(device_id)
+
+
+func _start_linux_auto_connect_scan(device_id: String) -> void:
+	_cancel_linux_auto_connect_scan()
+	var target_address := _normalize_bluetooth_address(device_id)
+	if target_address == "":
+		_debug_log("saved Linux Bluetooth id cannot be matched automatically")
+		return
+	_linux_auto_connect_active = true
+	_linux_auto_connect_target_address = target_address
+	_debug_log("starting saved Linux Square scan")
+	_start_square_scan()
+	_start_linux_auto_connect_timer()
+
+
+func _start_linux_auto_connect_timer() -> void:
+	_clear_linux_auto_connect_timer()
+	_linux_auto_connect_timer = Timer.new()
+	_linux_auto_connect_timer.one_shot = true
+	_linux_auto_connect_timer.wait_time = LINUX_AUTO_CONNECT_SCAN_SECONDS
+	_linux_auto_connect_timer.timeout.connect(_on_linux_auto_connect_timeout)
+	add_child(_linux_auto_connect_timer)
+	_linux_auto_connect_timer.start()
+
+
+func _on_linux_auto_connect_timeout() -> void:
+	if not _linux_auto_connect_active:
+		return
+	_debug_log("saved Linux Square was not found during startup scan")
+	_linux_auto_connect_active = false
+	_linux_auto_connect_target_address = ""
+	_clear_linux_auto_connect_timer()
+	_stop_square_scan()
+	if status == "Scanning":
+		_set_status("Disconnected")
+
+
+func _cancel_linux_auto_connect_scan() -> void:
+	_linux_auto_connect_active = false
+	_linux_auto_connect_target_address = ""
+	_clear_linux_auto_connect_timer()
+
+
+func _clear_linux_auto_connect_timer() -> void:
+	if _linux_auto_connect_timer == null:
+		return
+	if _linux_auto_connect_timer.timeout.is_connected(_on_linux_auto_connect_timeout):
+		_linux_auto_connect_timer.timeout.disconnect(_on_linux_auto_connect_timeout)
+	_linux_auto_connect_timer.stop()
+	_linux_auto_connect_timer.queue_free()
+	_linux_auto_connect_timer = null
+
+
+func _is_linux_auto_connect_match(device_id: String) -> bool:
+	if not _linux_auto_connect_active or _linux_auto_connect_target_address == "":
 		return false
-	if OS.get_name() == "Linux" and device_id.begins_with(BLUEZ_DEVICE_PATH_PREFIX):
-		_debug_log("skipping saved Linux Bluetooth path until scan refreshes it")
+	return _normalize_bluetooth_address(device_id) == _linux_auto_connect_target_address
+
+
+func _normalize_bluetooth_address(value: String) -> String:
+	var normalized := value.strip_edges()
+	if normalized == "":
+		return ""
+	var device_segment_index := normalized.rfind(BLUEZ_DEVICE_SEGMENT_PREFIX)
+	if device_segment_index >= 0:
+		normalized = normalized.substr(device_segment_index + BLUEZ_DEVICE_SEGMENT_PREFIX.length())
+		var child_path_index := normalized.find("/")
+		if child_path_index >= 0:
+			normalized = normalized.substr(0, child_path_index)
+	normalized = normalized.replace("-", ":").replace("_", ":").to_upper()
+	if normalized.length() == 12 and not normalized.contains(":"):
+		var parts := PackedStringArray()
+		for index in range(0, normalized.length(), 2):
+			parts.append(normalized.substr(index, 2))
+		normalized = ":".join(parts)
+	if not _is_bluetooth_address(normalized):
+		return ""
+	return normalized
+
+
+func _is_bluetooth_address(value: String) -> bool:
+	var parts := value.split(":")
+	if parts.size() != 6:
 		return false
+	for part in parts:
+		if part.length() != 2:
+			return false
+		for index in range(part.length()):
+			if not _is_hex_digit_code(part.unicode_at(index)):
+				return false
 	return true
+
+
+func _is_hex_digit_code(value: int) -> bool:
+	return (value >= 48 and value <= 57) or (value >= 65 and value <= 70)
 
 
 func _set_status(value: String) -> void:

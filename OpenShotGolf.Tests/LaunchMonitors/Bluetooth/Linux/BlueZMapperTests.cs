@@ -169,4 +169,18 @@ public sealed class BlueZMapperTests
         Assert.That(writeOptions["type"], Is.EqualTo("request"));
         Assert.That(writeWithoutResponseOptions["type"], Is.EqualTo("command"));
     }
+
+    [TestCase("org.bluez.Error.Failed", "le-connection-abort-by-local", true)]
+    [TestCase("org.bluez.Error.InProgress", "Operation already in progress", true)]
+    [TestCase("org.bluez.Error.Failed", "Authentication failed", false)]
+    [TestCase("org.bluez.Error.NotReady", "Adapter is not ready", false)]
+    public void IsTransientConnectFailureMatchesExpectedBlueZFailures(
+        string errorName,
+        string errorMessage,
+        bool expected)
+    {
+        var matched = BlueZMapper.IsTransientConnectFailure(errorName, errorMessage);
+
+        Assert.That(matched, Is.EqualTo(expected));
+    }
 }
