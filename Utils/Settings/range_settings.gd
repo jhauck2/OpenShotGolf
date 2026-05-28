@@ -3,7 +3,6 @@ extends SettingCollector
 
 var range_units := Setting.new(PhysicsEnums.Units.IMPERIAL)
 var camera_follow_mode := Setting.new(true)
-var shot_injector_enabled := Setting.new(false)
 var auto_ball_reset := Setting.new(false)
 var ball_reset_timer := Setting.new(3.0, 1.0, 15.0)
 var temperature := Setting.new(75, -40, 120)
@@ -16,7 +15,6 @@ func _init():
 	settings = {
 		"range_units": range_units,
 		"camera_follow_mode": camera_follow_mode,
-		"shot_injector_enabled": shot_injector_enabled,
 		"auto_ball_reset": auto_ball_reset,
 		"ball_reset_timer": ball_reset_timer,
 		"temperature": temperature,

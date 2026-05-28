@@ -5,14 +5,15 @@ signal set_session(dir: String, player_name: String)
 
 signal hit_shot(data)
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	GlobalSettings.range_settings.shot_injector_enabled.setting_changed.connect(toggle_shot_injector)
+	GlobalSettings.app_settings.test_shots_enabled.setting_changed.connect(toggle_shot_injector)
+	toggle_shot_injector(GlobalSettings.app_settings.test_shots_enabled.value)
 
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(_delta: float) -> void:
-	pass
+func _exit_tree() -> void:
+	var setting := GlobalSettings.app_settings.test_shots_enabled
+	if setting.setting_changed.is_connected(toggle_shot_injector):
+		setting.setting_changed.disconnect(toggle_shot_injector)
 
 
 func set_data(data: Dictionary) -> void:
@@ -80,7 +81,6 @@ func _on_session_recorder_recording_state(value: bool) -> void:
 func _on_session_pop_up_dir_selected(dir: String, player_name: String) -> void:
 	$HBoxContainer/PlayerName.text = player_name
 	emit_signal("set_session", dir, player_name)
-	pass # Replace with function body.
 
 
 
@@ -92,8 +92,8 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
 
-func toggle_shot_injector(value) -> void:
-	$ShotInjector.visible = value
+func toggle_shot_injector(value: Variant) -> void:
+	$ShotInjector.visible = bool(value)
 
 
 func _on_toggle_settings_requested() -> void:
