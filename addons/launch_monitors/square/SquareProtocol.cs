@@ -1,7 +1,7 @@
 using System;
 using System.Buffers.Binary;
 
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 public static class SquareProtocol
 {

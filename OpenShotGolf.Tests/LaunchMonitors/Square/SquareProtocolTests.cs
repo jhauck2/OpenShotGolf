@@ -1,7 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using NUnit.Framework;
-using OpenShotGolf.LaunchMonitors.Square;
+using LaunchMonitors.Square;
 
 namespace OpenShotGolf.Tests.LaunchMonitors.Square;
 

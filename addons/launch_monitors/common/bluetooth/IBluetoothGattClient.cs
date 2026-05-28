@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenShotGolf.LaunchMonitors.Bluetooth;
+namespace LaunchMonitors.Common.Bluetooth;
 
 internal interface IBluetoothGattClient : IAsyncDisposable
 {

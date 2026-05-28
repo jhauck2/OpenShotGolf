@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
+using LaunchMonitors.Common.Bluetooth;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
-namespace OpenShotGolf.LaunchMonitors.Bluetooth.Windows;
+namespace LaunchMonitors.Common.Bluetooth.Windows;
 
 internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
 {

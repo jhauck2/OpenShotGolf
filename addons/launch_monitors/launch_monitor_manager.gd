@@ -1,5 +1,7 @@
 extends Node
 
+# Monitor implementations live in sibling folders (e.g. `square/`); shared transports and external receivers live under `common/`.
+
 signal hit_ball(data: Dictionary)
 signal device_discovered(device_id: String, name: String, rssi: int)
 signal status_changed(status: String)
@@ -11,7 +13,7 @@ signal ready_changed(is_ready: bool)
 const SETTINGS_PATH := "user://square_launch_monitor.cfg"
 const DEFAULT_CLUB_CODE := "0204"
 const SQUARE_CLASS_NAME := "SquareLaunchMonitor"
-const SQUARE_SCRIPT_PATH := "res://LaunchMonitors/Square/SquareLaunchMonitor.cs"
+const SQUARE_SCRIPT_PATH := "res://addons/launch_monitors/square/SquareLaunchMonitor.cs"
 const SQUARE_LOG_PREFIX := "[SquareLM]"
 const SQUARE_DEVICE_PREFIX := "squaregolf"
 const BLUEZ_DEVICE_SEGMENT_PREFIX := "/dev_"

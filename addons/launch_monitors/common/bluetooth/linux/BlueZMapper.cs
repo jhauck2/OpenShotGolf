@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
+using LaunchMonitors.Common.Bluetooth;
 
-namespace OpenShotGolf.LaunchMonitors.Bluetooth.Linux;
+namespace LaunchMonitors.Common.Bluetooth.Linux;
 
 internal static class BlueZMapper
 {

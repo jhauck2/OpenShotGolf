@@ -1,10 +1,10 @@
 using System;
 
-namespace OpenShotGolf.LaunchMonitors.Bluetooth;
+namespace LaunchMonitors.Common.Bluetooth;
 
 internal static class BluetoothGattClientFactory
 {
-    private const string WindowsClientTypeName = "OpenShotGolf.LaunchMonitors.Bluetooth.Windows.WindowsBluetoothGattClient";
+    private const string WindowsClientTypeName = "LaunchMonitors.Common.Bluetooth.Windows.WindowsBluetoothGattClient";
 
     public static IBluetoothGattClient Create()
     {

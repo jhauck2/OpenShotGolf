@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
-using OpenShotGolf.LaunchMonitors.Bluetooth.Linux;
+using LaunchMonitors.Common.Bluetooth;
+using LaunchMonitors.Common.Bluetooth.Linux;
 
 namespace OpenShotGolf.Tests.LaunchMonitors.Bluetooth.Linux;
 

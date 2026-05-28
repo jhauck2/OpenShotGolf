@@ -21,3 +21,7 @@ OpenShotGolf.Tests/obj/
 .vscode
 
 *addons/terrain_3d/bin/*
+
+*.claude
+*.codex
+*.agents

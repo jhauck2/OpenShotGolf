@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="LaunchMonitors/Bluetooth/Windows/**/*.cs" Condition=" '$(GodotTargetPlatform)' != 'windows' And '$(OS)' != 'Windows_NT' " />
+    <Compile Remove="addons/launch_monitors/common/bluetooth/windows/**/*.cs" Condition=" '$(GodotTargetPlatform)' != 'windows' And '$(OS)' != 'Windows_NT' " />
     <Compile Remove="OpenShotGolf.Tests/**/*.cs" />
   </ItemGroup>
 </Project>

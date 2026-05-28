@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
+using LaunchMonitors.Common.Bluetooth;
 using Tmds.DBus;
 
-namespace OpenShotGolf.LaunchMonitors.Bluetooth.Linux;
+namespace LaunchMonitors.Common.Bluetooth.Linux;
 
 internal sealed class LinuxBluetoothGattClient : IBluetoothGattClient
 {

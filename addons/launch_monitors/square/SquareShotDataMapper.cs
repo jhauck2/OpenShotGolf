@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 public static class SquareShotDataMapper
 {
@@ -33,4 +33,3 @@ public static class SquareShotDataMapper
         };
     }
 }
-

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ecp4h3om36dt"]
 
 [ext_resource type="Script" uid="uid://c4whkfuiysonu" path="res://Courses/UserCourses/Airways/course.gd" id="1_sunpe"]
-[ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://TCP/tcp_server.gd" id="2_d1a0v"]
+[ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://addons/launch_monitors/common/tcp_server/TcpServer.cs" id="2_d1a0v"]
 [ext_resource type="PackedScene" uid="uid://w55fmvo7ly8g" path="res://Player/player.tscn" id="3_4jr3s"]
 [ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="4_d1a0v"]
 [ext_resource type="Texture2D" uid="uid://btxo07ji1qkds" path="res://Courses/Environments/grassy-meadow1-bl/grassy-meadow1_alb_ht.png" id="5_6rpr1"]
@@ -306,8 +306,8 @@ text = "250
 [node name="SessionRecorder" type="Node" parent="." unique_id=18851557]
 script = ExtResource("21_6rpr1")
 
-[connection signal="hit_ball" from="TCPServer" to="." method="_on_tcp_client_hit_ball"]
-[connection signal="hit_ball" from="TCPServer" to="Player" method="_on_tcp_client_hit_ball"]
+[connection signal="HitBall" from="TCPServer" to="." method="_on_tcp_client_hit_ball"]
+[connection signal="HitBall" from="TCPServer" to="Player" method="_on_tcp_client_hit_ball"]
 [connection signal="bad_data" from="Player" to="TCPServer" method="_on_player_bad_data"]
 [connection signal="good_data" from="Player" to="TCPServer" method="_on_golf_ball_good_data"]
 [connection signal="manual_hit" from="Player" to="." method="_on_player_manual_hit"]

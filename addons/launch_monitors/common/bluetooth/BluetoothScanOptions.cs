@@ -1,3 +1,3 @@
-namespace OpenShotGolf.LaunchMonitors.Bluetooth;
+namespace LaunchMonitors.Common.Bluetooth;
 
 internal sealed record BluetoothScanOptions(string DeviceNamePrefix);

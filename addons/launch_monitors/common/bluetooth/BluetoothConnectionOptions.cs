@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OpenShotGolf.LaunchMonitors.Bluetooth;
+namespace LaunchMonitors.Common.Bluetooth;
 
 internal sealed record BluetoothConnectionOptions(
     IReadOnlyCollection<Guid> RequiredCharacteristicUuids,

@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 public static class SquareCommandBuilder
 {

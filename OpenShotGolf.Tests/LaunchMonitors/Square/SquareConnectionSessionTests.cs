@@ -6,8 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
-using OpenShotGolf.LaunchMonitors.Square;
+using LaunchMonitors.Common.Bluetooth;
+using LaunchMonitors.Square;
 
 namespace OpenShotGolf.Tests.LaunchMonitors.Square;
 

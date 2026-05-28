@@ -1,7 +1,7 @@
 using Godot;
 using GodotDictionary = Godot.Collections.Dictionary;
 
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 public static class SquareGodotMapper
 {
@@ -29,4 +29,3 @@ public static class SquareGodotMapper
         };
     }
 }
-

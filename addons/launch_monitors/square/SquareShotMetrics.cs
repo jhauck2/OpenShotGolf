@@ -1,4 +1,4 @@
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 public readonly record struct SquareShotMetrics(
     float BallSpeedMps,

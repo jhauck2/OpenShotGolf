@@ -27,7 +27,7 @@ PhantomCameraManager="*uid://duq6jhf6unyis"
 SceneManager="*res://Utils/SceneManager.gd"
 EventBus="*res://Utils/EventBus.gd"
 GlobalSettings="*res://Utils/Settings/global_settings.gd"
-LaunchMonitorManager="*res://LaunchMonitors/launch_monitor_manager.gd"
+LaunchMonitorManager="*res://addons/launch_monitors/launch_monitor_manager.gd"
 
 [display]
 

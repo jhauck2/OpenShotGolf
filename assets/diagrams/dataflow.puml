@@ -2,7 +2,7 @@
 title OpenShotGolf Launch Data Flow
 
 actor "Launch Monitor" as LM
-participant "TCPServer\nTCP/tcp_server.gd" as TCP
+participant "TCPServer\naddons/launch_monitors/common/tcp_server/TcpServer.cs" as TCP
 participant "Range Scene\nCourses/Range/range.tscn" as Range
 participant "Player\nPlayer/player.gd" as Player
 participant "Ball\nPlayer/ball.gd" as Ball

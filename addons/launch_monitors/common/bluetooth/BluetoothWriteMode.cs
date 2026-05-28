@@ -1,4 +1,4 @@
-namespace OpenShotGolf.LaunchMonitors.Bluetooth;
+namespace LaunchMonitors.Common.Bluetooth;
 
 internal enum BluetoothWriteMode
 {

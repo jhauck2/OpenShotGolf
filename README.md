@@ -21,12 +21,12 @@
 Open Shot Golf (formerly JaySimG) is an open source golf simulator built with the Godot Engine. It is designed to work out of the box with the PiTrac Launch Monitor and any GSPro-style interface that sends ball data to the configured port. PiTrac project: https://github.com/jamespilgrim/PiTrac
 
 ## Current State
-- **Launch monitor support:** Officially tested with PiTrac; other GSPro interfaces should work when pointed at the correct port.
+- **Launch monitor support:** Officially tested with PiTrac and Square. 
 - **Game modes:** Driving range with data readouts, club selection, and range session recording.
 - **Platforms:** Linux and Windows confirmed; macOS is untested but expected to work.
 
 ## Feature Highlights
-- GSPro-compatible TCP listener for incoming ball/club data.
+- Uses GSPro Open Connect v1 https://gsprogolf.com/GSProConnectV1.html TCP listener for incoming ball/club data.
 - Physics based ball flight with drag, lift (Magnus), grass drag, and friction modeling.
 - On-range telemetry: carry, total, apex, offline, and shot trails.
 - Environment tuning for temperature and altitude, impacting air density and flight.
@@ -55,7 +55,7 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 ## Surface and Rollout Tuning
 - Range settings expose a surface preset (Firm/Fairway/Soft Fairway/Rough) that maps to ground friction and grass drag parameters in `physics/surface.gd` (`u_k`, `u_kr`, `nu_g`).
 - Firm uses lower friction/grass drag for faster rollout; Rough uses higher values to shorten rollout; Fairway sits between.
-- These were limited tested with PiTrac hits with limited ball speeds between 40-80mph. Also compared and tested against what a player would expect on GSPro Practice session rollout (FIRM). These numbers are always subjected to weather (morning dew), slightly longer grass in rough vs shorter, etc. Overall, its a good starting point to give options. In the future the code leaves room to scale to sand, and different types of grass (e.g. FIRM_FESCUE vs FIRM_BERMUDA)
+- These were limited tested with PiTrac hits with limited ball speeds between 40-80mph. These numbers are always subjected to weather (morning dew), slightly longer grass in rough vs shorter, etc. Overall, its a good starting point to give options. In the future the code leaves room to scale to sand, and different types of grass (e.g. FIRM_FESCUE vs FIRM_BERMUDA)
 - Defaults are heuristic (tuned for believable rollout) and can be adjusted in the range settings UI. They are not direct measurements from a single study but informed by typical rolling/sliding friction ranges on turf and the drag curve below.
 - References: 
   - USGA Green Speed Physics (Stimpmeter deceleration): https://www.waddengolfacademy.com/putting/USGA%20Green%20Speed%20Physics.pdf
@@ -63,7 +63,7 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
   - USGA Stimpmeter Booklet (green speed measurement): https://www.usga.org/content/dam/usga/pdf/imported/StimpmeterBookletFINAL.pdf
 
 ## Launch Monitor and Networking
-- A TCP server in `TCP/tcp_server.gd` listens on port `49152` for GSPro-style JSON payloads. When `ShotDataOptions.ContainsBallData` is true, ball data is emitted to the gameplay layer.
+- A TCP server in `addons/launch_monitors/common/tcp_server/TcpServer.cs` listens on port `49152` for JSON payloads. When `ShotDataOptions.ContainsBallData` is true, ball data is emitted to the gameplay layer.
 - Good data responses return `{ "Code": 200 }`; malformed data returns a 50x response. Adjust your launch monitor to target the host IP and port `49152`.
 - Keyboard shortcuts remain available for local testing without hardware (see Controls).
 
@@ -71,11 +71,11 @@ Open Shot Golf (formerly JaySimG) is an open source golf simulator built with th
 ![System Data Flow](assets/images/dataflow_ssd.png)
 
 ## Sample Data Payload
-Example GSPro-style message used for socket testing (`assets/data/drive_test_shot.json`):
+Example GSPro Open Connect v1 message used for socket testing (`assets/data/drive_test_shot.json`):
 
 ```json
 {
-    "DeviceID": "GSPro LM 1.1",
+    "DeviceID": "PiTrac LM 1.1",
     "Units": "Yards",
     "ShotNumber": 13,
     "APIversion": "1",
@@ -138,7 +138,7 @@ Download and install the .NET SDK version 9.0 or later.
 ## Project Layout
 - `Player/`: Ball physics, player controller, and shot metric tracking.
 - `physics/`: Shared physics modules (BallPhysics, Aerodynamics, surfaces, docs).
-- `TCP/`: TCP server and GSPro-style JSON handling.
+- `addons/launch_monitors/`: Launch monitor implementations (e.g. `square/`) plus shared plumbing under `common/` (`common/bluetooth/` transport, `common/tcp_server/` GSPro listener) and the `launch_monitor_manager.gd` autoload.
 - `Courses/Range/`: Range scene, UI, and yardage output.
 - `Resources/`, `UI/`, `Utils/`: Art assets, UI components, and helper scripts.
 

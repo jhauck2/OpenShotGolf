@@ -3,9 +3,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
+using LaunchMonitors.Common.Bluetooth;
 
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 internal sealed class SquareConnectionSession : IAsyncDisposable
 {

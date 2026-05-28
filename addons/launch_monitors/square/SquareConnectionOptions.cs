@@ -1,6 +1,6 @@
 using System;
 
-namespace OpenShotGolf.LaunchMonitors.Square;
+namespace LaunchMonitors.Square;
 
 internal sealed record SquareConnectionOptions(
     string DeviceNamePrefix,

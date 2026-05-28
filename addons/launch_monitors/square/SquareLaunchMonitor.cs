@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Godot;
-using OpenShotGolf.LaunchMonitors.Bluetooth;
-using OpenShotGolf.LaunchMonitors.Square;
+using LaunchMonitors.Common.Bluetooth;
+using LaunchMonitors.Square;
 using GodotDictionary = Godot.Collections.Dictionary;
 
 [GlobalClass]
