@@ -1,4 +1,3 @@
-using System;
 using Godot;
 
 /// <summary>
@@ -20,11 +19,17 @@ public partial class Aerodynamics : RefCounted
 	private const float SUTHERLAND_CONSTANT = 198.72f;  // K (source: NASA)
 	private const float FEET_TO_METERS = 0.3048f;
 
-	// Lift coefficient cap to prevent ballooning on high-spin shots
-	public const float CL_MAX = 0.55f;
+	// Physically realistic coefficient bounds for dimpled golf balls in-play.
+	// Sources in project docs (Bearman/Harvey, R&A studies) place Cd and Cl
+	// in a narrower range than the prior ad-hoc high-Re fit.
+	public const float CL_MAX_BASE = 0.268f;
+	public const float CL_MAX_HIGH_SPIN = 0.32f;
+	public static float CD_MIN => FlightAerodynamicsModel.CdMin;
 
-	// Read-only property for GDScript access to constant (private set satisfies [Export] requirement)
-	[Export] public float ClMax { get => CL_MAX; private set { } }
+	// Read-only property for GDScript access to constants (private set satisfies [Export] requirement)
+	[Export] public float ClMax { get => CL_MAX_BASE; private set { } }
+	[Export] public float ClMaxHighSpin { get => CL_MAX_HIGH_SPIN; private set { } }
+	[Export] public float CdMin { get => CD_MIN; private set { } }
 
 	/// <summary>
 	/// Convert Fahrenheit to Celsius
@@ -96,13 +101,7 @@ public partial class Aerodynamics : RefCounted
 	/// <returns>Drag coefficient (Cd)</returns>
 	public float GetCd(float Re)
 	{
-		if (Re < 50000.0f)
-			return 0.5f;
-		if (Re > 200000.0f)
-			return 0.2f;
-
-		// Polynomial fit to experimental data
-		return 1.1948f - 0.0000209661f * Re + 1.42472e-10f * Re * Re - 3.14383e-16f * Re * Re * Re;
+		return FlightAerodynamicsModel.GetCd(Re);
 	}
 
 	/// <summary>
@@ -114,79 +113,6 @@ public partial class Aerodynamics : RefCounted
 	/// <returns>Lift coefficient (Cl)</returns>
 	public float GetCl(float Re, float spinRatio)
 	{
-		// Low Reynolds number - minimal lift
-		if (Re < 50000.0f)
-			return 0.1f;
-
-		// High Reynolds number - use linear model directly
-		if (Re > 75000.0f)
-			return Mathf.Clamp(ClHighRe(spinRatio), 0.0f, CL_MAX);
-
-		// Interpolation between polynomial models for 50k <= Re <= 75k
-		int[] reValues = { 50000, 60000, 65000, 70000, 75000 };
-		int reHighIndex = reValues.Length - 1;
-
-		for (int i = 0; i < reValues.Length; i++)
-		{
-			if (Re <= reValues[i])
-			{
-				reHighIndex = i;
-				break;
-			}
-		}
-
-		int reLowIndex = Mathf.Max(reHighIndex - 1, 0);
-
-		Func<float, float>[] clFunctions = {
-			ClRe50k,
-			ClRe60k,
-			ClRe65k,
-			ClRe70k,
-			ClHighRe
-		};
-
-		float clLow = clFunctions[reLowIndex](spinRatio);
-		float clHigh = clFunctions[reHighIndex](spinRatio);
-		float reLow = reValues[reLowIndex];
-		float reHigh = reValues[reHighIndex];
-
-		float weight = 0.0f;
-		if (reHigh != reLow)
-		{
-			weight = (Re - reLow) / (reHigh - reLow);
-		}
-
-		float clInterpolated = Mathf.Lerp(clLow, clHigh, weight);
-		return Mathf.Clamp(clInterpolated, 0.0f, CL_MAX);
-	}
-
-	// Polynomial models for different Reynolds number ranges
-	private float ClRe50k(float S)
-	{
-		return 0.0472121f + 2.84795f * S - 23.4342f * S * S + 45.4849f * S * S * S;
-	}
-
-	private float ClRe60k(float S)
-	{
-		return 0.320524f - 4.7032f * S + 14.0613f * S * S;
-	}
-
-	private float ClRe65k(float S)
-	{
-		return 0.266667f - 4.0f * S + 13.3333f * S * S;
-	}
-
-	private float ClRe70k(float S)
-	{
-		return 0.0496189f + 0.00211396f * S + 2.34201f * S * S;
-	}
-
-	private float ClHighRe(float S)
-	{
-		// Linear model for high Reynolds numbers (Re >= 75k)
-		// Calibrated to match realistic carry distances
-		// Cap at 0.38 to prevent ballooning
-		float linearCl = 1.3f * S + 0.05f;
-		return Mathf.Min(linearCl, 0.38f);
+		return FlightAerodynamicsModel.GetCl(Re, spinRatio);
 	}
 }

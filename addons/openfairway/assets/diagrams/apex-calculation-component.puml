@@ -1,0 +1,50 @@
+@startuml
+skinparam monochrome true
+left to right direction
+
+package "Input Sources" {
+  class TcpServer
+  class CourseHud
+}
+
+package "Hole Orchestration" {
+  class HoleSceneControllerBase
+  class GameplayUI
+  class ShotDisplaySession
+}
+
+package "Shot + Physics" {
+  class ShotTracker {
+    +Apex : float
+    +OnTcpClientHitBall(data)
+    +OnGameplayUiHitShot(data)
+    +_PhysicsProcess(delta)
+    +OnBallRest()
+  }
+  class GolfBall
+}
+
+package "Formatting + HUD" {
+  class ShotFormatter
+  class ShotDisplaySnapshot
+  class DataPanel
+}
+
+TcpServer --> HoleSceneControllerBase : HitBall(data)
+CourseHud --> HoleSceneControllerBase : HitShot(data) via GameplayUI
+
+HoleSceneControllerBase --> ShotTracker : launch shot (TCP/UI)
+HoleSceneControllerBase --> ShotDisplaySession : SetRawPayload(data)
+HoleSceneControllerBase --> ShotDisplaySession : Refresh(shotTracker, units)
+ShotDisplaySession --> ShotFormatter : FormatBallDisplaySnapshot(...)
+ShotFormatter --> ShotTracker : read Apex/Carry/Distance
+HoleSceneControllerBase --> GameplayUI : SetData(snapshot)
+GameplayUI --> CourseHud : SetData(data)
+CourseHud --> DataPanel : Apex.SetData(value)
+
+ShotTracker --> GolfBall : CallDeferred(HitFromData)
+ShotTracker --> GolfBall : read Position.Y per physics tick
+ShotTracker --> ShotTracker : Apex = max(Apex, Ball.Position.Y)
+ShotTracker --> HoleSceneControllerBase : ShotComplete(data with Apex)
+
+@enduml

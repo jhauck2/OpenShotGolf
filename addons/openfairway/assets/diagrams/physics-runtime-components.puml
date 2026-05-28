@@ -1,0 +1,50 @@
+@startuml
+skinparam monochrome true
+left to right direction
+
+package "Game Runtime" {
+  class HoleSceneControllerBase
+  class GolfBall
+  class LieSurfaceResolver
+  class SurfaceZone
+  class GridMap
+}
+
+package "Physics Runtime" {
+  class ShotSetup
+  class PhysicsParamsFactory
+  class ResolvedPhysicsParams
+  class BallPhysicsProfile
+  class SurfacePhysicsCatalog
+  class Surface
+  class PhysicsParams
+  class BallPhysics
+  class PhysicsAdapter
+}
+
+HoleSceneControllerBase --> GolfBall : launch + resolve surface delegate
+HoleSceneControllerBase --> LieSurfaceResolver : default surface + zones + grid maps
+SurfaceZone --> HoleSceneControllerBase : enter/exit signals
+GridMap --> LieSurfaceResolver : Fairway/Green/Rough item names
+
+GolfBall --> ShotSetup : parse launch data
+GolfBall --> PhysicsParamsFactory : Create(...)
+PhysicsParamsFactory --> SurfacePhysicsCatalog : Get(surface)
+PhysicsParamsFactory --> BallPhysicsProfile : apply modifiers
+PhysicsParamsFactory --> ResolvedPhysicsParams : build typed values
+ResolvedPhysicsParams --> PhysicsParams : ToPhysicsParams()
+GolfBall --> BallPhysics : IntegrateStep / CalculateBounce
+
+Surface --> SurfacePhysicsCatalog : get_params(surface)
+PhysicsAdapter --> PhysicsParamsFactory : Create(...)
+PhysicsAdapter --> BallPhysics : headless simulation
+
+note bottom of LieSurfaceResolver
+Precedence:
+1. active SurfaceZone
+2. registered GridMap world point
+3. collider GridMap ancestry
+4. default surface
+end note
+
+@enduml

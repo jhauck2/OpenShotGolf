@@ -1,0 +1,45 @@
+@startuml
+skinparam monochrome true
+autonumber
+
+actor "Player / TCP" as Input
+participant "HoleSceneControllerBase" as Hole
+participant "GolfBall" as Ball
+participant "LieSurfaceResolver" as Resolver
+participant "SurfaceZone" as Zone
+participant "GridMap" as Grid
+participant "PhysicsParamsFactory" as Factory
+participant "BallPhysics" as Physics
+
+Input -> Hole : hit shot(data)
+Hole -> Ball : HitFromData(data)
+Ball -> Ball : ShotSetup.BuildLaunchVectors(...)
+
+loop each 240 Hz step
+  Ball -> Factory : Create(env, active surface, normal, rollout spin)
+  Factory -> Factory : read SurfacePhysicsCatalog
+  Factory --> Ball : PhysicsParams
+  Ball -> Physics : IntegrateStep(...)
+
+  alt first ground collision
+    Ball -> Hole : ResolveLieSurface(collider, worldPoint)
+    Hole -> Resolver : Resolve(collider, worldPoint)
+
+    alt active zone override
+      Resolver -> Zone : use top of zone stack
+    else grid surface lookup
+      Resolver -> Grid : probe Fairway/Green/Rough cells
+    else fallback
+      Resolver -> Resolver : use default surface
+    end
+
+    Resolver --> Hole : SurfaceType + source
+    Hole --> Ball : SetLieSurface(surface)
+    Ball -> Factory : Create(... resolved surface ...)
+    Factory --> Ball : PhysicsParams
+    Ball -> Physics : CalculateBounce(...)
+    Ball -> Ball : log [LandingSurface]
+  end
+end
+
+@enduml
