@@ -58,7 +58,6 @@ Cross-platform BLE GATT abstraction. `BluetoothGattClientFactory.Create()` picks
 1. Create `addons/launch_monitors/<monitor>/` with a public Godot `Node` subclass that emits the same signals (`hit_ball`, `status_changed`, `error_occurred`, `battery_changed`, `firmware_changed`, `ready_changed`).
 2. If the monitor uses BLE, depend on `LaunchMonitors.Common.Bluetooth.IBluetoothGattClient` (resolve via the factory). For other transports, add a sibling folder under `common/` (e.g. `common/serial/`) — don't put transports inside the monitor's folder.
 3. Wire the monitor into `launch_monitor_manager.gd` so UI can select it.
-4. **Important — update `OpenShotGolf.Tests/OpenShotGolf.Tests.csproj`:** the test project does not glob; it pulls shared C# files via explicit `<Compile Include="..\addons\launch_monitors\..." Link="..." />` entries. Any new `.cs` file the tests need to reference must be added there or `dotnet test` will fail with type-not-found errors.
 
 ## Adding a new transport under `common/`
 
