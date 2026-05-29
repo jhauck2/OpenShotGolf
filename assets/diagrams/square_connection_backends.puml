@@ -1,0 +1,23 @@
+@startuml square_connection_backends
+skinparam componentStyle rectangle
+
+component "launch_monitor_manager.gd" as Manager
+component "SquareLaunchMonitor" as Node
+component "SquareConnectionSession" as Session
+interface "IBluetoothGattClient" as Ble
+component "WindowsBluetoothGattClient" as Windows
+component "LinuxBluetoothGattClient" as Linux
+component "Square protocol helpers" as Protocol
+component "Linux saved Square auto-scan" as LinuxAutoScan
+
+Manager --> Node : Godot calls and signals
+Manager --> LinuxAutoScan : startup when enabled\nand saved device exists
+LinuxAutoScan --> Node : StartScan for SquareGolf\nConnect on saved address match
+Node --> Session : shared Square flow
+Session --> Ble : GATT UUID operations
+Session --> Protocol : commands and packet parsing
+Ble <|.. Windows
+Ble <|.. Linux
+Windows --> "WinRT Bluetooth"
+Linux --> "BlueZ D-Bus"
+@enduml

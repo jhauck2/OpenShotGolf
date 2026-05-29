@@ -1,6 +1,6 @@
 # OpenFairway Physics
 
-Realistic golf ball physics engine for Godot 4.5+ C# projects. Usable from both C# and GDScript. The same runtime path powers the in-game `GolfBall` node and the headless `PhysicsAdapter`.
+Realistic golf ball physics engine with aerodynamics, bounce, and surface interactions for Godot 4.6+ C# projects. Usable from both C# and GDScript.
 
 ## Table of Contents
 - [Requirements](#requirements)
@@ -33,16 +33,17 @@ Realistic golf ball physics engine for Godot 4.5+ C# projects. Usable from both 
 
 ## Requirements
 
-- **Godot 4.5+** with **.NET support**
+- **Godot 4.6+** with **.NET support** (the standard GDScript-only editor build will not work)
 - **.NET 9.0 SDK** (or later)
-- The addon is written in C#, but GDScript projects can consume it through Godot interop
+- The .NET build is required because this addon is written in C#
+- GDScript projects **can** use this addon — Godot's cross-language scripting handles the interop automatically
 
 ### Installing .NET 9.0 SDK
 
-**Windows**
-1. Download the .NET 9.0 SDK from https://dotnet.microsoft.com/download/dotnet/9.0
-2. Run the installer
-3. Verify with `dotnet --version`
+**Windows:**
+1. Download the .NET 9.0 SDK installer from https://dotnet.microsoft.com/download/dotnet/9.0
+2. Run the installer and follow the prompts
+3. Verify: open a terminal and run `dotnet --version`
 
 **Linux (Ubuntu/Debian)**
 ```bash
