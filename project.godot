@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="OpenShotGolf"
-config/version="1.1.1"
+config/version="0.1.4"
 run/main_scene="uid://dgyd437dgyv0y"
 config/features=PackedStringArray("4.6", "C#", "Mobile")
 boot_splash/image="uid://db1qv4yqokht7"
