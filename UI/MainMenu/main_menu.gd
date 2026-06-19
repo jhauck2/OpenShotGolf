@@ -17,7 +17,7 @@ var _version_text: String
 
 func _ready() -> void:
 	_exit_button.pressed.connect(_on_exit_pressed)
-	_settings_button.pressed.connect(_on_settings_pressed)
+	_settings_button.pressed.connect(_settings_panel.show_panel)
 	_range_button.pressed.connect(_on_range_pressed)
 	_courses_button.pressed.connect(_on_courses_pressed)
 	_settings_panel.set_main_menu_button_visible(false)
@@ -139,10 +139,6 @@ func _update_launch_monitor_status() -> void:
 		_launch_monitor_firmware_label.text = "Firmware: %s" % firmware
 	else:
 		_launch_monitor_firmware_label.text = "Firmware: -"
-
-
-func _on_settings_pressed() -> void:
-	_settings_panel.show_panel()
 
 
 func _on_exit_pressed() -> void:

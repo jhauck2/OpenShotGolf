@@ -407,6 +407,9 @@ func _square_debug(message: String) -> void:
 func update_units(value) -> void:
 	const m2ft = 3.28084
 
+	# Block spin box signals to prevent _on_*_value_changed from firing
+	# during conversion, which would double-write the setting.
+	
 	temperature_spin_box.set_block_signals(true)
 	altitude_spin_box.set_block_signals(true)
 
