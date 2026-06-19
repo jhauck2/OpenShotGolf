@@ -206,7 +206,7 @@ func _create_collision_and_model():
 	add_child(mesh)
 
 func _connect_settings() -> void:
-	_range_settings = GlobalSettings.range_settings
+	_range_settings = GlobalSettingsManager.range_settings
 	var settings := _range_settings
 
 	if not settings.temperature.setting_changed.is_connected(_on_environment_changed):
@@ -268,7 +268,7 @@ func _on_lift_scale_changed(_value) -> void:
 func _update_environment() -> void:
 	if _aero == null:
 		return
-	var settings := GlobalSettings.range_settings
+	var settings := GlobalSettingsManager.range_settings
 	var units: int = settings.range_units.value
 	var density = _call_openfairway_method(
 		_aero,
@@ -716,7 +716,7 @@ func set_env(_value) -> void:
 
 
 func _get_ball_label() -> String:
-	match GlobalSettings.range_settings.ball_type.value:
+	match GlobalSettingsManager.range_settings.ball_type.value:
 		GolfBall.BallType.PREMIUM:
 			return "Premium"
 		_:

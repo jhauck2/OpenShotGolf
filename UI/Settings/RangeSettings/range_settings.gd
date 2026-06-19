@@ -49,11 +49,11 @@ func _setup_spin_box(spin_box: SpinBox, setting: Setting, step: float) -> void:
 		spin_box.max_value = setting.max_value
 	spin_box.value = setting.value
 	spin_box.set_block_signals(false)
-	
+
 	if spin_box.value != setting.value:
 		setting.set_value(spin_box.value)
 
-# Called when the node enters the scene tree for the first time.
+
 func _ready() -> void:
 	reset_spin_box = $MarginContainer/VBoxContainer/BallResetTimer/ResetSpinBox
 	temperature_spin_box = $MarginContainer/VBoxContainer/Temperature/TemperatureSpinBox
@@ -62,61 +62,51 @@ func _ready() -> void:
 	ball_type_option = $MarginContainer/VBoxContainer/BallType/BallTypeOption
 	tracer_count_spin_box = $MarginContainer/VBoxContainer/TracerCount/TracerCountSpinBox
 
-	# Reset Timer Settings
-	_setup_spin_box(reset_spin_box, GlobalSettings.range_settings.ball_reset_timer, 0.5)
+	_setup_spin_box(reset_spin_box, GlobalSettingsManager.range_settings.ball_reset_timer, 0.5)
+	_setup_spin_box(temperature_spin_box, GlobalSettingsManager.range_settings.temperature, 1.0)
+	_setup_spin_box(altitude_spin_box, GlobalSettingsManager.range_settings.altitude, 10.0)
+	_setup_spin_box(tracer_count_spin_box, GlobalSettingsManager.range_settings.shot_tracer_count, 1.0)
 
-	# Temperature Settings
-	_setup_spin_box(temperature_spin_box, GlobalSettings.range_settings.temperature, 1.0)
-
-	# Altitude Settings
-	_setup_spin_box(altitude_spin_box, GlobalSettings.range_settings.altitude, 10.0)
-
-	# Drag scale
-	# Tracer count
-	_setup_spin_box(tracer_count_spin_box, GlobalSettings.range_settings.shot_tracer_count, 1.0)
-
-	# Surface type options
 	surface_option.clear()
 	surface_option.add_item("Fairway", PhysicsEnums.SurfaceType.FAIRWAY)
 	surface_option.add_item("Soft Fairway", PhysicsEnums.SurfaceType.FAIRWAY_SOFT)
 	surface_option.add_item("Rough", PhysicsEnums.SurfaceType.ROUGH)
 	surface_option.add_item("Firm", PhysicsEnums.SurfaceType.FIRM)
-	var surface_id: int = GlobalSettings.range_settings.surface_type.value
+	var surface_id: int = GlobalSettingsManager.range_settings.surface_type.value
 	var surface_index := surface_option.get_item_index(surface_id)
 	if surface_index >= 0:
 		surface_option.select(surface_index)
 
-	# Ball type options
 	if ball_type_option:
 		ball_type_option.clear()
 		ball_type_option.add_item("Standard", GolfBall.BallType.STANDARD)
 		ball_type_option.add_item("Premium", GolfBall.BallType.PREMIUM)
-		var ball_type_id: int = GlobalSettings.range_settings.ball_type.value
+		var ball_type_id: int = GlobalSettingsManager.range_settings.ball_type.value
 		var ball_type_index := ball_type_option.get_item_index(ball_type_id)
 		if ball_type_index >= 0:
 			ball_type_option.select(ball_type_index)
 
-	GlobalSettings.range_settings.range_units.setting_changed.connect(update_units)
+	GlobalSettingsManager.range_settings.range_units.setting_changed.connect(update_units)
 
-	# Initialize toggle button states
 	$MarginContainer/VBoxContainer/Units/CheckButton.set_pressed_no_signal(
-		GlobalSettings.range_settings.range_units.value == PhysicsEnums.Units.METRIC
+		GlobalSettingsManager.range_settings.range_units.value == PhysicsEnums.Units.METRIC
 	)
 	$MarginContainer/VBoxContainer/CameraFollow/CheckButton.set_pressed_no_signal(
-		GlobalSettings.range_settings.camera_follow_mode.value
+		GlobalSettingsManager.range_settings.camera_follow_mode.value
 	)
 	$MarginContainer/VBoxContainer/AutoBallReset/CheckButton.set_pressed_no_signal(
-		GlobalSettings.range_settings.auto_ball_reset.value
+		GlobalSettingsManager.range_settings.auto_ball_reset.value
 	)
 	$MarginContainer/VBoxContainer/ShotInjector/CheckButton.set_pressed_no_signal(
-		GlobalSettings.range_settings.shot_injector_enabled.value
+		GlobalSettingsManager.app_settings.test_shots_enabled.value
 	)
 	_setup_square_monitor_section()
 
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(_delta: float) -> void:
-	pass
+func _exit_tree() -> void:
+	var units_setting := GlobalSettingsManager.range_settings.range_units
+	if units_setting.setting_changed.is_connected(update_units):
+		units_setting.setting_changed.disconnect(update_units)
 
 
 func _on_settings_button_pressed() -> void:
@@ -124,7 +114,6 @@ func _on_settings_button_pressed() -> void:
 
 
 func _on_background_clicked(event: InputEvent) -> void:
-	# Close the menu when clicking on the background
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		close_settings_requested.emit()
 
@@ -135,32 +124,33 @@ func _on_exit_button_pressed() -> void:
 
 func _on_units_check_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
-		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.METRIC)
+		GlobalSettingsManager.range_settings.range_units.set_value(PhysicsEnums.Units.METRIC)
 	else:
-		GlobalSettings.range_settings.range_units.set_value(PhysicsEnums.Units.IMPERIAL)
+		GlobalSettingsManager.range_settings.range_units.set_value(PhysicsEnums.Units.IMPERIAL)
 
 
 func _on_camer_check_button_toggled(toggled_on: bool) -> void:
-	GlobalSettings.range_settings.camera_follow_mode.set_value(toggled_on)
+	GlobalSettingsManager.range_settings.camera_follow_mode.set_value(toggled_on)
 
 
 func _on_auto_reset_check_button_toggled(toggled_on: bool) -> void:
-	GlobalSettings.range_settings.auto_ball_reset.set_value(toggled_on)
+	GlobalSettingsManager.range_settings.auto_ball_reset.set_value(toggled_on)
 
 
 func _on_injector_check_button_toggled(toggled_on: bool) -> void:
-	GlobalSettings.range_settings.shot_injector_enabled.set_value(toggled_on)
+	GlobalSettingsManager.app_settings.test_shots_enabled.set_value(toggled_on)
+
 
 func _on_reset_spin_box_value_changed(value: float) -> void:
-	GlobalSettings.range_settings.ball_reset_timer.set_value(value)
+	GlobalSettingsManager.range_settings.ball_reset_timer.set_value(value)
 
 
 func _on_temperature_spin_box_value_changed(value: float) -> void:
-	GlobalSettings.range_settings.temperature.set_value(value)
+	GlobalSettingsManager.range_settings.temperature.set_value(value)
 
 
 func _on_altitude_spin_box_value_changed(value: float) -> void:
-	GlobalSettings.range_settings.altitude.set_value(value)
+	GlobalSettingsManager.range_settings.altitude.set_value(value)
 
 
 func _on_drag_spin_box_value_changed(_value: float) -> void:
@@ -169,18 +159,18 @@ func _on_drag_spin_box_value_changed(_value: float) -> void:
 
 func _on_surface_option_item_selected(index: int) -> void:
 	var id: int = surface_option.get_item_id(index)
-	GlobalSettings.range_settings.surface_type.set_value(id)
+	GlobalSettingsManager.range_settings.surface_type.set_value(id)
 
 
 func _on_tracer_count_spin_box_value_changed(value: float) -> void:
-	GlobalSettings.range_settings.shot_tracer_count.set_value(int(value))
+	GlobalSettingsManager.range_settings.shot_tracer_count.set_value(int(value))
 
 
 func _on_ball_type_option_item_selected(index: int) -> void:
-	if ball_type_option == null: #If you remove, ball selection stops working in settings. Look at debug shot. 
+	if ball_type_option == null:
 		return
 	var id: int = ball_type_option.get_item_id(index)
-	GlobalSettings.range_settings.ball_type.set_value(id)
+	GlobalSettingsManager.range_settings.ball_type.set_value(id)
 
 
 func _setup_square_monitor_section() -> void:
@@ -204,7 +194,7 @@ func _setup_square_monitor_section() -> void:
 	enabled_row.add_child(_make_label("Enabled"))
 	enabled_row.add_child(_make_spacer())
 	square_enabled_button = CheckButton.new()
-	square_enabled_button.set_pressed_no_signal(bool(launch_monitor.settings.get("enabled", false)))
+	square_enabled_button.set_pressed_no_signal(bool(GlobalSettingsManager.app_settings.launch_monitor_enabled.value))
 	square_enabled_button.toggled.connect(_on_square_enabled_toggled)
 	enabled_row.add_child(square_enabled_button)
 	section.add_child(enabled_row)
@@ -243,7 +233,7 @@ func _setup_square_monitor_section() -> void:
 		var index := square_club_option.item_count
 		square_club_option.add_item(club_name)
 		square_club_option.set_item_metadata(index, SQUARE_CLUBS[club_name])
-	var current_club := str(launch_monitor.settings.get("club_code", "0204"))
+	var current_club: String = launch_monitor.get_square_club_code()
 	_select_option_by_metadata(square_club_option, current_club)
 	square_club_option.item_selected.connect(_on_square_club_selected)
 	club_row.add_child(square_club_option)
@@ -254,7 +244,7 @@ func _setup_square_monitor_section() -> void:
 	square_handedness_option = OptionButton.new()
 	square_handedness_option.add_item("Right", 0)
 	square_handedness_option.add_item("Left", 1)
-	var handedness := int(launch_monitor.settings.get("handedness", 0))
+	var handedness: int = launch_monitor.get_square_handedness()
 	var hand_index := square_handedness_option.get_item_index(handedness)
 	if hand_index >= 0:
 		square_handedness_option.select(hand_index)
@@ -309,7 +299,7 @@ func _refresh_square_devices() -> void:
 	if square_device_option == null or not has_node("/root/LaunchMonitorManager"):
 		return
 	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	var selected_device := str(launch_monitor.settings.get("device_id", ""))
+	var selected_device: String = launch_monitor.get_selected_device_id()
 	square_device_option.clear()
 	for device_id in launch_monitor.devices.keys():
 		var device = launch_monitor.devices[device_id]
@@ -419,29 +409,30 @@ func update_units(value) -> void:
 
 	# Block spin box signals to prevent _on_*_value_changed from firing
 	# during conversion, which would double-write the setting.
+	
 	temperature_spin_box.set_block_signals(true)
 	altitude_spin_box.set_block_signals(true)
 
 	if value == PhysicsEnums.Units.IMPERIAL:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "F"
-		var temp_f = GlobalSettings.range_settings.temperature.value * 9.0 / 5.0 + 32.0
+		var temp_f = GlobalSettingsManager.range_settings.temperature.value * 9.0 / 5.0 + 32.0
 		temperature_spin_box.value = temp_f
-		GlobalSettings.range_settings.temperature.set_value(temp_f)
+		GlobalSettingsManager.range_settings.temperature.set_value(temp_f)
 
 		$MarginContainer/VBoxContainer/Altitude/Label2.text = "ft"
-		var alt_ft = GlobalSettings.range_settings.altitude.value * m2ft
+		var alt_ft = GlobalSettingsManager.range_settings.altitude.value * m2ft
 		altitude_spin_box.value = alt_ft
-		GlobalSettings.range_settings.altitude.set_value(alt_ft)
+		GlobalSettingsManager.range_settings.altitude.set_value(alt_ft)
 	else:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "C"
-		var temp_c = (GlobalSettings.range_settings.temperature.value - 32.0) * 5.0 / 9.0
+		var temp_c = (GlobalSettingsManager.range_settings.temperature.value - 32.0) * 5.0 / 9.0
 		temperature_spin_box.value = temp_c
-		GlobalSettings.range_settings.temperature.set_value(temp_c)
+		GlobalSettingsManager.range_settings.temperature.set_value(temp_c)
 
 		$MarginContainer/VBoxContainer/Altitude/Label2.text = "m"
-		var alt_m = GlobalSettings.range_settings.altitude.value / m2ft
+		var alt_m = GlobalSettingsManager.range_settings.altitude.value / m2ft
 		altitude_spin_box.value = alt_m
-		GlobalSettings.range_settings.altitude.set_value(alt_m)
+		GlobalSettingsManager.range_settings.altitude.set_value(alt_m)
 
 	temperature_spin_box.set_block_signals(false)
 	altitude_spin_box.set_block_signals(false)
