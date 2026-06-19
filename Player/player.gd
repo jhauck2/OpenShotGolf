@@ -30,10 +30,10 @@ func _ready() -> void:
 	ball.rest.connect(_on_ball_rest)
 	
 	# Set initial value and connect to setting changes
-	max_tracers = GlobalSettings.range_settings.shot_tracer_count.value
-	GlobalSettings.range_settings.shot_tracer_count.setting_changed.connect(_on_tracer_count_changed)
-	_apply_ball_type(GlobalSettings.range_settings.ball_type.value)
-	GlobalSettings.range_settings.ball_type.setting_changed.connect(_on_ball_type_changed)
+	max_tracers = GlobalSettingsManager.range_settings.shot_tracer_count.value
+	GlobalSettingsManager.range_settings.shot_tracer_count.setting_changed.connect(_on_tracer_count_changed)
+	_apply_ball_type(GlobalSettingsManager.range_settings.ball_type.value)
+	GlobalSettingsManager.range_settings.ball_type.setting_changed.connect(_on_ball_type_changed)
 
 func _on_tracer_count_changed(value) -> void:
 	max_tracers = value

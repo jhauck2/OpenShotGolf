@@ -25,7 +25,7 @@ func _draw():
 func _ready():
 	load_layout()
 	
-	GlobalSettings.range_settings.range_units.setting_changed.connect(set_units)
+	GlobalSettingsManager.range_settings.range_units.setting_changed.connect(set_units)
 
 func snap_to_grid(panel: Control):
 	var global_snap_x = round((panel.global_position.x - GRID_ORIGIN.x) / GRID_SIZE.x) * GRID_SIZE.x + GRID_ORIGIN.x

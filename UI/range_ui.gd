@@ -6,18 +6,18 @@ signal set_session(dir: String, player_name: String)
 signal hit_shot(data)
 
 func _ready() -> void:
-	GlobalSettings.app_settings.test_shots_enabled.setting_changed.connect(toggle_shot_injector)
-	toggle_shot_injector(GlobalSettings.app_settings.test_shots_enabled.value)
+	GlobalSettingsManager.app_settings.test_shots_enabled.setting_changed.connect(toggle_shot_injector)
+	toggle_shot_injector(GlobalSettingsManager.app_settings.test_shots_enabled.value)
 
 
 func _exit_tree() -> void:
-	var setting := GlobalSettings.app_settings.test_shots_enabled
+	var setting := GlobalSettingsManager.app_settings.test_shots_enabled
 	if setting.setting_changed.is_connected(toggle_shot_injector):
 		setting.setting_changed.disconnect(toggle_shot_injector)
 
 
 func set_data(data: Dictionary) -> void:
-	if GlobalSettings.range_settings.range_units.value == PhysicsEnums.Units.IMPERIAL:
+	if GlobalSettingsManager.range_settings.range_units.value == PhysicsEnums.Units.IMPERIAL:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
 		$GridCanvas/Side.set_data(data["Offline"])

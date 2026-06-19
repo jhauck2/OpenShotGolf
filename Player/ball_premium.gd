@@ -155,11 +155,11 @@ func _init_openfairway_instances() -> bool:
 func initialize_ball() -> void:
 	_connect_settings()
 	_update_environment()
-	set_surface(GlobalSettings.range_settings.surface_type.value)
+	set_surface(GlobalSettingsManager.range_settings.surface_type.value)
 
 
 func _connect_settings() -> void:
-	var settings := GlobalSettings.range_settings
+	var settings := GlobalSettingsManager.range_settings
 	var env_callable := Callable(self, "_on_environment_changed")
 
 	if not settings.temperature.setting_changed.is_connected(env_callable):
@@ -176,7 +176,7 @@ func _connect_settings() -> void:
 func _update_environment() -> void:
 	if _aero == null:
 		return
-	var settings := GlobalSettings.range_settings
+	var settings := GlobalSettingsManager.range_settings
 	var units: int = settings.range_units.value
 	var density = _call_openfairway_method(
 		_aero,

@@ -26,7 +26,7 @@ config/icon="uid://bcv0yjfm7ggro"
 PhantomCameraManager="*uid://duq6jhf6unyis"
 SceneManager="*res://Utils/SceneManager.gd"
 EventBus="*res://Utils/EventBus.gd"
-GlobalSettings="*res://Utils/Settings/global_settings.gd"
+GlobalSettingsManager="*res://Utils/Settings/global_settings.gd"
 LaunchMonitorManager="*res://addons/open-lm-connector/launch_monitor_manager.gd"
 
 [display]

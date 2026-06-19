@@ -289,9 +289,9 @@ func _on_square_shot_received(data: Dictionary) -> void:
 
 
 func _get_app_settings() -> AppSettings:
-	if GlobalSettings == null:
+	if GlobalSettingsManager == null:
 		return null
-	return GlobalSettings.app_settings
+	return GlobalSettingsManager.app_settings
 
 
 func _connect_launch_monitor_settings() -> void:

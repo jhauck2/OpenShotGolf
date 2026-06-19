@@ -74,7 +74,7 @@ var _panels_empty_label: Label = null
 var _panel_toggle_checked_icon: Texture2D = null
 var _panel_toggle_unchecked_icon: Texture2D = null
 
-var _global_settings: GlobalSettingsAutoload = null
+var _global_settings: GlobalSettings = null
 var _app_settings: AppSettings = null
 var _game_settings: GameSettings = null
 var _shot_tracer_count_setting: Setting = null
@@ -84,7 +84,7 @@ var _show_range_default_club_setting := true
 
 
 func _ready() -> void:
-	_global_settings = GlobalSettings
+	_global_settings = GlobalSettingsManager
 	if _global_settings != null:
 		_app_settings = _global_settings.app_settings
 		_game_settings = _global_settings.game_settings

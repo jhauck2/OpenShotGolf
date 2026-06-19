@@ -59,7 +59,7 @@ func _connect_launch_monitor_status_signals() -> void:
 		if not launch_monitor.firmware_changed.is_connected(_on_launch_monitor_firmware_changed):
 			launch_monitor.firmware_changed.connect(_on_launch_monitor_firmware_changed)
 
-	var global_settings = (GlobalSettings as GlobalSettingsAutoload)
+	var global_settings = (GlobalSettingsManager as GlobalSettings)
 	if global_settings != null and global_settings.app_settings != null:
 		var app_settings: AppSettings = global_settings.app_settings
 		if not app_settings.launch_monitor_enabled.setting_changed.is_connected(_on_launch_monitor_setting_changed):
@@ -78,7 +78,7 @@ func _disconnect_launch_monitor_status_signals() -> void:
 		if launch_monitor.firmware_changed.is_connected(_on_launch_monitor_firmware_changed):
 			launch_monitor.firmware_changed.disconnect(_on_launch_monitor_firmware_changed)
 
-	var global_settings = (GlobalSettings as GlobalSettingsAutoload)
+	var global_settings = (GlobalSettingsManager as GlobalSettings)
 	if global_settings != null and global_settings.app_settings != null:
 		var app_settings: AppSettings = global_settings.app_settings
 		if app_settings.launch_monitor_enabled.setting_changed.is_connected(_on_launch_monitor_setting_changed):
@@ -104,7 +104,7 @@ func _on_launch_monitor_setting_changed(_value: Variant) -> void:
 
 
 func _update_launch_monitor_status() -> void:
-	var global_settings = (GlobalSettings as GlobalSettingsAutoload)
+	var global_settings = (GlobalSettingsManager as GlobalSettings)
 	if global_settings == null or global_settings.app_settings == null:
 		_launch_monitor_status.visible = false
 		return

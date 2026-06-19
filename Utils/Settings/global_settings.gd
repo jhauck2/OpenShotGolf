@@ -1,4 +1,4 @@
-class_name GlobalSettingsAutoload
+class_name GlobalSettings
 extends Node
 
 signal settings_changed
