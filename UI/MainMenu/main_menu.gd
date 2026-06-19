@@ -50,57 +50,43 @@ func _update_version_label() -> void:
 
 
 func _connect_launch_monitor_status_signals() -> void:
+	var refresh := _update_launch_monitor_status.unbind(1)
 	var launch_monitor = (LaunchMonitorManager as LaunchMonitorManagerAutoload)
 	if launch_monitor != null:
-		if not launch_monitor.status_changed.is_connected(_on_launch_monitor_status_changed):
-			launch_monitor.status_changed.connect(_on_launch_monitor_status_changed)
-		if not launch_monitor.battery_changed.is_connected(_on_launch_monitor_battery_changed):
-			launch_monitor.battery_changed.connect(_on_launch_monitor_battery_changed)
-		if not launch_monitor.firmware_changed.is_connected(_on_launch_monitor_firmware_changed):
-			launch_monitor.firmware_changed.connect(_on_launch_monitor_firmware_changed)
+		if not launch_monitor.status_changed.is_connected(refresh):
+			launch_monitor.status_changed.connect(refresh)
+		if not launch_monitor.battery_changed.is_connected(refresh):
+			launch_monitor.battery_changed.connect(refresh)
+		if not launch_monitor.firmware_changed.is_connected(refresh):
+			launch_monitor.firmware_changed.connect(refresh)
 
 	var global_settings = (GlobalSettingsManager as GlobalSettings)
 	if global_settings != null and global_settings.app_settings != null:
 		var app_settings: AppSettings = global_settings.app_settings
-		if not app_settings.launch_monitor_enabled.setting_changed.is_connected(_on_launch_monitor_setting_changed):
-			app_settings.launch_monitor_enabled.setting_changed.connect(_on_launch_monitor_setting_changed)
-		if not app_settings.launch_monitor_provider.setting_changed.is_connected(_on_launch_monitor_setting_changed):
-			app_settings.launch_monitor_provider.setting_changed.connect(_on_launch_monitor_setting_changed)
+		if not app_settings.launch_monitor_enabled.setting_changed.is_connected(refresh):
+			app_settings.launch_monitor_enabled.setting_changed.connect(refresh)
+		if not app_settings.launch_monitor_provider.setting_changed.is_connected(refresh):
+			app_settings.launch_monitor_provider.setting_changed.connect(refresh)
 
 
 func _disconnect_launch_monitor_status_signals() -> void:
+	var refresh := _update_launch_monitor_status.unbind(1)
 	var launch_monitor = (LaunchMonitorManager as LaunchMonitorManagerAutoload)
 	if launch_monitor != null:
-		if launch_monitor.status_changed.is_connected(_on_launch_monitor_status_changed):
-			launch_monitor.status_changed.disconnect(_on_launch_monitor_status_changed)
-		if launch_monitor.battery_changed.is_connected(_on_launch_monitor_battery_changed):
-			launch_monitor.battery_changed.disconnect(_on_launch_monitor_battery_changed)
-		if launch_monitor.firmware_changed.is_connected(_on_launch_monitor_firmware_changed):
-			launch_monitor.firmware_changed.disconnect(_on_launch_monitor_firmware_changed)
+		if launch_monitor.status_changed.is_connected(refresh):
+			launch_monitor.status_changed.disconnect(refresh)
+		if launch_monitor.battery_changed.is_connected(refresh):
+			launch_monitor.battery_changed.disconnect(refresh)
+		if launch_monitor.firmware_changed.is_connected(refresh):
+			launch_monitor.firmware_changed.disconnect(refresh)
 
 	var global_settings = (GlobalSettingsManager as GlobalSettings)
 	if global_settings != null and global_settings.app_settings != null:
 		var app_settings: AppSettings = global_settings.app_settings
-		if app_settings.launch_monitor_enabled.setting_changed.is_connected(_on_launch_monitor_setting_changed):
-			app_settings.launch_monitor_enabled.setting_changed.disconnect(_on_launch_monitor_setting_changed)
-		if app_settings.launch_monitor_provider.setting_changed.is_connected(_on_launch_monitor_setting_changed):
-			app_settings.launch_monitor_provider.setting_changed.disconnect(_on_launch_monitor_setting_changed)
-
-
-func _on_launch_monitor_status_changed(_status: String) -> void:
-	_update_launch_monitor_status()
-
-
-func _on_launch_monitor_battery_changed(_level: int) -> void:
-	_update_launch_monitor_status()
-
-
-func _on_launch_monitor_firmware_changed(_firmware: String) -> void:
-	_update_launch_monitor_status()
-
-
-func _on_launch_monitor_setting_changed(_value: Variant) -> void:
-	_update_launch_monitor_status()
+		if app_settings.launch_monitor_enabled.setting_changed.is_connected(refresh):
+			app_settings.launch_monitor_enabled.setting_changed.disconnect(refresh)
+		if app_settings.launch_monitor_provider.setting_changed.is_connected(refresh):
+			app_settings.launch_monitor_provider.setting_changed.disconnect(refresh)
 
 
 func _update_launch_monitor_status() -> void:
