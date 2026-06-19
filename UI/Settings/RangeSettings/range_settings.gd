@@ -194,7 +194,7 @@ func _setup_square_monitor_section() -> void:
 	enabled_row.add_child(_make_label("Enabled"))
 	enabled_row.add_child(_make_spacer())
 	square_enabled_button = CheckButton.new()
-	square_enabled_button.set_pressed_no_signal(bool(launch_monitor.settings.get("enabled", false)))
+	square_enabled_button.set_pressed_no_signal(bool(GlobalSettings.app_settings.launch_monitor_enabled.value))
 	square_enabled_button.toggled.connect(_on_square_enabled_toggled)
 	enabled_row.add_child(square_enabled_button)
 	section.add_child(enabled_row)
@@ -233,7 +233,7 @@ func _setup_square_monitor_section() -> void:
 		var index := square_club_option.item_count
 		square_club_option.add_item(club_name)
 		square_club_option.set_item_metadata(index, SQUARE_CLUBS[club_name])
-	var current_club := str(launch_monitor.settings.get("club_code", "0204"))
+	var current_club: String = launch_monitor.get_square_club_code()
 	_select_option_by_metadata(square_club_option, current_club)
 	square_club_option.item_selected.connect(_on_square_club_selected)
 	club_row.add_child(square_club_option)
@@ -244,7 +244,7 @@ func _setup_square_monitor_section() -> void:
 	square_handedness_option = OptionButton.new()
 	square_handedness_option.add_item("Right", 0)
 	square_handedness_option.add_item("Left", 1)
-	var handedness := int(launch_monitor.settings.get("handedness", 0))
+	var handedness: int = launch_monitor.get_square_handedness()
 	var hand_index := square_handedness_option.get_item_index(handedness)
 	if hand_index >= 0:
 		square_handedness_option.select(hand_index)
@@ -299,7 +299,7 @@ func _refresh_square_devices() -> void:
 	if square_device_option == null or not has_node("/root/LaunchMonitorManager"):
 		return
 	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	var selected_device := str(launch_monitor.settings.get("device_id", ""))
+	var selected_device: String = launch_monitor.get_selected_device_id()
 	square_device_option.clear()
 	for device_id in launch_monitor.devices.keys():
 		var device = launch_monitor.devices[device_id]
