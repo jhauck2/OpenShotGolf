@@ -298,7 +298,7 @@ func _connect_launch_monitor_settings() -> void:
 	if _app_settings == null:
 		return
 
-	var callback := Callable(self, "_on_launch_monitor_setting_changed")
+	var callback := _apply_launch_monitor_settings.unbind(1)
 	if not _app_settings.launch_monitor_enabled.setting_changed.is_connected(callback):
 		_app_settings.launch_monitor_enabled.setting_changed.connect(callback)
 	if not _app_settings.launch_monitor_provider.setting_changed.is_connected(callback):
@@ -311,17 +311,13 @@ func _disconnect_launch_monitor_settings() -> void:
 	if _app_settings == null:
 		return
 
-	var callback := Callable(self, "_on_launch_monitor_setting_changed")
+	var callback := _apply_launch_monitor_settings.unbind(1)
 	if _app_settings.launch_monitor_enabled.setting_changed.is_connected(callback):
 		_app_settings.launch_monitor_enabled.setting_changed.disconnect(callback)
 	if _app_settings.launch_monitor_provider.setting_changed.is_connected(callback):
 		_app_settings.launch_monitor_provider.setting_changed.disconnect(callback)
 	if _app_settings.tcp_port.setting_changed.is_connected(callback):
 		_app_settings.tcp_port.setting_changed.disconnect(callback)
-
-
-func _on_launch_monitor_setting_changed(_value: Variant) -> void:
-	_apply_launch_monitor_settings()
 
 
 func _apply_launch_monitor_settings() -> void:
