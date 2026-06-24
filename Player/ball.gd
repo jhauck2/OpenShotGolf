@@ -630,7 +630,3 @@ func _print_launch_debug(data: Dictionary, speed_mps: float, vla: float, hla: fl
 	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length() / 0.10472))
 	print("Shot direction: ", shot_dir)
 	print("===================")
-
-
-func set_env(_value) -> void:
-	_update_environment()
