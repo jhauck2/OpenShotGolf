@@ -1,6 +1,7 @@
 extends Node3D
 
 var track_points : bool = false
+# TODO: move trail stuff into trail script
 var trail_timer : float = 0.0
 var trail_resolution : float = 0.1
 var apex := 0.0
@@ -25,7 +26,6 @@ signal manual_hit
 func _ready() -> void:
 	# Create new golf ball
 	ball = GolfBall.new()
-	ball.reset()
 	add_child(ball)
 	ball.rest.connect(_on_ball_rest)
 	
@@ -55,7 +55,6 @@ func create_new_tracer() -> MeshInstance3D:
 	var new_tracer = MeshInstance3D.new()
 	new_tracer.set_script(BallTrailScript)
 	add_child(new_tracer)
-	# _ready gets called automatically when added to scene tree
 
 	tracers.append(new_tracer)
 	current_tracer = new_tracer
@@ -69,7 +68,7 @@ func _process(_delta: float) -> void:
 		create_new_tracer()
 		ball.call_deferred("hit")
 		if current_tracer != null:
-			current_tracer.add_point(Vector3(0.0, 0.05, 0.0))
+			current_tracer.add_point(ball.position)
 		track_points = true
 		trail_timer = 0.0
 		emit_signal("manual_hit")

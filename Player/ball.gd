@@ -80,6 +80,7 @@ const DEFAULT_BALL_MOI := 0.4 * DEFAULT_BALL_MASS * DEFAULT_BALL_RADIUS * DEFAUL
 func _ready() -> void:
 	_try_initialize_ball()
 	_create_physics_params()
+	reset()
 
 
 
