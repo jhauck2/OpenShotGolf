@@ -3,8 +3,6 @@ class_name GolfBall
 
 signal rest
 
-#enum BallType {STANDARD, PREMIUM}
-
 const START_HEIGHT := 0.02
 const COLLISION_SAFE_MARGIN := 0.0005
 const BELOW_GROUND_RECOVERY_Y := -0.5
@@ -13,6 +11,7 @@ const GROUND_SNAP_OFFSET := 0.001
 const GROUND_RAYCAST_UP := 2.0
 const GROUND_RAYCAST_DOWN := 8.0
 const GROUND_PROBE_DISTANCE := 0.08
+const MIN_GROUND_NORMAL := 0.7
 
 var ball_model : PackedScene = preload("res://assets/models/balls/golf_ball.glb")
 
@@ -23,7 +22,7 @@ var _surface
 var _shot_setup
 
 # Physics parameters
-var params
+var params = null
 
 # Ball state variables
 var state: int = PhysicsEnums.BallState.REST
@@ -51,9 +50,6 @@ var _air_viscosity: float
 # TODO: takeout these scale and mult variables
 var _drag_scale := 1.0
 var _lift_scale := 1.0
-# Per-ball aerodynamic multipliers. Adjust these to make this ball fly differently (e.g., more lift/less drag).
-var _drag_mult := 1.0
-var _lift_mult := 1.0
 
 # Shot tracking
 var shot_start_pos := Vector3.ZERO
@@ -83,7 +79,7 @@ const DEFAULT_BALL_MOI := 0.4 * DEFAULT_BALL_MASS * DEFAULT_BALL_RADIUS * DEFAUL
 
 func _ready() -> void:
 	_try_initialize_ball()
-	params = _create_physics_params()
+	_create_physics_params()
 
 
 
@@ -202,9 +198,11 @@ func _connect_settings() -> void:
 
 
 func _create_physics_params():
+	if params != null:
+		return
 	var _params = _new_openfairway(&"PhysicsParams")
 	if _params == null:
-		return null
+		return
 	_set_openfairway_property(_params, &"air_density", &"AirDensity", _air_density)
 	_set_openfairway_property(_params, &"air_viscosity", &"AirViscosity", _air_viscosity)
 	_set_openfairway_property(_params, &"drag_scale", &"DragScale", _drag_scale)
@@ -215,7 +213,8 @@ func _create_physics_params():
 	_set_openfairway_property(_params, &"critical_angle", &"CriticalAngle", _critical_angle)
 	_set_openfairway_property(_params, &"floor_normal", &"FloorNormal", floor_normal)
 	_set_openfairway_property(_params, &"rollout_impact_spin", &"RolloutImpactSpin", rollout_impact_spin_rpm)
-	return _params
+	
+	params = _params
 
 func _on_environment_changed(_value) -> void:
 	_update_environment()
@@ -275,15 +274,15 @@ func _apply_surface_params() -> void:
 	if _surface == null:
 		return
 	var params_variant = _call_openfairway_method(_surface, &"get_params", &"GetParams", [surface_type])
-	var params: Dictionary = {}
+	var surface_params: Dictionary = {}
 	if typeof(params_variant) == TYPE_DICTIONARY:
-		params = params_variant
+		surface_params = params_variant
 	else:
-		params = {"u_k": 0.30, "u_kr": 0.03, "nu_g": 0.0010, "theta_c": 0.25}
-	_kinetic_friction = float(params.get("u_k", 0.30)) * _kinetic_mult
-	_rolling_friction = float(params.get("u_kr", 0.03)) * _rolling_mult
-	_grass_viscosity = float(params.get("nu_g", 0.0010)) * _grass_mult
-	_critical_angle = float(params.get("theta_c", 0.25)) * _critical_mult
+		surface_params = {"u_k": 0.30, "u_kr": 0.03, "nu_g": 0.0010, "theta_c": 0.25}
+	_kinetic_friction = float(surface_params.get("u_k", 0.30)) * _kinetic_mult
+	_rolling_friction = float(surface_params.get("u_kr", 0.03)) * _rolling_mult
+	_grass_viscosity = float(surface_params.get("nu_g", 0.0010)) * _grass_mult
+	_critical_angle = float(surface_params.get("theta_c", 0.25)) * _critical_mult
 	if OS.is_debug_build():
 		print("Surface set to %s -> u_k=%.3f, u_kr=%.3f, nu_g=%.4f, theta_c=%.3f" % [
 			str(surface_type), _kinetic_friction, _rolling_friction, _grass_viscosity, _critical_angle
@@ -378,13 +377,13 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 				var normal_velocity := velocity.dot(normal)
 				if absf(normal_velocity) < 0.5 and state == PhysicsEnums.BallState.ROLLOUT:
 					on_ground = true
-					velocity = _remove_velocity_along_normal(velocity, normal, true)
+					velocity = _remove_velocity_along_normal(velocity, normal)
 					print("  -> Ball grounded, continuing roll at %.2f m/s" % velocity.length())
 				else:
 					on_ground = false
 			else:
 				on_ground = true
-				velocity = _remove_velocity_along_normal(velocity, normal, false)
+				velocity = _remove_velocity_along_normal(velocity, normal)
 		else:
 			# Wall collision - damped reflection
 			on_ground = false
@@ -403,8 +402,6 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 
 func _try_recover_to_ground() -> bool:
 	var world := get_world_3d()
-	if world == null:
-		return false
 
 	var ray_start := global_position + Vector3.UP * GROUND_RAYCAST_UP
 	var ray_end := global_position + Vector3.DOWN * GROUND_RAYCAST_DOWN
@@ -426,7 +423,7 @@ func _try_recover_to_ground() -> bool:
 
 	global_position = hit_position + hit_normal * (_ball_radius + GROUND_SNAP_OFFSET)
 	floor_normal = hit_normal
-	velocity = _remove_velocity_along_normal(velocity, hit_normal, false)
+	velocity = _remove_velocity_along_normal(velocity, hit_normal)
 	on_ground = true
 
 	if state == PhysicsEnums.BallState.FLIGHT:
@@ -461,15 +458,12 @@ func _try_probe_ground() -> Dictionary:
 
 
 func _is_ground_normal(normal: Vector3) -> bool:
-	return normal.y > 0.7
+	return normal.y > MIN_GROUND_NORMAL
 
 
-func _remove_velocity_along_normal(source_velocity: Vector3, normal: Vector3, remove_both_directions: bool) -> Vector3:
-	var safe_normal := normal.normalized() if normal.length_squared() > 0.000001 else Vector3.UP
-	var normal_component := source_velocity.dot(safe_normal)
-	if not remove_both_directions and normal_component >= 0.0:
-		return source_velocity
-	return source_velocity - safe_normal * normal_component
+func _remove_velocity_along_normal(source_velocity: Vector3, normal: Vector3) -> Vector3:
+	var normal_component : Vector3= source_velocity.dot(normal)*normal
+	return source_velocity - normal_component
 
 
 func _print_impact_debug() -> void:
