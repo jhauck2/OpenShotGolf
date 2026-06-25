@@ -228,12 +228,9 @@ func _on_surface_type_changed(value) -> void:
 
 func _update_environment() -> void:
 	var units: int = GlobalSettings.range_settings.range_units.value
-	var density = _call_openfairway_method(
-		_aero,
-		&"get_air_density",
-		&"GetAirDensity",
-		[GlobalSettings.range_settings.altitude.value, GlobalSettings.range_settings.temperature.value, units]
-	)
+	var density = _aero.callv(&"GetAirDensity",
+	[GlobalSettings.range_settings.altitude.value, GlobalSettings.range_settings.temperature.value, units])
+	
 	var viscosity = _call_openfairway_method(
 		_aero,
 		&"get_dynamic_viscosity",

@@ -1,8 +1,6 @@
 extends Node3D
 
-var track_points : bool = false
-var trail_timer : float = 0.0
-var trail_resolution : float = 0.1
+
 var apex := 0
 var display_data: Dictionary = {
 	"Distance": "---",
@@ -25,10 +23,7 @@ var last_display: Dictionary = {}
 func _ready() -> void:
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	set_camera_follow_mode(GlobalSettings.range_settings.camera_follow_mode.value)
-	if ("/root/LaunchMonitorManager"):
-		var launch_monitor = get_node("/root/LaunchMonitorManager")
-		if not launch_monitor.hit_ball.is_connected(_on_launch_monitor_hit_ball):
-			launch_monitor.hit_ball.connect(_on_launch_monitor_hit_ball)
+	LaunchMonitorManager.hit_ball.connect(_on_launch_monitor_hit_ball)
 
 
 func _unhandled_input(event: InputEvent) -> void:
