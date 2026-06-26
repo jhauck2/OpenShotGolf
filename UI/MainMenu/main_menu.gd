@@ -12,6 +12,8 @@ var _version_text: String
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	ClCdTableGenerator.GenerateClTable()
+	ClCdTableGenerator.GenerateCdTable()
 	
 	_exit_button.pressed.connect(_on_exit_pressed)
 	_settings_button.pressed.connect(_on_settings_pressed)

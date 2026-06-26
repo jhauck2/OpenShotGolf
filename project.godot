@@ -28,6 +28,7 @@ SceneManager="*res://Utils/SceneManager.gd"
 EventBus="*res://Utils/EventBus.gd"
 GlobalSettings="*res://Utils/Settings/global_settings.gd"
 LaunchMonitorManager="*res://addons/launch_monitors/launch_monitor_manager.gd"
+Aero="*uid://dup30wasw646q"
 
 [display]
 
