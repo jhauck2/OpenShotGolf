@@ -11,7 +11,7 @@ var altitude := Setting.new(0.0, -1000.0, 10000.0)
 var surface_type := Setting.new(PhysicsEnums.SurfaceType.FAIRWAY)
 var shot_tracer_count := Setting.new(1, 0, 4)
 
-func _init():
+func _init() -> void:
 	settings = {
 		"range_units": range_units,
 		"camera_follow_mode": camera_follow_mode,

@@ -3,7 +3,7 @@ extends MarginContainer
 signal rec_button_pressed
 signal set_session(dir: String, player_name: String)
 
-signal hit_shot(data)
+signal hit_shot(data: Dictionary)
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -52,7 +52,7 @@ func set_data(data: Dictionary) -> void:
 		$GridCanvas/HLA.set_data(_format_angle(data.get("HLA")))
 
 
-func _format_angle(value) -> String:
+func _format_angle(value: float) -> String:
 	# Accept both numeric values and placeholder strings (e.g., "---" after reset).
 	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
 		return "%3.1f" % value
@@ -65,13 +65,13 @@ func _on_rec_button_pressed() -> void:
 
 func _on_session_recorder_recording_state(value: bool) -> void:
 	if value:
-		var red = Color(1.0, 0.0, 0.0, 1.0)
+		var red := Color(1.0, 0.0, 0.0, 1.0)
 		$HBoxContainer/RecButton.text = "REC: On"
 		$HBoxContainer/RecButton.set("theme_override_colors/font_color", red)
 		$HBoxContainer/RecButton.tooltip_text = "Stop Recording Range Session"
 		$SessionPopUp.open()
 	else:
-		var white = Color(1.0, 1.0, 1.0, 1.0)
+		var white := Color(1.0, 1.0, 1.0, 1.0)
 		$HBoxContainer/RecButton.text = "REC: Off"
 		$HBoxContainer/RecButton.set("theme_override_colors/font_color", white)
 		$HBoxContainer/RecButton.tooltip_text = "Start Recording Range Session"
@@ -92,7 +92,7 @@ func _on_session_recorder_set_session(user: String, dir: String) -> void:
 func _on_shot_injector_inject(data: Variant) -> void:
 	emit_signal("hit_shot", data)
 
-func toggle_shot_injector(value) -> void:
+func toggle_shot_injector(value: bool) -> void:
 	$ShotInjector.visible = value
 
 

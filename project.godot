@@ -30,6 +30,10 @@ GlobalSettings="*res://Utils/Settings/global_settings.gd"
 LaunchMonitorManager="*res://addons/launch_monitors/launch_monitor_manager.gd"
 Aero="*uid://dup30wasw646q"
 
+[debug]
+
+gdscript/warnings/untyped_declaration=1
+
 [display]
 
 window/size/viewport_width=1728

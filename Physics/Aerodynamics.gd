@@ -14,14 +14,21 @@ const FEET_TO_METERS : float = 0.3048
 var ClTable : Resource = null
 var CdTable : Resource = null
 
+var density : float = 1.0225 # kg/m3
+var viscosity : float # dynamic viscosity
+
 
 func _ready() -> void:
 	# instantiate Cl and Cd tables
-	
 	ClTable = load("res://Physics/LookupTables/cl_data.gd").new()
 	CdTable = load("res://Physics/LookupTables/cd_data.gd").new()
-	
-	print("Cd is: " + str(GetCd(62245.5)))
+	# TODO: move these values to "EnvironmentSettings"
+	SetAirDensity(GlobalSettings.range_settings.altitude.value, 
+				  GlobalSettings.range_settings.temperature.value,
+				  GlobalSettings.range_settings.range_units.value)
+				
+	SetDynamicViscosity(GlobalSettings.range_settings.temperature.value,
+						GlobalSettings.range_settings.range_units.value)
 
 func FahrenheitToCelsius(tempF : float) -> float:
 	return (tempF - 32.0)*5.0/9.0
@@ -39,7 +46,7 @@ func TempToKelvin(temp: float, units: PhysicsEnums.Units) -> float:
 	return tempK
 
 # Calculate air density using the barometric formula
-func GetAirDensity(altitude : float, temp : float, units : PhysicsEnums.Units) -> float:
+func SetAirDensity(altitude : float, temp : float, units : PhysicsEnums.Units) -> float:
 	var tempK : float = TempToKelvin(temp, units)
 	var altitudeM : float = 0.0
 	
@@ -51,17 +58,17 @@ func GetAirDensity(altitude : float, temp : float, units : PhysicsEnums.Units) -
 		
 	# Barometric formula
 	var exponent : float = (-EARTH_GRAVITY*MOLAR_MASS_DRY_AIR*altitudeM) / (UNIVERSAL_GAS_CONSTANT*tempK)
-	var pressure = PRESSURE_AT_SEALEVEL * exp(exponent)
+	var pressure : float = PRESSURE_AT_SEALEVEL * exp(exponent)
 	
-	return pressure / (GAS_CONSTANT_DRY_AIR*tempK)
-	
+	density = pressure / (GAS_CONSTANT_DRY_AIR*tempK)
+	return density
 
-func GetDynamicViscosity(temp: float, units: PhysicsEnums.Units) -> float:
-	var tempK = TempToKelvin(temp, units)
+func SetDynamicViscosity(temp: float, units: PhysicsEnums.Units) -> float:
+	var tempK :float = TempToKelvin(temp, units)
 	
 	# Sutherland formula
-	return DYN_VISCOSITY_ZERO_DEGREE*pow(tempK/KELVIN_CELSIUS,1.5)*(KELVIN_CELSIUS+SUTHERLAND_CONSTANT)/(tempK+SUTHERLAND_CONSTANT)
-
+	viscosity = DYN_VISCOSITY_ZERO_DEGREE*pow(tempK/KELVIN_CELSIUS,1.5)*(KELVIN_CELSIUS+SUTHERLAND_CONSTANT)/(tempK+SUTHERLAND_CONSTANT)
+	return viscosity
 
 func GetCd(Re: float) -> float:
 	# Get min and max Re values from table
@@ -87,7 +94,7 @@ func GetCd(Re: float) -> float:
 	
 	var cd_below : float = CdTable.data[index_below]
 	var cd_above : float = CdTable.data[index_above]
-	var weight : float = (CdTable.reValues[index_above] - Re)/(CdTable.reValues[index_above] - CdTable.reValues[index_below])
+	var weight : float = (Re - CdTable.reValues[index_below])/(CdTable.reValues[index_above] - CdTable.reValues[index_below])
 	
 	if abs(cd_below - cd_above) < 0.001:
 		return cd_below
@@ -96,7 +103,7 @@ func GetCd(Re: float) -> float:
 	return lerpf(cd_below, cd_above, weight)
 
 
-func GetCL(Re: float, spin: float) -> float:
+func GetCl(Re: float, spin: float) -> float:
 	# Get min and max Re values from table
 	var ReMin : float = ClTable.reValues[0]
 	var ReMax : float = ClTable.reValues[-1]
@@ -105,26 +112,54 @@ func GetCL(Re: float, spin: float) -> float:
 	var spinMin : float = ClTable.spinValues[0]
 	var spinMax : float = ClTable.spinValues[-1]
 	
-	var ReIndexBelow : int
-	var ReIndexAbove : int
-	var spinIndexBelow : int
-	var spinIndexAbove : int
+	var ReIndexBelow : int = 0
+	var ReIndexAbove : int = 1
+	var spinIndexBelow : int = 0
+	var spinIndexAbove : int = 1
+	
 	# Check for off table
 	if Re < ReMin:
-		ReIndexBelow = 0
 		ReIndexAbove = 0
 	elif Re > ReMax:
 		ReIndexBelow = ClTable.reValues.size()-1
 		ReIndexAbove = ClTable.reValues.size()-1
+	else: # Get bounding values
+		for i in range(1, ClTable.reValues.size()):
+			if Re < ClTable.reValues[i]:
+				ReIndexAbove = i
+				ReIndexBelow = i - 1
+				break
 		
 	if spin < spinMin:
-		spinIndexBelow = 0
 		spinIndexAbove = 0
 	elif spin > spinMax:
 		spinIndexBelow = ClTable.spinValues.size()-1
 		spinIndexAbove = ClTable.spinValues.size()-1
-		
-	# Find bounding indices
-		
+	else:
+		for i in range(1, ClTable.spinValues.size()):
+			if spin < ClTable.spinValues[i]:
+				spinIndexAbove = i
+				spinIndexBelow = i - 1
+				break
 	
-	return 0.0
+	if ReIndexBelow == ReIndexBelow:
+		if spinIndexBelow == spinIndexAbove:
+			return ClTable.data[spinIndexBelow][ReIndexBelow]
+		else:
+			var spinBelow : float = ClTable.spinValues[spinIndexBelow]
+			var spinAbove : float = ClTable.spinValues[spinIndexAbove]
+			var weight : float = (spin - spinBelow)/(spinAbove - spinBelow)
+			return lerpf(ClTable.data[spinIndexBelow][ReIndexBelow], ClTable.data[spinIndexAbove][ReIndexBelow], weight)
+	else:
+		var spinBelow : float = ClTable.spinValues[spinIndexBelow]
+		var spinAbove : float = ClTable.spinValues[spinIndexAbove]
+		var weightSpin : float = (spin - spinBelow)/(spinAbove - spinBelow)
+		var clLowRe : float = lerpf(ClTable.data[spinIndexBelow][ReIndexBelow], ClTable.data[spinIndexAbove][ReIndexBelow], weightSpin)
+		
+		var ClHiRe: float = lerpf(ClTable.data[spinIndexBelow][ReIndexAbove], ClTable.data[spinIndexAbove][ReIndexAbove], weightSpin)
+		
+		var ReBelow : float = ClTable.reValues[ReIndexBelow]
+		var ReAbove : float = ClTable.revalues[ReIndexAbove]
+		var weightRe : float = (Re - ReBelow)/(ReAbove - ReBelow)
+		
+		return lerpf(clLowRe, ClHiRe, weightRe)

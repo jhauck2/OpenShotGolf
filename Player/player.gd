@@ -11,9 +11,9 @@ var shot_data: Dictionary = {}
 
 var max_tracers : int = 4
 var min_tracers : int = 0
-var tracers : Array = []
+var tracers : Array[Node] = []
 var current_tracer : MeshInstance3D = null
-var BallTrailScript = preload("res://Player/ball_trail.gd")
+var BallTrailScript : Resource = preload("res://Player/ball_trail.gd")
 
 var ball : GolfBall = null
 
@@ -33,11 +33,11 @@ func _ready() -> void:
 	max_tracers = GlobalSettings.range_settings.shot_tracer_count.value
 	GlobalSettings.range_settings.shot_tracer_count.setting_changed.connect(_on_tracer_count_changed)
 
-func _on_tracer_count_changed(value) -> void:
+func _on_tracer_count_changed(value: int) -> void:
 	max_tracers = value
 	# Remove excess tracers if the new limit is lower
 	while tracers.size() > max_tracers:
-		var oldest = tracers.pop_front()
+		var oldest: Node = tracers.pop_front()
 		oldest.queue_free()
 
 func create_new_tracer() -> MeshInstance3D:
@@ -48,11 +48,11 @@ func create_new_tracer() -> MeshInstance3D:
 
 	# Remove oldest tracer if we've hit the limit
 	if tracers.size() >= max_tracers:
-		var oldest = tracers.pop_front()
+		var oldest : Node = tracers.pop_front()
 		oldest.queue_free()
 
 	# Create new tracer
-	var new_tracer = MeshInstance3D.new()
+	var new_tracer := MeshInstance3D.new()
 	new_tracer.set_script(BallTrailScript)
 	add_child(new_tracer)
 
@@ -79,7 +79,7 @@ func _process(_delta: float) -> void:
 		side_distance = 0.0
 		track_points = false
 		# Clear all tracers
-		for tracer in tracers:
+		for tracer: Node in tracers:
 			tracer.queue_free()
 		tracers.clear()
 		current_tracer = null
@@ -111,10 +111,10 @@ func validate_data(data: Dictionary) -> bool:
 		return false
 
 
-func reset_ball():
+func reset_ball() -> void:
 	ball.call_deferred("reset")
 	# Clear all tracers
-	for tracer in tracers:
+	for tracer: Node in tracers:
 		tracer.queue_free()
 	tracers.clear()
 	current_tracer = null
@@ -125,7 +125,7 @@ func reset_ball():
 		
 
 func reset_shot_data() -> void:
-	for key in shot_data.keys():
+	for key: String in shot_data.keys():
 		shot_data[key] = 0.0
 
 func _on_ball_rest() -> void:
@@ -137,7 +137,7 @@ func _on_ball_rest() -> void:
 	emit_signal("rest", shot_data)
 
 
-func get_ball_state():
+func get_ball_state() -> int:
 	return ball.state
 
 

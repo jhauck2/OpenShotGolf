@@ -169,12 +169,7 @@ func _on_ball_type_option_item_selected(index: int) -> void:
 
 
 func _setup_square_monitor_section() -> void:
-	if not has_node("/root/LaunchMonitorManager"):
-		_square_debug("LaunchMonitorManager singleton not found; Square section not created.")
-		return
-
-	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	_square_debug("Creating Square settings section. Initial status=%s" % str(launch_monitor.status))
+	_square_debug("Creating Square settings section. Initial status=%s" % str(LaunchMonitorManager.status))
 	var root := $MarginContainer/VBoxContainer
 	var section := VBoxContainer.new()
 	section.name = "SquareMonitor"
@@ -189,7 +184,7 @@ func _setup_square_monitor_section() -> void:
 	enabled_row.add_child(_make_label("Enabled"))
 	enabled_row.add_child(_make_spacer())
 	square_enabled_button = CheckButton.new()
-	square_enabled_button.set_pressed_no_signal(bool(launch_monitor.settings.get("enabled", false)))
+	square_enabled_button.set_pressed_no_signal(bool(LaunchMonitorManager.settings.get("enabled", false)))
 	square_enabled_button.toggled.connect(_on_square_enabled_toggled)
 	enabled_row.add_child(square_enabled_button)
 	section.add_child(enabled_row)
@@ -224,11 +219,11 @@ func _setup_square_monitor_section() -> void:
 	club_row.add_child(_make_label("Club"))
 	square_club_option = OptionButton.new()
 	square_club_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for club_name in SQUARE_CLUBS.keys():
+	for club_name: String in SQUARE_CLUBS.keys():
 		var index := square_club_option.item_count
 		square_club_option.add_item(club_name)
 		square_club_option.set_item_metadata(index, SQUARE_CLUBS[club_name])
-	var current_club := str(launch_monitor.settings.get("club_code", "0204"))
+	var current_club := str(LaunchMonitorManager.settings.get("club_code", "0204"))
 	_select_option_by_metadata(square_club_option, current_club)
 	square_club_option.item_selected.connect(_on_square_club_selected)
 	club_row.add_child(square_club_option)
@@ -239,7 +234,7 @@ func _setup_square_monitor_section() -> void:
 	square_handedness_option = OptionButton.new()
 	square_handedness_option.add_item("Right", 0)
 	square_handedness_option.add_item("Left", 1)
-	var handedness := int(launch_monitor.settings.get("handedness", 0))
+	var handedness := int(LaunchMonitorManager.settings.get("handedness", 0))
 	var hand_index := square_handedness_option.get_item_index(handedness)
 	if hand_index >= 0:
 		square_handedness_option.select(hand_index)
@@ -254,17 +249,17 @@ func _setup_square_monitor_section() -> void:
 	section.add_child(square_battery_label)
 	section.add_child(square_firmware_label)
 
-	var exit_button = root.get_node_or_null("ExitButton")
+	var exit_button : Button = root.get_node_or_null("ExitButton")
 	root.add_child(section)
 	if exit_button != null:
 		root.move_child(section, exit_button.get_index())
 
-	launch_monitor.device_discovered.connect(_on_square_device_discovered)
-	launch_monitor.status_changed.connect(_on_square_status_changed)
-	launch_monitor.error_occurred.connect(_on_square_error_occurred)
-	launch_monitor.battery_changed.connect(_on_square_battery_changed)
-	launch_monitor.firmware_changed.connect(_on_square_firmware_changed)
-	launch_monitor.ready_changed.connect(_on_square_ready_changed)
+	LaunchMonitorManager.device_discovered.connect(_on_square_device_discovered)
+	LaunchMonitorManager.status_changed.connect(_on_square_status_changed)
+	LaunchMonitorManager.error_occurred.connect(_on_square_error_occurred)
+	LaunchMonitorManager.battery_changed.connect(_on_square_battery_changed)
+	LaunchMonitorManager.firmware_changed.connect(_on_square_firmware_changed)
+	LaunchMonitorManager.ready_changed.connect(_on_square_ready_changed)
 
 	_refresh_square_devices()
 	_update_square_status_labels()
@@ -291,13 +286,12 @@ func _select_option_by_metadata(option: OptionButton, metadata: String) -> void:
 
 
 func _refresh_square_devices() -> void:
-	if square_device_option == null or not has_node("/root/LaunchMonitorManager"):
+	if square_device_option == null:
 		return
-	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	var selected_device := str(launch_monitor.settings.get("device_id", ""))
+	var selected_device := str(LaunchMonitorManager.settings.get("device_id", ""))
 	square_device_option.clear()
-	for device_id in launch_monitor.devices.keys():
-		var device = launch_monitor.devices[device_id]
+	for device_id: String in LaunchMonitorManager.devices.keys():
+		var device = LaunchMonitorManager.devices[device_id]
 		var label := str(device.get("name", "Square"))
 		var index := square_device_option.item_count
 		square_device_option.add_item(label)
@@ -307,26 +301,24 @@ func _refresh_square_devices() -> void:
 
 
 func _update_square_status_labels() -> void:
-	if not has_node("/root/LaunchMonitorManager") or square_status_label == null:
+	if square_status_label == null:
 		return
-	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	square_status_label.text = "Status: %s" % launch_monitor.status
-	if int(launch_monitor.battery_level) >= 0:
-		square_battery_label.text = "Battery: %d%%" % int(launch_monitor.battery_level)
+	square_status_label.text = "Status: %s" % LaunchMonitorManager.status
+	if int(LaunchMonitorManager.battery_level) >= 0:
+		square_battery_label.text = "Battery: %d%%" % int(LaunchMonitorManager.battery_level)
 	else:
 		square_battery_label.text = "Battery: --"
-	if str(launch_monitor.firmware) != "":
-		square_firmware_label.text = "Firmware: %s" % str(launch_monitor.firmware)
+	if str(LaunchMonitorManager.firmware) != "":
+		square_firmware_label.text = "Firmware: %s" % str(LaunchMonitorManager.firmware)
 	else:
 		square_firmware_label.text = "Firmware: --"
 
 
 func _on_square_enabled_toggled(toggled_on: bool) -> void:
 	_square_debug("Enabled toggled: %s" % str(toggled_on))
-	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	launch_monitor.set_enabled(toggled_on)
+	LaunchMonitorManager.set_enabled(toggled_on)
 	if not toggled_on:
-		launch_monitor.disconnect_device()
+		LaunchMonitorManager.disconnect_device()
 
 
 func _on_square_scan_pressed() -> void:
@@ -341,10 +333,9 @@ func _on_square_connect_pressed() -> void:
 	var index := square_device_option.selected
 	var device_id := str(square_device_option.get_item_metadata(index))
 	_square_debug("Connect pressed for device_id=%s" % device_id)
-	var launch_monitor = get_node("/root/LaunchMonitorManager")
-	launch_monitor.set_enabled(true)
+	LaunchMonitorManager.set_enabled(true)
 	square_enabled_button.set_pressed_no_signal(true)
-	launch_monitor.connect_to_device(device_id)
+	LaunchMonitorManager.connect_to_device(device_id)
 
 
 func _on_square_disconnect_pressed() -> void:
@@ -399,7 +390,7 @@ func _square_debug(message: String) -> void:
 	print("%s %s" % [SQUARE_UI_LOG_PREFIX, message])
 
 
-func update_units(value) -> void:
+func update_units(value: PhysicsEnums.Units) -> void:
 	const m2ft = 3.28084
 
 	# Block spin box signals to prevent _on_*_value_changed from firing
@@ -409,22 +400,22 @@ func update_units(value) -> void:
 
 	if value == PhysicsEnums.Units.IMPERIAL:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "F"
-		var temp_f = GlobalSettings.range_settings.temperature.value * 9.0 / 5.0 + 32.0
+		var temp_f: float = GlobalSettings.range_settings.temperature.value * 9.0 / 5.0 + 32.0
 		temperature_spin_box.value = temp_f
 		GlobalSettings.range_settings.temperature.set_value(temp_f)
 
 		$MarginContainer/VBoxContainer/Altitude/Label2.text = "ft"
-		var alt_ft = GlobalSettings.range_settings.altitude.value * m2ft
+		var alt_ft: float = GlobalSettings.range_settings.altitude.value * m2ft
 		altitude_spin_box.value = alt_ft
 		GlobalSettings.range_settings.altitude.set_value(alt_ft)
 	else:
 		$MarginContainer/VBoxContainer/Temperature/Label2.text = "C"
-		var temp_c = (GlobalSettings.range_settings.temperature.value - 32.0) * 5.0 / 9.0
+		var temp_c: float = (GlobalSettings.range_settings.temperature.value - 32.0) * 5.0 / 9.0
 		temperature_spin_box.value = temp_c
 		GlobalSettings.range_settings.temperature.set_value(temp_c)
 
 		$MarginContainer/VBoxContainer/Altitude/Label2.text = "m"
-		var alt_m = GlobalSettings.range_settings.altitude.value / m2ft
+		var alt_m: float = GlobalSettings.range_settings.altitude.value / m2ft
 		altitude_spin_box.value = alt_m
 		GlobalSettings.range_settings.altitude.set_value(alt_m)
 

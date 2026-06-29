@@ -2,14 +2,14 @@ extends Node
 
 signal scene_changed
 
-var current_scene = null
+var current_scene : Node = null
 
 
-func change_scene(path):
+func change_scene(path: String) -> void:
 	call_deferred("_deferred_change_scene", path)
 
 
-func _deferred_change_scene(scene_path) -> void:
+func _deferred_change_scene(scene_path: String) -> void:
 	var packed := load(str(scene_path)) as PackedScene
 	if packed == null:
 		push_error("Could not load scene: %s" % scene_path)
@@ -34,17 +34,17 @@ func load_course(scene_path: String, config_path: String) -> void:
 	current_scene.initialize(scene_path, config_path)
 
 
-func close_scene():
+func close_scene() -> void:
 	call_deferred("_deferred_close_scene")
 
 
-func _deferred_close_scene():
+func _deferred_close_scene() -> void:
 	if current_scene != null:
 		current_scene.queue_free()
 		current_scene = null
 
 
-func reload_scene():
+func reload_scene() -> void:
 	if current_scene == null:
 		return
 	var path: String = str(current_scene.scene_file_path)

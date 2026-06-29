@@ -15,23 +15,23 @@ func _process(_delta: float) -> void:
 	pass
 
 
-func open():
+func open() -> void:
 	visible = true
 	get_tree().paused = true
 	$PanelContainer/MarginContainer/VBoxContainer/Label2.visible = false
 	$PanelContainer/MarginContainer/VBoxContainer/Label2.text = ""
 	
-func set_session_data(user, dir):
+func set_session_data(user: String, dir: String) -> void:
 	$PanelContainer/MarginContainer/VBoxContainer/PlayerName/TextEdit.text = user
 	$PanelContainer/MarginContainer/VBoxContainer/Directory/TextEdit.text = dir
 	
-func close():
+func close() -> void:
 	visible = false
 	get_tree().paused = false
 
 func _on_ok_button_pressed() -> void:
-	var dir_text = $PanelContainer/MarginContainer/VBoxContainer/Directory/TextEdit.text
-	var player_name = $PanelContainer/MarginContainer/VBoxContainer/PlayerName/TextEdit.text
+	var dir_text : String = $PanelContainer/MarginContainer/VBoxContainer/Directory/TextEdit.text
+	var player_name : String = $PanelContainer/MarginContainer/VBoxContainer/PlayerName/TextEdit.text
 	if DirAccess.dir_exists_absolute(dir_text):
 		emit_signal("dir_selected", dir_text, player_name)
 		close()

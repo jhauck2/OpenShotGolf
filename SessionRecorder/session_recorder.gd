@@ -59,17 +59,17 @@ func _ready() -> void:
 
 	if FileAccess.file_exists(session_save_file):
 		var save_file := FileAccess.open(session_save_file, FileAccess.READ)
-		var json_object = JSON.new()
-		var error = json_object.parse(save_file.get_as_text())
+		var json_object := JSON.new()
+		var error : Error = json_object.parse(save_file.get_as_text())
 		if error == OK:
-			var save_data = json_object.data
+			var save_data : Dictionary = json_object.data
 			session_id = save_data["SessionID"]
 			username = save_data["Username"]
 			folder_path = save_data["SessionPath"]
 			emit_signal("set_session", username, folder_path)
 
 	else: # Create the save file
-		var save_file = FileAccess.open(session_save_file, FileAccess.WRITE)
+		var save_file := FileAccess.open(session_save_file, FileAccess.WRITE)
 		var default_save_data := {"SessionID": session_id, "SessionPath": folder_path, "Username": username}
 		save_file.store_string(JSON.stringify(default_save_data))
 
@@ -78,7 +78,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	pass
 
-func toggle_recording():
+func toggle_recording() -> void:
 	recording = not recording
 	if recording:
 		start_recording()
@@ -87,34 +87,34 @@ func toggle_recording():
 		
 	emit_signal("recording_state", recording)
 		
-func start_recording():
+func start_recording() -> void:
 	session_id += 1
 	date = Time.get_date_string_from_system()
 	session_data = {"User": username, "Date": date, "SessionID": session_id, "Shots": []}
 	
 	
-func record_shot(shot_data: Dictionary):
-	var data = base_shot.merged(shot_data, true)
+func record_shot(shot_data: Dictionary) -> void:
+	var data : Dictionary = base_shot.merged(shot_data, true)
 	shot_number += 1
 	data["Shot"] = shot_number
 	data["Club"] = current_club
 	session_data["Shots"].append(data)
 	
-func stop_recording():
+func stop_recording() -> void:
 	var filename : String = username + "_" + date + "_" + str(session_id) + ".json"
-	var save_file = FileAccess.open(folder_path +"/"+ filename, FileAccess.WRITE)
-	var json_string = JSON.stringify(session_data, "\t", false)
+	var save_file := FileAccess.open(folder_path +"/"+ filename, FileAccess.WRITE)
+	var json_string : String = JSON.stringify(session_data, "\t", false)
 	save_file.store_line(json_string)
 
-func save_all():
+func save_all() -> void:
 	if recording:
 		stop_recording()
 		
-	var save_file = FileAccess.open(session_save_file, FileAccess.WRITE)
+	var save_file := FileAccess.open(session_save_file, FileAccess.WRITE)
 	var save_data := {"SessionID": session_id, "SessionPath": folder_path, "Username": username}
 	save_file.store_string(JSON.stringify(save_data))
 
-func _notification(what):
+func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		save_all()
 		get_tree().quit()

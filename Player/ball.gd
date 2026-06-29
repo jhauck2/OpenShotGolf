@@ -84,7 +84,7 @@ func _ready() -> void:
 
 
 
-func _new_openfairway(openfairway_class: StringName):
+func _new_openfairway(openfairway_class: StringName) -> Variant:
 	var class_key := String(openfairway_class)
 	var fallback_script_path: String = OPENFAIRWAY_CLASS_PATHS.get(class_key, "")
 	if fallback_script_path != "":
@@ -177,15 +177,15 @@ func initialize_ball() -> void:
 	_create_collision_and_model()
 
 
-func _create_collision_and_model():
+func _create_collision_and_model() -> void:
 	# Create collision shape
-	var collision = CollisionShape3D.new()
-	var shape = SphereShape3D.new()
+	var collision := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
 	shape.set_radius(_ball_radius)
 	collision.set_shape(shape)
 	add_child(collision)
 	# Create model
-	var mesh = ball_model.instantiate()
+	var mesh : Node = ball_model.instantiate()
 	var mesh_scale := 0.05
 	mesh.scale = Vector3(mesh_scale, mesh_scale, mesh_scale)
 	add_child(mesh)

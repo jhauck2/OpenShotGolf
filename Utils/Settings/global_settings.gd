@@ -11,6 +11,6 @@ func _ready() -> void:
 	PhysicsLogger.SetLevel(OPENFAIRWAY_LOG_LEVEL_INFO)
 
 
-func resett_defaults():
+func resett_defaults() -> void:
 	range_settings.reset_defaults()
 	emit_signal("settings_changed")

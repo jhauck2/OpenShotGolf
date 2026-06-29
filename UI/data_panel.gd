@@ -3,7 +3,7 @@ extends PanelContainer
 @export var data: String = "---"
 @export var units: String = "units"
 signal drag_started
-signal drag_ended(panel)
+signal drag_ended(panel: Control)
 var dragging := false
 var drag_offset := Vector2.ZERO
 
@@ -19,21 +19,21 @@ func _process(_delta: float) -> void:
 	pass
 
 
-func set_label(l: String):
+func set_label(l: String) -> void:
 	label = l
 	$VBoxContainer/Label.text = l
 	
 
-func set_data(value: String):
+func set_data(value: String) -> void:
 	data = value
 	$VBoxContainer/Data.text = value
 	
 
-func set_units(u: String):
+func set_units(u: String) -> void:
 	units = u
 	$VBoxContainer/Units.text = units
 	
-func _gui_input(event):
+func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:

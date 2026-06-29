@@ -1,6 +1,6 @@
 extends VBoxContainer
 
-signal inject(data)
+signal inject(data: Dictionary)
 
 @export var default_payload_path := "res://assets/data/drive_test_shot.json"
 
@@ -31,7 +31,7 @@ func _populate_payloads() -> void:
 	}
 	var selected := 0
 	var idx := 0
-	for label in payloads.keys():
+	for label: String in payloads.keys():
 		var path: String = payloads[label]
 		payload_option.add_item(label)
 		payload_option.set_item_metadata(idx, path)
@@ -47,9 +47,9 @@ func _apply_payload(_payload_path: String) -> void:
 		var json_text := file.get_as_text()
 		var json := JSON.new()
 		if json.parse(json_text) == OK:
-			var parsed = json.data
+			var parsed : Dictionary = json.data
 			if parsed.has("BallData"):
-				var data = parsed["BallData"].duplicate()
+				var data : Dictionary = parsed["BallData"].duplicate()
 				$SpeedSpinBox.value = float(data["Speed"])
 				$SpinAxisSpinBox.value = float(data["SpinAxis"])
 				$TotalSpinSpinBox.value = float(data["TotalSpin"])
@@ -72,6 +72,6 @@ func _on_button_pressed() -> void:
 
 
 func _on_payload_option_item_selected(index: int) -> void:
-	var metadata = payload_option.get_item_metadata(index)
+	var metadata : Variant = payload_option.get_item_metadata(index)
 	if typeof(metadata) == TYPE_STRING:
 		_apply_payload(metadata)

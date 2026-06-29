@@ -11,7 +11,7 @@ var _version_text: String
 
 
 # Called when the node enters the scene tree for the first time.
-func _ready():
+func _ready() -> void:
 	ClCdTableGenerator.GenerateClTable()
 	ClCdTableGenerator.GenerateCdTable()
 	
@@ -37,10 +37,10 @@ func _on_courses_pressed() -> void:
 	SceneManager.change_scene("res://Courses/CourseSelector/course_selector.tscn")
 
 
-func _update_version_label():
+func _update_version_label() -> void:
 	_version_text = _version_fall_back
 	if (ProjectSettings.has_setting(_version_setting_path)):
-		var _configured_version = str(ProjectSettings.get_setting(_version_setting_path)).strip_edges()
+		var _configured_version : String = str(ProjectSettings.get_setting(_version_setting_path)).strip_edges()
 		_version_text = _configured_version;
 
 	_version_label.text = "Version %s" % _version_text

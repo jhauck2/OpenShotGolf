@@ -1,8 +1,8 @@
 class_name ClCdTableGenerator
 extends Object
 
-static func GenerateClTable():
-	var aero_instance = Aerodynamics.new()
+static func GenerateClTable() -> void:
+	var aero_instance := Aerodynamics.new()
 	var ReMin : float = 29000.0
 	var ReMax : float = 210000.0
 	var ReStep : float = 1000.0
@@ -34,8 +34,8 @@ static func GenerateClTable():
 	return
 	
 
-static func GenerateCdTable():
-	var aero_instance = Aerodynamics.new()
+static func GenerateCdTable() -> void:
+	var aero_instance := Aerodynamics.new()
 	var ReMin : float = 29000.0
 	var ReMax : float = 210000.0
 	var ReStep : float = 1000.0
@@ -55,7 +55,7 @@ static func GenerateCdTable():
 	return
 	
 # Write data to csv file
-static func WriteClToResource(table : Array, spinValues : Array, ReValues : Array, filepath : String):
+static func WriteClToResource(table : Array, spinValues : Array, ReValues : Array, filepath : String) -> void:
 	var file := FileAccess.open(filepath, FileAccess.WRITE)
 	
 	# write header lines
@@ -85,11 +85,11 @@ static func WriteClToResource(table : Array, spinValues : Array, ReValues : Arra
 	# store table
 	file.store_string("var data = [")
 	for i in table.size():
-		var row = table[i]
+		var row: Array = table[i]
 		if i != 0:
 			file.store_string("            ")
 		file.store_string("[")
-		for j in row.size():
+		for j:float in row.size():
 			file.store_string(str(row[j]))
 			if j != row.size() - 1:
 				file.store_string(", ")
@@ -105,7 +105,7 @@ static func WriteClToResource(table : Array, spinValues : Array, ReValues : Arra
 	print("Data written to " + filepath)
 
 
-static func WriteCdToResource(table : Array, ReValues : Array, filepath : String):
+static func WriteCdToResource(table : Array, ReValues : Array, filepath : String) -> void:
 	var file := FileAccess.open(filepath, FileAccess.WRITE)
 	
 	# write header lines

@@ -6,7 +6,7 @@ var line_width : float = 0.08
 var material : StandardMaterial3D = StandardMaterial3D.new()
 
 
-func _ready():
+func _ready() -> void:
 	mesh = ArrayMesh.new()
 
 	# Setup material with subtle glow
@@ -20,20 +20,20 @@ func _ready():
 	material.disable_receive_shadows = true
 	material.no_depth_test = false
 
-func _process(_delta):
+func _process(_delta: float) -> void:
 	draw()
 
-func setColor(a):
+func setColor(a: Color) -> void:
 	color = a
 	material.albedo_color = color
 	material.emission = color
 
-func draw():
+func draw() -> void:
 	mesh.clear_surfaces()
 	if points.size() >= 2:
 		create_ribbon_mesh()
 
-func create_ribbon_mesh():
+func create_ribbon_mesh() -> void:
 	var vertices := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	var colors := PackedColorArray()
@@ -106,10 +106,9 @@ func create_ribbon_mesh():
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	mesh.surface_set_material(0, material)
 
-func add_point(point: Vector3):
-	#points.append(points[-1])
+func add_point(point: Vector3) -> void:
 	points.append(point)
 
-func clear_points():
+func clear_points() -> void:
 	points = []
 	mesh.clear_surfaces()
