@@ -29,6 +29,8 @@ func _ready() -> void:
 				
 	SetDynamicViscosity(GlobalSettings.range_settings.temperature.value,
 						GlobalSettings.range_settings.range_units.value)
+						
+	print("Re @ 200 mph = " + str(int(GetRE(200.0*0.44704, BPhysics.RADIUS))))
 
 func FahrenheitToCelsius(tempF : float) -> float:
 	return (tempF - 32.0)*5.0/9.0
@@ -69,6 +71,9 @@ func SetDynamicViscosity(temp: float, units: PhysicsEnums.Units) -> float:
 	# Sutherland formula
 	viscosity = DYN_VISCOSITY_ZERO_DEGREE*pow(tempK/KELVIN_CELSIUS,1.5)*(KELVIN_CELSIUS+SUTHERLAND_CONSTANT)/(tempK+SUTHERLAND_CONSTANT)
 	return viscosity
+
+func GetRE(speed: float, radius: float) -> float:
+	return density*speed*radius*2.0/viscosity
 
 func GetCd(Re: float) -> float:
 	# Get min and max Re values from table

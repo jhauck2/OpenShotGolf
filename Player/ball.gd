@@ -76,6 +76,7 @@ const DEFAULT_BALL_MASS := 0.04592623
 const DEFAULT_BALL_RADIUS := 0.021335
 const DEFAULT_BALL_MOI := 0.4 * DEFAULT_BALL_MASS * DEFAULT_BALL_RADIUS * DEFAULT_BALL_RADIUS
 
+var pause_physics : bool = false
 
 func _ready() -> void:
 	_try_initialize_ball()
@@ -294,6 +295,12 @@ func get_downrange_yards() -> float:
 
 
 func _physics_process(delta: float) -> void:
+	# pause physics when 'p' is pressed
+	if (Input.is_action_just_pressed("pause")):
+		pause_physics = not pause_physics
+		
+	if pause_physics:
+		return
 	if state == PhysicsEnums.BallState.REST:
 		return
 
@@ -301,8 +308,11 @@ func _physics_process(delta: float) -> void:
 	var prev_velocity := velocity
 
 	# Calculate forces and torques using BallPhysics
-	var total_force = _call_openfairway_method(_physics, &"calculate_forces", &"CalculateForces", [velocity, omega, was_on_ground, params])
-	var total_torque = _call_openfairway_method(_physics, &"calculate_torques", &"CalculateTorques", [velocity, omega, was_on_ground, params])
+	#var total_force = _call_openfairway_method(_physics, &"calculate_forces", &"CalculateForces", [velocity, omega, was_on_ground, params])
+	#var total_torque = _call_openfairway_method(_physics, &"calculate_torques", &"CalculateTorques", [velocity, omega, was_on_ground, params])
+	var total_force : Vector3 = BPhysics.CalculateForces(velocity, omega, was_on_ground, floor_normal)
+	var total_torque : Vector3 = BPhysics.CalculateTorques(velocity, omega, was_on_ground, floor_normal)
+	
 	if total_force == null or total_torque == null:
 		return
 

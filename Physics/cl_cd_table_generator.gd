@@ -101,8 +101,6 @@ static func WriteClToResource(table : Array, spinValues : Array, ReValues : Arra
 
 		
 	file.close()
-	
-	print("Data written to " + filepath)
 
 
 static func WriteCdToResource(table : Array, ReValues : Array, filepath : String) -> void:

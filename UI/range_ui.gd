@@ -11,8 +11,8 @@ func _ready() -> void:
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(_delta: float) -> void:
-	pass
+func _process(delta: float) -> void:
+	$HBoxContainer/FPSLabel.text = "FPS: " + str(int(1/delta))
 
 
 func set_data(data: Dictionary) -> void:
@@ -31,8 +31,8 @@ func set_data(data: Dictionary) -> void:
 		$GridCanvas/TotalSpin.set_data(str(data["TotalSpin"]))
 		$GridCanvas/SpinAxis.set_units("deg")
 		$GridCanvas/SpinAxis.set_data(str(data["SpinAxis"]))
-		$GridCanvas/VLA.set_data(_format_angle(data.get("VLA")))
-		$GridCanvas/HLA.set_data(_format_angle(data.get("HLA")))
+		$GridCanvas/VLA.set_data(_format_angle(float(data.get("VLA"))))
+		$GridCanvas/HLA.set_data(_format_angle(float(data.get("HLA"))))
 	else:
 		$GridCanvas/Distance.set_data(data["Distance"])
 		$GridCanvas/Carry.set_data(data["Carry"])
@@ -112,3 +112,6 @@ func set_total_distance(text: String) -> void:
 func clear_total_distance() -> void:
 		$OverlayLayer/TotalDistanceOverlay.visible = false
 		$OverlayLayer/TotalDistanceOverlay.text = "Total Distance --"
+		
+func set_physics_debug(vel: Vector3, omega: Vector3) -> void:
+	$HBoxContainer/PhysicsDebug.text = "speed: %3d   spin: %5d   Re: %6d" % [int(vel.length()), int(omega.length()), Aero.GetRE(vel.length(), BPhysics.RADIUS)]

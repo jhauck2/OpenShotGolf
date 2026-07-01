@@ -31,7 +31,7 @@ const TANGET_VEL_THRESHOLD : float = 0.05
 const ROLLING_FRICTION : float = 0.18
 const KINETIC_FRICTION : float = 0.42
 
-var gravityForce : Vector3 = Vector3(0.0, Aero.EARTH_GRAVITY*MASS, 0.0)
+var gravityForce : Vector3 = Vector3(0.0, -Aero.EARTH_GRAVITY*MASS, 0.0)
 
 
 func CalculateForces(vel: Vector3, omega: Vector3, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) -> Vector3:
@@ -42,6 +42,14 @@ func CalculateForces(vel: Vector3, omega: Vector3, onGround: bool, floorNorm: Ve
 	else:
 		return gravityForce + CalculateAirForces(vel, omega)
 		
+
+func CalculateTorques(vel: Vector3, omega: Vector3, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) ->Vector3:
+	if onGround:
+		return CalculateGroundTorques(vel, omega, floorNorm)
+	else:
+		# Viscous Torque
+		return -8.0*PI*Aero.viscosity*RADIUS*RADIUS*RADIUS*omega
+
 
 ## Calculates ground friction and drag forces
 func CalculateGroundForces(vel: Vector3, omega: Vector3, floorNorm: Vector3) -> Vector3:
@@ -79,11 +87,12 @@ func CalculateFrictionForce(vel: Vector3, omega: Vector3, floorNorm: Vector3) ->
 func CalculateAirForces(vel: Vector3, omega: Vector3) -> Vector3:
 	# Calculate reynolds number and spin ration
 	var speed : float = vel.length()
-	var re : float = Aero.density*speed*RADIUS*2.0/Aero.viscosity
+	var re : float = Aero.GetRE(speed, RADIUS)
 	var spin : float = omega.length()*RADIUS/speed
 	
 	# Drag force
-	var drag : Vector3 = - 0.05*Aero.GetCd(re)*Aero.density*A*vel*speed
+	var drag : Vector3 = - 0.5*Aero.GetCd(re)*Aero.density*A*vel*speed
+	
 	
 	# Magnus force
 	var magnus : Vector3 = Vector3.ZERO
@@ -91,3 +100,14 @@ func CalculateAirForces(vel: Vector3, omega: Vector3) -> Vector3:
 		magnus = 0.5*Aero.GetCl(re, spin)*Aero.density*A*omega.cross(vel)*speed/omega.length()
 	
 	return drag + magnus
+
+func CalculateGroundTorques(vel: Vector3, omega: Vector3, floorNorm: Vector3) -> Vector3:
+	var grassTorque : Vector3 = -8.0*PI*GRASS_VISCOSITY*RADIUS*RADIUS*RADIUS*omega
+	
+	var frictionForce : Vector3 = CalculateFrictionForce(vel, omega, floorNorm)
+	
+	var frictionTorque : Vector3 = Vector3.ZERO
+	if frictionForce.length() > 0.001:
+		frictionTorque = -RADIUS*floorNorm.cross(frictionForce)
+	
+	return frictionTorque + grassTorque

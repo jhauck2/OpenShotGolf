@@ -50,6 +50,9 @@ func _process(_delta: float) -> void:
 	# Refresh UI during flight/rollout so carry/apex update live; distance updates only at rest.
 	if $Player.get_ball_state() != PhysicsEnums.BallState.REST:
 		_update_ball_display()
+		$RangeUI.set_physics_debug($Player.ball.velocity, $Player.ball.omega)
+	else:
+		$RangeUI.set_physics_debug(Vector3.ZERO, Vector3.ZERO)
 
 
 func _on_golf_ball_rest(_ball_data: Dictionary) -> void:

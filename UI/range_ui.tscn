@@ -36,13 +36,19 @@ vertical_alignment = 1
 
 [node name="RecButton" type="Button" parent="HBoxContainer" unique_id=613824307]
 layout_mode = 2
-size_flags_vertical = 0
+size_flags_vertical = 4
 tooltip_text = "Start Recording Range Session"
 text = "REC: Off"
+
+[node name="FPSLabel" type="Label" parent="HBoxContainer" unique_id=1763629207]
+layout_mode = 2
 
 [node name="Control" type="Control" parent="HBoxContainer" unique_id=1083315582]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="PhysicsDebug" type="Label" parent="HBoxContainer" unique_id=732493029]
+layout_mode = 2
 
 [node name="SettingsButton" type="TextureButton" parent="HBoxContainer" unique_id=1578608442]
 layout_mode = 2
