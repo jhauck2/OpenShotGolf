@@ -87,11 +87,11 @@ func CalculateFrictionForce(vel: Vector3, omega: Vector3, floorNorm: Vector3) ->
 func CalculateAirForces(vel: Vector3, omega: Vector3) -> Vector3:
 	# Calculate reynolds number and spin ration
 	var speed : float = vel.length()
-	var re : float = Aero.GetRE(speed, RADIUS)
+	var re : float = Aero.GetRe(speed, RADIUS)
 	var spin : float = omega.length()*RADIUS/speed
 	
 	# Drag force
-	var drag : Vector3 = - 0.5*Aero.GetCd(re)*Aero.density*A*vel*speed
+	var drag : Vector3 = - 0.5*Aero.GetCd(re, spin)*Aero.density*A*vel*speed
 	
 	
 	# Magnus force

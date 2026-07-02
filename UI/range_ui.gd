@@ -114,4 +114,4 @@ func clear_total_distance() -> void:
 		$OverlayLayer/TotalDistanceOverlay.text = "Total Distance --"
 		
 func set_physics_debug(vel: Vector3, omega: Vector3) -> void:
-	$HBoxContainer/PhysicsDebug.text = "speed: %3d   spin: %5d   Re: %6d" % [int(vel.length()), int(omega.length()), Aero.GetRE(vel.length(), BPhysics.RADIUS)]
+	$HBoxContainer/PhysicsDebug.text = "speed: %3d   spin: %5d   Re: %6d" % [int(vel.length()), int(omega.length()), Aero.GetRe(vel.length(), BPhysics.RADIUS)]
