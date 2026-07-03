@@ -11,6 +11,8 @@ func _ready() -> void:
 	_populate_payloads()
 	_apply_payload(default_payload_path)
 
+	visible = GlobalSettings.range_settings.shot_injector_enabled.value
+
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:

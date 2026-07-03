@@ -11,8 +11,10 @@ const DYN_VISCOSITY_ZERO_DEGREE : float = 1.716e-05 # kg/(m*s)
 const SUTHERLAND_CONSTANT : float = 198.72 # (source: NASA)
 const FEET_TO_METERS : float = 0.3048
 
-var ClTable : Resource = null
-var CdTable : Resource = null
+var ClTableLowRe : Resource = null
+var ClTableHiRe : Resource = null
+var CdTableLowRe : Resource = null
+var CdTableHiRe : Resource = null
 
 var density : float = 1.0225 # kg/m3
 var viscosity : float # dynamic viscosity
@@ -20,8 +22,13 @@ var viscosity : float # dynamic viscosity
 
 func _ready() -> void:
 	# instantiate Cl and Cd tables
-	ClTable = load("res://Physics/LookupTables/cl_data_2.gd").new()
-	CdTable = load("res://Physics/LookupTables/cd_data.gd").new()
+	ClTableLowRe = load("res://Physics/LookupTables/cl_data_low_re.gd").new()
+	# TODO: Generate data for cl_data_hi_re
+	ClTableHiRe = load("res://Physics/LookupTables/cl_data_hi_re.gd").new()
+	# TODO: Generate data for cd_data_low_re
+	CdTableLowRe = load("res://Physics/LookupTables/cd_data_low_re.gd").new()
+	CdTableHiRe = load("res://Physics/LookupTables/cd_data_hi_re.gd").new()
+	
 	# TODO: move these values to "EnvironmentSettings"
 	SetAirDensity(GlobalSettings.range_settings.altitude.value, 
 				  GlobalSettings.range_settings.temperature.value,
@@ -75,47 +82,21 @@ func SetDynamicViscosity(temp: float, units: PhysicsEnums.Units) -> float:
 func GetRe(speed: float, radius: float) -> float:
 	return density*speed*radius*2.0/viscosity
 
+# From Bearman & harvey (1976) - Re > 1.26e5 : Cd -> F(spin)
 func GetCd(Re: float, spin: float) -> float:
-	# Get min and max Re values from table
-	var ReMin : float = CdTable.reValues[0]
-	var ReMax : float = CdTable.reValues[-1]
-	
-	# Check for values off-table
-	if Re < ReMin:
-		return CdTable.data[0]
-	if Re > ReMax:
-		return CdTable.data[-1]
-		
-	# Get value from table
-	# find bounding indices
-	var index_below : int = 0
-	var index_above : int = 0
-	
-	for i in range(1,CdTable.reValues.size()):
-		if Re < CdTable.reValues[i]:
-			index_below = i-1
-			index_above = i
-			break
-	
-	var cd_below : float = CdTable.data[index_below]
-	var cd_above : float = CdTable.data[index_above]
-	var weight : float = (Re - CdTable.reValues[index_below])/(CdTable.reValues[index_above] - CdTable.reValues[index_below])
-	
-	if abs(cd_below - cd_above) < 0.001:
-		return cd_below
-		
-	# interpolate between values
-	return lerpf(cd_below, cd_above, weight)
+	if Re > 126000.0:
+		return GetCdHiRe(spin)
+	else:
+		return GetCdLowRe(Re, spin)
 
-
-func GetCl(Re: float, spin: float) -> float:
-	# Get min and max Re values from table
-	var ReMin : float = ClTable.reValues[0]
-	var ReMax : float = ClTable.reValues[-1]
+func GetCdLowRe(Re: float, spin: float) -> float:
+		# Get min and max Re values from table
+	var ReMin : float = CdTableLowRe.reValues[0]
+	var ReMax : float = CdTableLowRe.reValues[-1]
 	
 	# Get min and max spin values from table
-	var spinMin : float = ClTable.spinValues[0]
-	var spinMax : float = ClTable.spinValues[-1]
+	var spinMin : float = CdTableLowRe.spinValues[0]
+	var spinMax : float = CdTableLowRe.spinValues[-1]
 	
 	var ReIndexBelow : int = 0
 	var ReIndexAbove : int = 1
@@ -126,11 +107,11 @@ func GetCl(Re: float, spin: float) -> float:
 	if Re < ReMin:
 		ReIndexAbove = 0
 	elif Re > ReMax:
-		ReIndexBelow = ClTable.reValues.size()-1
-		ReIndexAbove = ClTable.reValues.size()-1
+		ReIndexBelow = CdTableLowRe.reValues.size()-1
+		ReIndexAbove = CdTableLowRe.reValues.size()-1
 	else: # Get bounding values
-		for i in range(1, ClTable.reValues.size()):
-			if Re < ClTable.reValues[i]:
+		for i in range(1, CdTableLowRe.reValues.size()):
+			if Re < CdTableLowRe.reValues[i]:
 				ReIndexAbove = i
 				ReIndexBelow = i - 1
 				break
@@ -138,33 +119,167 @@ func GetCl(Re: float, spin: float) -> float:
 	if spin < spinMin:
 		spinIndexAbove = 0
 	elif spin > spinMax:
-		spinIndexBelow = ClTable.spinValues.size()-1
-		spinIndexAbove = ClTable.spinValues.size()-1
+		spinIndexBelow = CdTableLowRe.spinValues.size()-1
+		spinIndexAbove = CdTableLowRe.spinValues.size()-1
 	else:
-		for i in range(1, ClTable.spinValues.size()):
-			if spin < ClTable.spinValues[i]:
+		for i in range(1, CdTableLowRe.spinValues.size()):
+			if spin < CdTableLowRe.spinValues[i]:
 				spinIndexAbove = i
 				spinIndexBelow = i - 1
 				break
 	
 	if ReIndexBelow == ReIndexBelow:
 		if spinIndexBelow == spinIndexAbove:
-			return ClTable.data[spinIndexBelow][ReIndexBelow]
+			return CdTableLowRe.data[spinIndexBelow][ReIndexBelow]
 		else:
-			var spinBelow : float = ClTable.spinValues[spinIndexBelow]
-			var spinAbove : float = ClTable.spinValues[spinIndexAbove]
+			var spinBelow : float = CdTableLowRe.spinValues[spinIndexBelow]
+			var spinAbove : float = CdTableLowRe.spinValues[spinIndexAbove]
 			var weight : float = (spin - spinBelow)/(spinAbove - spinBelow)
-			return lerpf(ClTable.data[spinIndexBelow][ReIndexBelow], ClTable.data[spinIndexAbove][ReIndexBelow], weight)
+			return lerpf(CdTableLowRe.data[spinIndexBelow][ReIndexBelow], CdTableLowRe.data[spinIndexAbove][ReIndexBelow], weight)
 	else:
-		var spinBelow : float = ClTable.spinValues[spinIndexBelow]
-		var spinAbove : float = ClTable.spinValues[spinIndexAbove]
+		var spinBelow : float = CdTableLowRe.spinValues[spinIndexBelow]
+		var spinAbove : float = CdTableLowRe.spinValues[spinIndexAbove]
 		var weightSpin : float = (spin - spinBelow)/(spinAbove - spinBelow)
-		var clLowRe : float = lerpf(ClTable.data[spinIndexBelow][ReIndexBelow], ClTable.data[spinIndexAbove][ReIndexBelow], weightSpin)
+		var clLowRe : float = lerpf(CdTableLowRe.data[spinIndexBelow][ReIndexBelow], CdTableLowRe.data[spinIndexAbove][ReIndexBelow], weightSpin)
 		
-		var ClHiRe: float = lerpf(ClTable.data[spinIndexBelow][ReIndexAbove], ClTable.data[spinIndexAbove][ReIndexAbove], weightSpin)
+		var ClHiRe: float = lerpf(CdTableLowRe.data[spinIndexBelow][ReIndexAbove], CdTableLowRe.data[spinIndexAbove][ReIndexAbove], weightSpin)
 		
-		var ReBelow : float = ClTable.reValues[ReIndexBelow]
-		var ReAbove : float = ClTable.revalues[ReIndexAbove]
+		var ReBelow : float = CdTableLowRe.reValues[ReIndexBelow]
+		var ReAbove : float = CdTableLowRe.revalues[ReIndexAbove]
+		var weightRe : float = (Re - ReBelow)/(ReAbove - ReBelow)
+		
+		return lerpf(clLowRe, ClHiRe, weightRe)
+
+func GetCdHiRe(spin: float) -> float:
+	# Get min and max Re values from table
+	var spinMin : float = CdTableHiRe.spinValues[0]
+	var spinMax : float = CdTableHiRe.spinValues[-1]
+	
+	# Check for values off-table
+	if spin < spinMin:
+		return CdTableHiRe.data[0]
+	if spin > spinMax:
+		return CdTableHiRe.data[-1]
+		
+	# Get value from table
+	# find bounding indices
+	var index_below : int = 0
+	var index_above : int = 0
+	
+	for i in range(1,CdTableHiRe.spinValues.size()-1):
+		if spin < CdTableHiRe.spinValues[i]:
+			index_below = i-1
+			index_above = i
+			break
+	
+	var cd_below : float = CdTableHiRe.data[index_below]
+	var cd_above : float = CdTableHiRe.data[index_above]
+	var weight : float = (spin - CdTableHiRe.spinValues[index_below])/(CdTableHiRe.spinValues[index_above] - CdTableHiRe.spinValues[index_below])
+	
+	if abs(cd_below - cd_above) < 0.001:
+		return cd_below
+		
+	# interpolate between values
+	return lerpf(cd_below, cd_above, weight)
+
+# From Bearman & harvey (1976) - Re > 1.26e5 : Cd -> F(spin)
+func GetCl(Re: float, spin: float) -> float:
+	if Re > 126000:
+		return GetClHiRe(spin)
+	else:
+		return GetClLowRe(Re, spin)
+
+
+func GetClHiRe(spin: float) -> float:
+		# Get min and max Re values from table
+	var spinMin : float = ClTableHiRe.spinValues[0]
+	var spinMax : float = ClTableHiRe.spinValues[-1]
+	
+	# Check for values off-table
+	if spin < spinMin:
+		return ClTableHiRe.data[0]
+	if spin > spinMax:
+		return ClTableHiRe.data[-1]
+		
+	# Get value from table
+	# find bounding indices
+	var index_below : int = 0
+	var index_above : int = 0
+	
+	for i in range(1,ClTableHiRe.spinValues.size()-1):
+		if spin < ClTableHiRe.spinValues[i]:
+			index_below = i-1
+			index_above = i
+			break
+	
+	var cd_below : float = ClTableHiRe.data[index_below]
+	var cd_above : float = ClTableHiRe.data[index_above]
+	var weight : float = (spin - ClTableHiRe.spinValues[index_below])/(ClTableHiRe.spinValues[index_above] - ClTableHiRe.spinValues[index_below])
+	
+	if abs(cd_below - cd_above) < 0.001:
+		return cd_below
+		
+	# interpolate between values
+	return lerpf(cd_below, cd_above, weight)
+
+
+func GetClLowRe(Re: float, spin: float) -> float:
+	# Get min and max Re values from table
+	var ReMin : float = ClTableLowRe.reValues[0]
+	var ReMax : float = ClTableLowRe.reValues[-1]
+	
+	# Get min and max spin values from table
+	var spinMin : float = ClTableLowRe.spinValues[0]
+	var spinMax : float = ClTableLowRe.spinValues[-1]
+	
+	var ReIndexBelow : int = 0
+	var ReIndexAbove : int = 1
+	var spinIndexBelow : int = 0
+	var spinIndexAbove : int = 1
+	
+	# Check for off table
+	if Re < ReMin:
+		ReIndexAbove = 0
+	elif Re > ReMax:
+		ReIndexBelow = ClTableLowRe.reValues.size()-1
+		ReIndexAbove = ClTableLowRe.reValues.size()-1
+	else: # Get bounding values
+		for i in range(1, ClTableLowRe.reValues.size()):
+			if Re < ClTableLowRe.reValues[i]:
+				ReIndexAbove = i
+				ReIndexBelow = i - 1
+				break
+		
+	if spin < spinMin:
+		spinIndexAbove = 0
+	elif spin > spinMax:
+		spinIndexBelow = ClTableLowRe.spinValues.size()-1
+		spinIndexAbove = ClTableLowRe.spinValues.size()-1
+	else:
+		for i in range(1, ClTableLowRe.spinValues.size()):
+			if spin < ClTableLowRe.spinValues[i]:
+				spinIndexAbove = i
+				spinIndexBelow = i - 1
+				break
+	
+	if ReIndexBelow == ReIndexBelow:
+		if spinIndexBelow == spinIndexAbove:
+			return ClTableLowRe.data[spinIndexBelow][ReIndexBelow]
+		else:
+			var spinBelow : float = ClTableLowRe.spinValues[spinIndexBelow]
+			var spinAbove : float = ClTableLowRe.spinValues[spinIndexAbove]
+			var weight : float = (spin - spinBelow)/(spinAbove - spinBelow)
+			return lerpf(ClTableLowRe.data[spinIndexBelow][ReIndexBelow], ClTableLowRe.data[spinIndexAbove][ReIndexBelow], weight)
+	else:
+		var spinBelow : float = ClTableLowRe.spinValues[spinIndexBelow]
+		var spinAbove : float = ClTableLowRe.spinValues[spinIndexAbove]
+		var weightSpin : float = (spin - spinBelow)/(spinAbove - spinBelow)
+		var clLowRe : float = lerpf(ClTableLowRe.data[spinIndexBelow][ReIndexBelow], ClTableLowRe.data[spinIndexAbove][ReIndexBelow], weightSpin)
+		
+		var ClHiRe: float = lerpf(ClTableLowRe.data[spinIndexBelow][ReIndexAbove], ClTableLowRe.data[spinIndexAbove][ReIndexAbove], weightSpin)
+		
+		var ReBelow : float = ClTableLowRe.reValues[ReIndexBelow]
+		var ReAbove : float = ClTableLowRe.revalues[ReIndexAbove]
 		var weightRe : float = (Re - ReBelow)/(ReAbove - ReBelow)
 		
 		return lerpf(clLowRe, ClHiRe, weightRe)
