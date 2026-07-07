@@ -23,7 +23,6 @@ var viscosity : float # dynamic viscosity
 func _ready() -> void:
 	# instantiate Cl and Cd tables
 	ClTableLowRe = load("res://Physics/LookupTables/cl_data_low_re.gd").new()
-	# TODO: Generate data for cl_data_hi_re
 	ClTableHiRe = load("res://Physics/LookupTables/cl_data_hi_re.gd").new()
 	# TODO: Generate data for cd_data_low_re
 	CdTableLowRe = load("res://Physics/LookupTables/cd_data_low_re.gd").new()
@@ -179,8 +178,8 @@ func GetCdHiRe(spin: float) -> float:
 	if abs(cd_below - cd_above) < 0.001:
 		return cd_below
 		
-	# interpolate between values
-	return lerpf(cd_below, cd_above, weight)
+	# interpolate between values (log scale data)
+	return pow(cd_above,weight)*pow(cd_below,1-weight)
 
 # From Bearman & harvey (1976) - Re > 1.26e5 : Cd -> F(spin)
 func GetCl(Re: float, spin: float) -> float:
@@ -212,15 +211,15 @@ func GetClHiRe(spin: float) -> float:
 			index_above = i
 			break
 	
-	var cd_below : float = ClTableHiRe.data[index_below]
-	var cd_above : float = ClTableHiRe.data[index_above]
+	var cl_below : float = ClTableHiRe.data[index_below]
+	var cl_above : float = ClTableHiRe.data[index_above]
 	var weight : float = (spin - ClTableHiRe.spinValues[index_below])/(ClTableHiRe.spinValues[index_above] - ClTableHiRe.spinValues[index_below])
 	
-	if abs(cd_below - cd_above) < 0.001:
-		return cd_below
+	if abs(cl_below - cl_above) < 0.001:
+		return cl_below
 		
-	# interpolate between values
-	return lerpf(cd_below, cd_above, weight)
+	# interpolate between values (log scale data)
+	return pow(cl_above,weight)*pow(cl_below,1-weight)
 
 
 func GetClLowRe(Re: float, spin: float) -> float:
