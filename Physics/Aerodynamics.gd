@@ -24,7 +24,6 @@ func _ready() -> void:
 	# instantiate Cl and Cd tables
 	ClTableLowRe = load("res://Physics/LookupTables/cl_data_low_re.gd").new()
 	ClTableHiRe = load("res://Physics/LookupTables/cl_data_hi_re.gd").new()
-	# TODO: Generate data for cd_data_low_re
 	CdTableLowRe = load("res://Physics/LookupTables/cd_data_low_re.gd").new()
 	CdTableHiRe = load("res://Physics/LookupTables/cd_data_hi_re.gd").new()
 	
@@ -89,65 +88,7 @@ func GetCd(Re: float, spin: float) -> float:
 		return GetCdLowRe(Re, spin)
 
 func GetCdLowRe(Re: float, spin: float) -> float:
-		# Get min and max Re values from table
-	var ReMin : float = CdTableLowRe.reValues[0]
-	var ReMax : float = CdTableLowRe.reValues[-1]
-	
-	# Get min and max spin values from table
-	var spinMin : float = CdTableLowRe.spinValues[0]
-	var spinMax : float = CdTableLowRe.spinValues[-1]
-	
-	var ReIndexBelow : int = 0
-	var ReIndexAbove : int = 1
-	var spinIndexBelow : int = 0
-	var spinIndexAbove : int = 1
-	
-	# Check for off table
-	if Re < ReMin:
-		ReIndexAbove = 0
-	elif Re > ReMax:
-		ReIndexBelow = CdTableLowRe.reValues.size()-1
-		ReIndexAbove = CdTableLowRe.reValues.size()-1
-	else: # Get bounding values
-		for i in range(1, CdTableLowRe.reValues.size()):
-			if Re < CdTableLowRe.reValues[i]:
-				ReIndexAbove = i
-				ReIndexBelow = i - 1
-				break
-		
-	if spin < spinMin:
-		spinIndexAbove = 0
-	elif spin > spinMax:
-		spinIndexBelow = CdTableLowRe.spinValues.size()-1
-		spinIndexAbove = CdTableLowRe.spinValues.size()-1
-	else:
-		for i in range(1, CdTableLowRe.spinValues.size()):
-			if spin < CdTableLowRe.spinValues[i]:
-				spinIndexAbove = i
-				spinIndexBelow = i - 1
-				break
-	
-	if ReIndexBelow == ReIndexBelow:
-		if spinIndexBelow == spinIndexAbove:
-			return CdTableLowRe.data[spinIndexBelow][ReIndexBelow]
-		else:
-			var spinBelow : float = CdTableLowRe.spinValues[spinIndexBelow]
-			var spinAbove : float = CdTableLowRe.spinValues[spinIndexAbove]
-			var weight : float = (spin - spinBelow)/(spinAbove - spinBelow)
-			return lerpf(CdTableLowRe.data[spinIndexBelow][ReIndexBelow], CdTableLowRe.data[spinIndexAbove][ReIndexBelow], weight)
-	else:
-		var spinBelow : float = CdTableLowRe.spinValues[spinIndexBelow]
-		var spinAbove : float = CdTableLowRe.spinValues[spinIndexAbove]
-		var weightSpin : float = (spin - spinBelow)/(spinAbove - spinBelow)
-		var clLowRe : float = lerpf(CdTableLowRe.data[spinIndexBelow][ReIndexBelow], CdTableLowRe.data[spinIndexAbove][ReIndexBelow], weightSpin)
-		
-		var ClHiRe: float = lerpf(CdTableLowRe.data[spinIndexBelow][ReIndexAbove], CdTableLowRe.data[spinIndexAbove][ReIndexAbove], weightSpin)
-		
-		var ReBelow : float = CdTableLowRe.reValues[ReIndexBelow]
-		var ReAbove : float = CdTableLowRe.revalues[ReIndexAbove]
-		var weightRe : float = (Re - ReBelow)/(ReAbove - ReBelow)
-		
-		return lerpf(clLowRe, ClHiRe, weightRe)
+	return CdTableLowRe.GetValue(Re, spin)
 
 func GetCdHiRe(spin: float) -> float:
 	# Get min and max Re values from table
