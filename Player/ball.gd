@@ -173,7 +173,7 @@ func _try_initialize_ball() -> bool:
 func initialize_ball() -> void:
 	_connect_settings()
 	_update_environment()
-	set_surface(int(GlobalSettings.range_settings.surface_type.value))
+	set_surface(int(GlobalSettingsManager.range_settings.surface_type.value))
 	_create_collision_and_model()
 
 
@@ -192,10 +192,16 @@ func _create_collision_and_model():
 
 
 func _connect_settings() -> void:
-	GlobalSettings.range_settings.temperature.setting_changed.connect(_on_environment_changed)
-	GlobalSettings.range_settings.altitude.setting_changed.connect(_on_environment_changed)
-	GlobalSettings.range_settings.range_units.setting_changed.connect(_on_environment_changed)
-	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_type_changed)
+	var settings := GlobalSettingsManager.range_settings
+
+	if not settings.temperature.setting_changed.is_connected(_on_environment_changed):
+		settings.temperature.setting_changed.connect(_on_environment_changed)
+	if not settings.altitude.setting_changed.is_connected(_on_environment_changed):
+		settings.altitude.setting_changed.connect(_on_environment_changed)
+	if not settings.range_units.setting_changed.is_connected(_on_environment_changed):
+		settings.range_units.setting_changed.connect(_on_environment_changed)
+	if not settings.surface_type.setting_changed.is_connected(_on_surface_type_changed):
+		settings.surface_type.setting_changed.connect(_on_surface_type_changed)
 
 
 func _create_physics_params():
@@ -227,18 +233,19 @@ func _on_surface_type_changed(value) -> void:
 
 
 func _update_environment() -> void:
-	var units: int = GlobalSettings.range_settings.range_units.value
+	var settings := GlobalSettingsManager.range_settings
+	var units: int = settings.range_units.value
 	var density = _call_openfairway_method(
 		_aero,
 		&"get_air_density",
 		&"GetAirDensity",
-		[GlobalSettings.range_settings.altitude.value, GlobalSettings.range_settings.temperature.value, units]
+		[settings.altitude.value, settings.temperature.value, units]
 	)
 	var viscosity = _call_openfairway_method(
 		_aero,
 		&"get_dynamic_viscosity",
 		&"GetDynamicViscosity",
-		[GlobalSettings.range_settings.temperature.value, units]
+		[settings.temperature.value, units]
 	)
 	if density == null:
 		_air_density = 1.225
@@ -268,7 +275,7 @@ func exit_surface_zone(surface: int) -> void:
 	if not _surface_zone_stack.is_empty():
 		set_surface(_surface_zone_stack[_surface_zone_stack.size() - 1])
 	else:
-		set_surface(int(GlobalSettings.range_settings.surface_type.value))
+		set_surface(int(GlobalSettingsManager.range_settings.surface_type.value))
 
 
 func _apply_surface_params() -> void:
@@ -489,7 +496,7 @@ func reset() -> void:
 	launch_spin_rpm = 0.0
 	rollout_impact_spin_rpm = 0.0
 	_surface_zone_stack.clear()
-	set_surface(int(GlobalSettings.range_settings.surface_type.value))
+	set_surface(int(GlobalSettingsManager.range_settings.surface_type.value))
 	state = PhysicsEnums.BallState.REST
 	on_ground = false
 
@@ -565,7 +572,7 @@ func hit_from_data(data: Dictionary) -> void:
 	on_ground = false
 	rollout_impact_spin_rpm = 0.0
 	_surface_zone_stack.clear()
-	set_surface(int(GlobalSettings.range_settings.surface_type.value))
+	set_surface(int(GlobalSettingsManager.range_settings.surface_type.value))
 	position = Vector3(0.0, START_HEIGHT, 0.0)
 
 	velocity = launch_velocity
@@ -631,3 +638,7 @@ func _print_launch_debug(data: Dictionary, speed_mps: float, vla: float, hla: fl
 	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length() / 0.10472))
 	print("Shot direction: ", shot_dir)
 	print("===================")
+
+
+func set_env(_value) -> void:
+	_update_environment()

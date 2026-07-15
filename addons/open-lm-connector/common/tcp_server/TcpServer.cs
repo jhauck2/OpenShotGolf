@@ -15,6 +15,7 @@ public partial class TcpServer : Node
     private StreamPeerTcp? _tcpConnection;
     private bool _tcpConnected;
     private string _tcpString = string.Empty;
+    private string _connectedHost = string.Empty;
     private Dictionary _shotData = new();
     private readonly Dictionary _resp200 = new() { { "Code", 200 } };
     private readonly Dictionary _resp50x = new() { { "Code", 501 }, { "Message", "Failure Occured" } };
@@ -22,12 +23,21 @@ public partial class TcpServer : Node
     [Signal]
     public delegate void HitBallEventHandler(Dictionary data);
 
+    [Signal]
+    public delegate void StatusChangedEventHandler(string status);
+
     [Export]
     public int Port { get; set; } = DefaultPort;
 
-    public override void _Ready()
+    public bool IsListening => _tcpServer.IsListening();
+
+    public bool HasConnection => _tcpConnected;
+
+    public string ConnectedHost => _connectedHost;
+
+    public void StartListening(int port)
     {
-        ListenOnPort(Port);
+        ListenOnPort(port);
     }
 
     public override void _ExitTree()
@@ -42,8 +52,11 @@ public partial class TcpServer : Node
             _tcpConnection = _tcpServer.TakeConnection();
             if (_tcpConnection != null)
             {
-                GD.Print($"We have a tcp connection at {_tcpConnection.GetConnectedHost()}");
+                _connectedHost = _tcpConnection.GetConnectedHost() ?? string.Empty;
+                GD.Print($"We have a tcp connection at {_connectedHost}");
                 _tcpConnected = true;
+                var hostLabel = string.IsNullOrEmpty(_connectedHost) ? "unknown" : _connectedHost;
+                EmitStatus($"Connected: {hostLabel}");
             }
 
             return;
@@ -52,6 +65,7 @@ public partial class TcpServer : Node
         if (_tcpConnection == null)
         {
             _tcpConnected = false;
+            _connectedHost = string.Empty;
             return;
         }
 
@@ -60,7 +74,9 @@ public partial class TcpServer : Node
         if (status == StreamPeerTcp.Status.None)
         {
             _tcpConnected = false;
+            _connectedHost = string.Empty;
             GD.Print("tcp disconnected");
+            EmitListeningStatus();
             return;
         }
 
@@ -170,19 +186,41 @@ public partial class TcpServer : Node
         respond_error(501, "Invalid ball data");
     }
 
+    public void StopListening()
+    {
+        Shutdown();
+        EmitStatus("Stopped");
+    }
+
+    public bool GetIsListening()
+    {
+        return IsListening;
+    }
+
+    public bool GetIsConnected()
+    {
+        return HasConnection;
+    }
+
+    public string GetConnectedHost()
+    {
+        return ConnectedHost;
+    }
+
     private void ListenOnPort(int port)
     {
         Port = Math.Clamp(port, 1, 65535);
-        if (_tcpServer.IsListening())
-        {
-            _tcpServer.Stop();
-        }
+        Shutdown();
 
         var error = _tcpServer.Listen((ushort)Port);
         if (error != Error.Ok)
         {
             GD.PushError($"TCP server failed to listen on port {Port}. Error: {error}");
+            EmitStatus($"Failed: {error}");
+            return;
         }
+
+        EmitListeningStatus();
     }
 
     private void Shutdown()
@@ -194,6 +232,7 @@ public partial class TcpServer : Node
         }
 
         _tcpConnected = false;
+        _connectedHost = string.Empty;
         _shotData.Clear();
         _tcpString = string.Empty;
 
@@ -201,5 +240,15 @@ public partial class TcpServer : Node
         {
             _tcpServer.Stop();
         }
+    }
+
+    private void EmitListeningStatus()
+    {
+        EmitStatus(_tcpServer.IsListening() ? $"Listening on {Port}" : "Stopped");
+    }
+
+    private void EmitStatus(string status)
+    {
+        EmitSignal(SignalName.StatusChanged, status);
     }
 }

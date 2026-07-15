@@ -39,6 +39,8 @@ Registered in `project.godot` as `LaunchMonitorManager`. Owns the active monitor
 
 `SquareLaunchMonitor` wraps `SquareConnectionSession`, which drives the BLE GATT lifecycle through `IBluetoothGattClient` (resolved at runtime by `BluetoothGattClientFactory`). Square is the only consumer of `common/bluetooth/` today.
 
+See [`square/README.md`](square/README.md) for the integration overview and [`square/PROTOCOL.md`](square/PROTOCOL.md) for the reverse-engineered BLE protocol map.
+
 ### `common/bluetooth/`
 
 Cross-platform BLE GATT abstraction. `BluetoothGattClientFactory.Create()` picks the platform implementation:

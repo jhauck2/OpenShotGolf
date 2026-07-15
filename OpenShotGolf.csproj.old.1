@@ -1,4 +1,4 @@
-<Project Sdk="Godot.NET.Sdk/4.6.2">
+<Project Sdk="Godot.NET.Sdk/4.6.0">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'windows' Or '$(OS)' == 'Windows_NT' ">net9.0-windows10.0.19041.0</TargetFramework>
@@ -13,6 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="addons/open-lm-connector/common/bluetooth/windows/**/*.cs" Condition=" '$(GodotTargetPlatform)' != 'windows' And '$(OS)' != 'Windows_NT' " />
+    <Compile Remove="addons/launch_monitors/common/bluetooth/windows/**/*.cs" Condition=" '$(GodotTargetPlatform)' != 'windows' And '$(OS)' != 'Windows_NT' " />
   </ItemGroup>
 </Project>
