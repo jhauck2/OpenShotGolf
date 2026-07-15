@@ -35,7 +35,6 @@ func _ready() -> void:
 	SetDynamicViscosity(GlobalSettings.range_settings.temperature.value,
 						GlobalSettings.range_settings.range_units.value)
 						
-	print("Re @ 200 mph = " + str(int(GetRe(200.0*0.44704, BPhysics.RADIUS))))
 
 func FahrenheitToCelsius(tempF : float) -> float:
 	return (tempF - 32.0)*5.0/9.0
@@ -164,62 +163,4 @@ func GetClHiRe(spin: float) -> float:
 
 
 func GetClLowRe(Re: float, spin: float) -> float:
-	# Get min and max Re values from table
-	var ReMin : float = ClTableLowRe.reValues[0]
-	var ReMax : float = ClTableLowRe.reValues[-1]
-	
-	# Get min and max spin values from table
-	var spinMin : float = ClTableLowRe.spinValues[0]
-	var spinMax : float = ClTableLowRe.spinValues[-1]
-	
-	var ReIndexBelow : int = 0
-	var ReIndexAbove : int = 1
-	var spinIndexBelow : int = 0
-	var spinIndexAbove : int = 1
-	
-	# Check for off table
-	if Re < ReMin:
-		ReIndexAbove = 0
-	elif Re > ReMax:
-		ReIndexBelow = ClTableLowRe.reValues.size()-1
-		ReIndexAbove = ClTableLowRe.reValues.size()-1
-	else: # Get bounding values
-		for i in range(1, ClTableLowRe.reValues.size()):
-			if Re < ClTableLowRe.reValues[i]:
-				ReIndexAbove = i
-				ReIndexBelow = i - 1
-				break
-		
-	if spin < spinMin:
-		spinIndexAbove = 0
-	elif spin > spinMax:
-		spinIndexBelow = ClTableLowRe.spinValues.size()-1
-		spinIndexAbove = ClTableLowRe.spinValues.size()-1
-	else:
-		for i in range(1, ClTableLowRe.spinValues.size()):
-			if spin < ClTableLowRe.spinValues[i]:
-				spinIndexAbove = i
-				spinIndexBelow = i - 1
-				break
-	
-	if ReIndexBelow == ReIndexBelow:
-		if spinIndexBelow == spinIndexAbove:
-			return ClTableLowRe.data[spinIndexBelow][ReIndexBelow]
-		else:
-			var spinBelow : float = ClTableLowRe.spinValues[spinIndexBelow]
-			var spinAbove : float = ClTableLowRe.spinValues[spinIndexAbove]
-			var weight : float = (spin - spinBelow)/(spinAbove - spinBelow)
-			return lerpf(ClTableLowRe.data[spinIndexBelow][ReIndexBelow], ClTableLowRe.data[spinIndexAbove][ReIndexBelow], weight)
-	else:
-		var spinBelow : float = ClTableLowRe.spinValues[spinIndexBelow]
-		var spinAbove : float = ClTableLowRe.spinValues[spinIndexAbove]
-		var weightSpin : float = (spin - spinBelow)/(spinAbove - spinBelow)
-		var clLowRe : float = lerpf(ClTableLowRe.data[spinIndexBelow][ReIndexBelow], ClTableLowRe.data[spinIndexAbove][ReIndexBelow], weightSpin)
-		
-		var ClHiRe: float = lerpf(ClTableLowRe.data[spinIndexBelow][ReIndexAbove], ClTableLowRe.data[spinIndexAbove][ReIndexAbove], weightSpin)
-		
-		var ReBelow : float = ClTableLowRe.reValues[ReIndexBelow]
-		var ReAbove : float = ClTableLowRe.revalues[ReIndexAbove]
-		var weightRe : float = (Re - ReBelow)/(ReAbove - ReBelow)
-		
-		return lerpf(clLowRe, ClHiRe, weightRe)
+	return ClTableLowRe.GetValue(Re, spin)
