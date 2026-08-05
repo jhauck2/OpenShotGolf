@@ -106,7 +106,6 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 					on_ground = false
 			else:
 				on_ground = true
-				velocity -= normal*velocity.dot(normal)
 		else:
 			# Wall collision - damped reflection
 			on_ground = false
@@ -114,10 +113,9 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 			velocity = velocity.bounce(normal) * 0.30
 	else:
 		# No collision - only stay grounded if terrain is still directly beneath the ball.
-		var probe := _try_probe_ground()
-		if state != PhysicsEnums.BallState.FLIGHT and was_on_ground and bool(probe.get("hit", false)):
+		if state != PhysicsEnums.BallState.FLIGHT and was_on_ground:
 			on_ground = true
-			floor_normal = probe.get("normal", Vector3.UP)
+			floor_normal = Vector3.UP
 		else:
 			on_ground = false
 			floor_normal = Vector3.UP
@@ -127,109 +125,46 @@ func bounce(vel: Vector3, normal: Vector3) -> Vector3:
 	if state == PhysicsEnums.BallState.FLIGHT:
 		state = PhysicsEnums.BallState.ROLLOUT
 		
-	# component of velocity parallel to floor normal
-	var vel_norm : Vector3 = vel.project(normal)
-	var speed_norm : float = vel_norm.length()
-	# component of velocity orthoganal to normal
-	var vel_orth : Vector3 = vel - vel_norm
-	var speed_orth : float = vel_orth.length()
-	#component of angular velocity parallel to normal
-	var omg_norm : Vector3 = omega.project(normal)
-	# component of angular velocity orthoganal to normal
-	var omg_orth : Vector3 = omega - omg_norm
+	# Set up local axes vectors
+	var local_y : Vector3 = normal.cross(vel).normalized()
+	var local_x : Vector3 = local_y.cross(normal).normalized()
+	var local_z : Vector3 = normal
 	
-	var speed : float = velocity.length()
-	var theta_1 : float = velocity.angle_to(normal)
+	# Calculate impact angles
+	var speed : float = vel.length()
+	var theta_1 : float = normal.angle_to(-vel)
 	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
 	
+	# Set up local impact axes vectors
+	var local_x_i : Vector3 = local_x.rotated(local_y, theta_c)
+	var local_z_i : Vector3 = local_z.rotated(local_y, theta_c)
 	
-	# final orthoganal angular velocity
-	var w2h : float = 5*speed/(7.0*BPhysics.RADIUS)*sin(theta_1-theta_c) - 2.0*omg_orth.length()/7.0
-	# orthoganal angular restitution
-	if omg_orth.length() < 0.1:
-		omg_orth = Vector3.ZERO
-	else:
-		omg_orth = omg_orth.limit_length(w2h)
-		
+	
 	# normal restitution
-	var v1_z_prime : float = speed_norm*cos(theta_c) - speed_orth*sin(theta_c)
+	var vel1_iz : float = vel.dot(-local_z_i)
 	var e : float = 0.0
-	if v1_z_prime > 20.0:
+	if vel1_iz > 20.0:
 		e = 0.12
 	else:
-		e = 0.510 - 0.0375*v1_z_prime + 0.000903*v1_z_prime*v1_z_prime
+		e = 0.510 - 0.0375*vel1_iz + 0.000903*vel1_iz*vel1_iz
 	
+	var vel2_iz : float = e*speed*cos(theta_1-theta_c)
+	var vel2_ix : float = (5.0*speed*sin(theta_1-theta_c) - 2.0*BPhysics.RADIUS*omega.dot(-local_y))/7.0
+	var vel2_iy : float = -2.0*BPhysics.RADIUS*omega.dot(local_x)/7.0
 	
-	# final orthoganal speed
-	# with reference to the rotated frame (theta c)
-	var v2_orth: float = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*BPhysics.RADIUS*omg_norm.length()/7.0
-	# final speed parallel to norm rotated by theta_c
-	var v2_normal : float = e*speed*cos(theta_1-theta_c)
+	# velocity 2 in impact frame
+	var vel2_i : Vector3 = vel2_iz*local_z_i + vel2_ix*local_x_i + vel2_iy*local_y
 	
-	vel_norm = (v2_normal*cos(theta_c) + v2_orth*sin(theta_c))*normal
-	var orth_normal : Vector3 = vel_orth.normalized()
-	vel_orth = (-v2_normal*sin(theta_c) + v2_orth*cos(theta_c))*orth_normal
+	# backspin relative to impact direction
+	var w_back : float = omega.dot(local_y)
+	var w_side: float = omega.dot(local_x)
+	var w_axial: float = omega.dot(local_z)
+	var w2_back: float = absf(vel2_ix/BPhysics.RADIUS)
+	var w2_side: float = absf(vel2_iy/BPhysics.RADIUS)
 	
-	omega = omg_norm + omg_orth
+	omega = sign(w_back)*w2_back*local_y + sign(w_side)*w2_side*local_x + w_axial*local_z
 	
-	return vel_norm + vel_orth
-
-func _try_recover_to_ground() -> bool:
-	var world := get_world_3d()
-
-	var ray_start := global_position + Vector3.UP * GROUND_RAYCAST_UP
-	var ray_end := global_position + Vector3.DOWN * GROUND_RAYCAST_DOWN
-	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
-	query.collide_with_areas = false
-	query.collide_with_bodies = true
-	query.exclude = [get_rid()]
-
-	var ray_hit := world.direct_space_state.intersect_ray(query)
-	if ray_hit.is_empty():
-		return false
-
-	var hit_position: Vector3 = ray_hit["position"]
-	var hit_normal: Vector3 = ray_hit["normal"]
-	if hit_normal.length_squared() < 0.000001:
-		hit_normal = Vector3.UP
-	else:
-		hit_normal = hit_normal.normalized()
-
-	global_position = hit_position + hit_normal * (BPhysics.RADIUS + GROUND_SNAP_OFFSET)
-	floor_normal = hit_normal
-	velocity = _remove_velocity_along_normal(velocity, hit_normal)
-	on_ground = true
-
-	if state == PhysicsEnums.BallState.FLIGHT:
-		state = PhysicsEnums.BallState.ROLLOUT
-
-	print("Recovered ball-to-ground at %s (normal: %s)" % [str(global_position), str(hit_normal)])
-	return true
-
-
-func _try_probe_ground() -> Dictionary:
-	var world := get_world_3d()
-	if world == null:
-		return {"hit": false, "normal": Vector3.UP}
-
-	var ray_start := global_position + Vector3.UP * 0.05
-	var ray_end := global_position + Vector3.DOWN * (BPhysics.RADIUS + GROUND_PROBE_DISTANCE)
-	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
-	query.collide_with_areas = false
-	query.collide_with_bodies = true
-	query.exclude = [get_rid()]
-
-	var ray_hit := world.direct_space_state.intersect_ray(query)
-	if ray_hit.is_empty():
-		return {"hit": false, "normal": Vector3.UP}
-
-	var ground_normal: Vector3 = ray_hit["normal"]
-	if ground_normal.length_squared() < 0.000001:
-		ground_normal = Vector3.UP
-	else:
-		ground_normal = ground_normal.normalized()
-	return {"hit": true, "normal": ground_normal}
-
+	return vel2_i
 
 func _is_ground_normal(normal: Vector3) -> bool:
 	return normal.y > MIN_GROUND_NORMAL

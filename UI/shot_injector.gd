@@ -69,8 +69,6 @@ func _on_button_pressed() -> void:
 	data["HLA"] = $HLASpinBox.value
 	data["VLA"] = $VLASpinBox.value
 	
-	print("Local shot injection payload: ", JSON.stringify(data))
-	
 	emit_signal("inject", data)
 
 
