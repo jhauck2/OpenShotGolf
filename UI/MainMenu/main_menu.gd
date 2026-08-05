@@ -4,7 +4,7 @@ extends Control
 @onready var _exit_button: Button = $VerticalLayout/TopStrip/HBoxContainer/ExitButton
 @onready var _courses_button: Button = $VerticalLayout/TilesRow/CoursesTile/CoursesTextBackdrop/CoursesButton
 @onready var _range_button: Button = $VerticalLayout/TilesRow/RangeTile/RangeTextBackdrop/RangeButton
-@onready var _version_label: Label = $VerticalLayout/VersionLabel
+@onready var _version_label: Label = $VerticalLayout/VerAndTest/VersionLabel
 var _version_fall_back: String = "dev"
 var _version_setting_path: String = "application/config/version"
 var _version_text: String
@@ -51,3 +51,7 @@ func _on_settings_pressed() -> void:
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
+
+
+func _on_physics_test_button_pressed() -> void:
+	PhysicsTest.runTests()

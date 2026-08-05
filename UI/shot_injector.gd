@@ -24,6 +24,7 @@ func _populate_payloads() -> void:
 		return
 	payload_option.clear()
 	var payloads := {
+		"High Speed": "res://assets/data/high_speed_test_shot.json",
 		"Approach": "res://assets/data/approach_test_shot.json",
 		"Driver": "res://assets/data/drive_test_shot.json",
 		"Wood Low Flight": "res://assets/data/wood_low_test_shot.json",

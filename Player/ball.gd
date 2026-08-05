@@ -15,174 +15,30 @@ const MIN_GROUND_NORMAL := 0.7
 
 var ball_model : PackedScene = preload("res://assets/models/balls/golf_ball.glb")
 
-# C# addon instances
-var _physics
-var _aero
-var _surface
-var _shot_setup
-
-# Physics parameters
-var params = null
-
 # Ball state variables
 var state: int = PhysicsEnums.BallState.REST
 var omega := Vector3.ZERO  # Angular velocity (rad/s)
 var on_ground := false
 var floor_normal := Vector3.UP
 
-# Surface parameters (base values from C# Surface addon, then multiplied below).
-# TODO - some of these values should not be in ball. Ball type shouldn't matter grass viscosity.
-# Change the *_mult values to create a different "feel" for this ball without touching global settings.
+# Surface parameters
 var surface_type: int = PhysicsEnums.SurfaceType.FAIRWAY
-var _surface_zone_stack: Array[int] = []
-var _kinetic_friction: float = 0.42
-var _rolling_friction: float = 0.18
-var _grass_viscosity: float = 0.0020
-var _critical_angle: float = 0.30  # radians
-var _kinetic_mult := 1.0
-var _rolling_mult := 1.0
-var _grass_mult := 1.0
-var _critical_mult := 1.0
-
-# Environment
-var _air_density: float
-var _air_viscosity: float
-# TODO: takeout these scale and mult variables
-var _drag_scale := 1.0
-var _lift_scale := 1.0
 
 # Shot tracking
 var shot_start_pos := Vector3.ZERO
-var shot_dir := Vector3(1.0, 0.0, 0.0)  # Normalized horizontal direction
-var aim_yaw_offset_deg := 0.0  # Camera/world rotation offset applied at launch
-var launch_spin_rpm := 0.0  # Stored for bounce calculations
-var rollout_impact_spin_rpm := 0.0  # Spin on first impact; used for rollout friction
-
-# Ball physics constants (cached from C# addon in _init)
-var _ball_mass: float
-var _ball_radius: float
-var _ball_moi: float
-var _ball_initialized := false
-var _openfairway_error_reported: Dictionary = {}
-
-const OPENFAIRWAY_CLASS_PATHS := {
-	"BallPhysics": "res://addons/openfairway/physics/BallPhysics.cs",
-	"Aerodynamics": "res://addons/openfairway/physics/Aerodynamics.cs",
-	"Surface": "res://addons/openfairway/physics/Surface.cs",
-	"PhysicsParams": "res://addons/openfairway/physics/PhysicsParams.cs",
-	"ShotSetup": "res://addons/openfairway/physics/ShotSetup.cs",
-}
-const DEFAULT_BALL_MASS := 0.04592623
-const DEFAULT_BALL_RADIUS := 0.021335
-const DEFAULT_BALL_MOI := 0.4 * DEFAULT_BALL_MASS * DEFAULT_BALL_RADIUS * DEFAULT_BALL_RADIUS
 
 var pause_physics : bool = false
 
 func _ready() -> void:
-	_try_initialize_ball()
-	_create_physics_params()
+	initialize_ball()
 	reset()
 
 
-
-func _new_openfairway(openfairway_class: StringName) -> Variant:
-	var class_key := String(openfairway_class)
-	var fallback_script_path: String = OPENFAIRWAY_CLASS_PATHS.get(class_key, "")
-	if fallback_script_path != "":
-		var script_resource: Script = load(fallback_script_path) as Script
-		if script_resource != null:
-			var instance = script_resource.new()
-			if instance != null:
-				return instance
-
-	if fallback_script_path == "" and ClassDB.class_exists(openfairway_class) and ClassDB.can_instantiate(openfairway_class):
-		var classdb_instance = ClassDB.instantiate(openfairway_class)
-		if classdb_instance != null:
-			return classdb_instance
-
-	if not _openfairway_error_reported.has(class_key):
-		_openfairway_error_reported[class_key] = true
-		if not OS.has_feature("C#"):
-			push_error("OpenFairway class '%s' is unavailable because this runtime has no C# support. Launch the project with the Godot .NET editor/runtime." % class_key)
-		elif fallback_script_path != "":
-			push_error("OpenFairway class '%s' could not be instantiated from '%s'. Build OpenShotGolf.csproj and restart the Godot .NET editor/runtime." % [class_key, fallback_script_path])
-		else:
-			push_error("OpenFairway class '%s' is unavailable. Build OpenShotGolf.csproj and restart the Godot .NET editor/runtime." % class_key)
-	return null
-
-
-func _has_openfairway_property(target: Object, property_name: StringName) -> bool:
-	if target == null:
-		return false
-	for property_info in target.get_property_list():
-		if StringName(property_info.get("name", "")) == property_name:
-			return true
-	return false
-
-
-func _get_openfairway_property(target: Object, snake_name: StringName, pascal_name: StringName, default_value = null):
-	if _has_openfairway_property(target, snake_name):
-		return target.get(snake_name)
-	if _has_openfairway_property(target, pascal_name):
-		return target.get(pascal_name)
-	return default_value
-
-
-func _set_openfairway_property(target: Object, snake_name: StringName, pascal_name: StringName, value) -> bool:
-	if _has_openfairway_property(target, snake_name):
-		target.set(snake_name, value)
-		return true
-	if _has_openfairway_property(target, pascal_name):
-		target.set(pascal_name, value)
-		return true
-	return false
-
-
-func _call_openfairway_method(target: Object, snake_name: StringName, pascal_name: StringName, args: Array = []):
-	if target == null:
-		return null
-	if target.has_method(snake_name):
-		return target.callv(snake_name, args)
-	if target.has_method(pascal_name):
-		return target.callv(pascal_name, args)
-	return null
-
-
-func _init_openfairway_instances() -> bool:
-	_physics = _new_openfairway(&"BallPhysics")
-	_aero = _new_openfairway(&"Aerodynamics")
-	_surface = _new_openfairway(&"Surface")
-	_shot_setup = _new_openfairway(&"ShotSetup")
-	if _physics == null or _aero == null or _surface == null:
-		return false
-	_ball_mass = float(_get_openfairway_property(_physics, &"ball_mass", &"BallMass", DEFAULT_BALL_MASS))
-	_ball_radius = float(_get_openfairway_property(_physics, &"ball_radius", &"BallRadius", DEFAULT_BALL_RADIUS))
-	_ball_moi = float(_get_openfairway_property(_physics, &"ball_moment_of_inertia", &"BallMomentOfInertia", DEFAULT_BALL_MOI))
-	return true
-
-
-func _try_initialize_ball() -> bool:
-	if _ball_initialized:
-		return true
-	if not _init_openfairway_instances():
-		return false
-	initialize_ball()
-	_ball_initialized = true
-	return true
-
-
 func initialize_ball() -> void:
-	_connect_settings()
-	_update_environment()
-	set_surface(int(GlobalSettings.range_settings.surface_type.value))
-	_create_collision_and_model()
-
-
-func _create_collision_and_model() -> void:
 	# Create collision shape
 	var collision := CollisionShape3D.new()
 	var shape := SphereShape3D.new()
-	shape.set_radius(_ball_radius)
+	shape.set_radius(BPhysics.RADIUS)
 	collision.set_shape(shape)
 	add_child(collision)
 	# Create model
@@ -192,124 +48,18 @@ func _create_collision_and_model() -> void:
 	add_child(mesh)
 
 
-func _connect_settings() -> void:
-	GlobalSettings.range_settings.temperature.setting_changed.connect(_on_environment_changed)
-	GlobalSettings.range_settings.altitude.setting_changed.connect(_on_environment_changed)
-	GlobalSettings.range_settings.range_units.setting_changed.connect(_on_environment_changed)
-	GlobalSettings.range_settings.surface_type.setting_changed.connect(_on_surface_type_changed)
-
-
-func _create_physics_params():
-	if params != null:
-		return
-	var _params = _new_openfairway(&"PhysicsParams")
-	if _params == null:
-		return
-	_set_openfairway_property(_params, &"air_density", &"AirDensity", _air_density)
-	_set_openfairway_property(_params, &"air_viscosity", &"AirViscosity", _air_viscosity)
-	_set_openfairway_property(_params, &"drag_scale", &"DragScale", _drag_scale)
-	_set_openfairway_property(_params, &"lift_scale", &"LiftScale", _lift_scale)
-	_set_openfairway_property(_params, &"kinetic_friction", &"KineticFriction", _kinetic_friction)
-	_set_openfairway_property(_params, &"rolling_friction", &"RollingFriction", _rolling_friction)
-	_set_openfairway_property(_params, &"grass_viscosity", &"GrassViscosity", _grass_viscosity)
-	_set_openfairway_property(_params, &"critical_angle", &"CriticalAngle", _critical_angle)
-	_set_openfairway_property(_params, &"floor_normal", &"FloorNormal", floor_normal)
-	_set_openfairway_property(_params, &"rollout_impact_spin", &"RolloutImpactSpin", rollout_impact_spin_rpm)
-	
-	params = _params
-
-func _on_environment_changed(_value) -> void:
-	_update_environment()
-
-# TODO: clean up surface type and surface stack
-func _on_surface_type_changed(value) -> void:
-	if _surface_zone_stack.is_empty():
-		set_surface(int(value))
-
-
-func _update_environment() -> void:
-	var units: int = GlobalSettings.range_settings.range_units.value
-	var density = _aero.callv(&"GetAirDensity",
-	[GlobalSettings.range_settings.altitude.value, GlobalSettings.range_settings.temperature.value, units])
-	
-	var viscosity = _call_openfairway_method(
-		_aero,
-		&"get_dynamic_viscosity",
-		&"GetDynamicViscosity",
-		[GlobalSettings.range_settings.temperature.value, units]
-	)
-	if density == null:
-		_air_density = 1.225
-	if viscosity == null:
-		_air_viscosity = 0.0000181
-		return
-	_air_density = float(density)
-	_air_viscosity = float(viscosity)
-
-
-func set_surface(surface: int) -> void:
-	surface_type = surface
-	_apply_surface_params()
-
-
-func enter_surface_zone(surface: int) -> void:
-	_surface_zone_stack.append(surface)
-	set_surface(surface)
-
-
-func exit_surface_zone(surface: int) -> void:
-	for i in range(_surface_zone_stack.size() - 1, -1, -1):
-		if _surface_zone_stack[i] == surface:
-			_surface_zone_stack.remove_at(i)
-			break
-
-	if not _surface_zone_stack.is_empty():
-		set_surface(_surface_zone_stack[_surface_zone_stack.size() - 1])
-	else:
-		set_surface(int(GlobalSettings.range_settings.surface_type.value))
-
-
-func _apply_surface_params() -> void:
-	if _surface == null:
-		return
-	var params_variant = _call_openfairway_method(_surface, &"get_params", &"GetParams", [surface_type])
-	var surface_params: Dictionary = {}
-	if typeof(params_variant) == TYPE_DICTIONARY:
-		surface_params = params_variant
-	else:
-		surface_params = {"u_k": 0.30, "u_kr": 0.03, "nu_g": 0.0010, "theta_c": 0.25}
-	_kinetic_friction = float(surface_params.get("u_k", 0.30)) * _kinetic_mult
-	_rolling_friction = float(surface_params.get("u_kr", 0.03)) * _rolling_mult
-	_grass_viscosity = float(surface_params.get("nu_g", 0.0010)) * _grass_mult
-	_critical_angle = float(surface_params.get("theta_c", 0.25)) * _critical_mult
-	if OS.is_debug_build():
-		print("Surface set to %s -> u_k=%.3f, u_kr=%.3f, nu_g=%.4f, theta_c=%.3f" % [
-			str(surface_type), _kinetic_friction, _rolling_friction, _grass_viscosity, _critical_angle
-		])
-
-
-func get_downrange_yards() -> float:
-	var delta: Vector3 = position - shot_start_pos
-	var meters: float = delta.dot(shot_dir)
-	return meters * 1.09361
-
-
 func _physics_process(delta: float) -> void:
 	# pause physics when 'p' is pressed
 	if (Input.is_action_just_pressed("pause")):
 		pause_physics = not pause_physics
 		
-	if pause_physics:
-		return
-	if state == PhysicsEnums.BallState.REST:
+	if pause_physics or state == PhysicsEnums.BallState.REST:
 		return
 
 	var was_on_ground := on_ground
 	var prev_velocity := velocity
 
 	# Calculate forces and torques using BallPhysics
-	#var total_force = _call_openfairway_method(_physics, &"calculate_forces", &"CalculateForces", [velocity, omega, was_on_ground, params])
-	#var total_torque = _call_openfairway_method(_physics, &"calculate_torques", &"CalculateTorques", [velocity, omega, was_on_ground, params])
 	var total_force : Vector3 = BPhysics.CalculateForces(velocity, omega, was_on_ground, floor_normal)
 	var total_torque : Vector3 = BPhysics.CalculateTorques(velocity, omega, was_on_ground, floor_normal)
 	
@@ -317,81 +67,46 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Update velocity and angular velocity
-	velocity += (total_force / _ball_mass) * delta
-	omega += (total_torque / _ball_moi) * delta
+	velocity += (total_force / BPhysics.MASS) * delta
+	omega += (total_torque / BPhysics.I) * delta
 
 	# Safety: catch NaN/infinity before it reaches the physics engine
 	# Without this, ROUGH appears to error with FINITE bug. Do not remove until someone
 	# better understands this. 
 	if not velocity.is_finite() or not omega.is_finite():
-		push_warning("BallPhysics: non-finite velocity or omega detected, entering rest")
-		_enter_rest_state()
+		push_warning("BallPhysics: infinite velocity or omega detected, entering rest")
+		reset()
 		return
-
-	# Safety bounds check
-	#if _check_out_of_bounds():
-		#return
-
+		
 	# Move and handle collisions
+	var vel_before_collision : Vector3 = velocity
 	var collision := move_and_collide(velocity * delta, false, COLLISION_SAFE_MARGIN)
-	_handle_collision(collision, was_on_ground, prev_velocity)
+	_handle_collision(collision, was_on_ground, vel_before_collision)
 
 	# Check for rest
-	if velocity.length() < 0.1 and state != PhysicsEnums.BallState.REST:
-		_enter_rest_state()
-
-
-# TODO: this check needs to be updated for larger distances and below zero surfaces
-func _check_out_of_bounds() -> bool:
-	if absf(position.x) > 1000.0 or absf(position.z) > 1000.0:
-		print("WARNING: Ball out of bounds at: ", position)
-		_enter_rest_state()
-		return true
-
-	if global_position.y < BELOW_GROUND_RECOVERY_Y:
-		if _try_recover_to_ground():
-			return false
-		if global_position.y > FALLTHROUGH_FAILSAFE_Y:
-			return false
-		print("WARNING: Ball fell through ground at: ", global_position)
-		_enter_rest_state()
-		return true
-
-	return false
-
+	if velocity.length() < 0.1:
+		velocity = Vector3.ZERO
+		omega = Vector3.ZERO
+		state = PhysicsEnums.BallState.REST
 
 func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, prev_velocity: Vector3) -> void:
 	if collision:
 		var normal := collision.get_normal()
 
-		if _is_ground_normal(normal):
+		if _is_ground_normal(normal): # regular floor collision
 			floor_normal = normal
 			var prev_normal_velocity := prev_velocity.dot(normal)
 			var is_landing := (state == PhysicsEnums.BallState.FLIGHT) or prev_normal_velocity < -0.5
 
 			if is_landing:
-				if state == PhysicsEnums.BallState.FLIGHT:
-					_print_impact_debug()
-					rollout_impact_spin_rpm = omega.length() / 0.10472
-
-				var bounce_result = _call_openfairway_method(_physics, &"calculate_bounce", &"CalculateBounce", [velocity, omega, normal, state, params])
-				if bounce_result == null:
-					return
-				velocity = _get_openfairway_property(bounce_result, &"new_velocity", &"NewVelocity", velocity)
-				omega = _get_openfairway_property(bounce_result, &"new_omega", &"NewOmega", omega)
-				state = int(_get_openfairway_property(bounce_result, &"new_state", &"NewState", state))
-
-				print("  Velocity after bounce: ", velocity, " (%.2f m/s)" % velocity.length())
-				var normal_velocity := velocity.dot(normal)
-				if absf(normal_velocity) < 0.5 and state == PhysicsEnums.BallState.ROLLOUT:
+				velocity = bounce(prev_velocity, normal)
+				if absf(velocity.dot(normal)) < 0.15:
 					on_ground = true
-					velocity = _remove_velocity_along_normal(velocity, normal)
-					print("  -> Ball grounded, continuing roll at %.2f m/s" % velocity.length())
 				else:
 					on_ground = false
 			else:
 				on_ground = true
-				velocity = _remove_velocity_along_normal(velocity, normal)
+				velocity -= normal*velocity.dot(normal)
 		else:
 			# Wall collision - damped reflection
 			on_ground = false
@@ -407,6 +122,57 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 			on_ground = false
 			floor_normal = Vector3.UP
 
+
+func bounce(vel: Vector3, normal: Vector3) -> Vector3:
+	if state == PhysicsEnums.BallState.FLIGHT:
+		state = PhysicsEnums.BallState.ROLLOUT
+		
+	# component of velocity parallel to floor normal
+	var vel_norm : Vector3 = vel.project(normal)
+	var speed_norm : float = vel_norm.length()
+	# component of velocity orthoganal to normal
+	var vel_orth : Vector3 = vel - vel_norm
+	var speed_orth : float = vel_orth.length()
+	#component of angular velocity parallel to normal
+	var omg_norm : Vector3 = omega.project(normal)
+	# component of angular velocity orthoganal to normal
+	var omg_orth : Vector3 = omega - omg_norm
+	
+	var speed : float = velocity.length()
+	var theta_1 : float = velocity.angle_to(normal)
+	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
+	
+	
+	# final orthoganal angular velocity
+	var w2h : float = 5*speed/(7.0*BPhysics.RADIUS)*sin(theta_1-theta_c) - 2.0*omg_orth.length()/7.0
+	# orthoganal angular restitution
+	if omg_orth.length() < 0.1:
+		omg_orth = Vector3.ZERO
+	else:
+		omg_orth = omg_orth.limit_length(w2h)
+		
+	# normal restitution
+	var v1_z_prime : float = speed_norm*cos(theta_c) - speed_orth*sin(theta_c)
+	var e : float = 0.0
+	if v1_z_prime > 20.0:
+		e = 0.12
+	else:
+		e = 0.510 - 0.0375*v1_z_prime + 0.000903*v1_z_prime*v1_z_prime
+	
+	
+	# final orthoganal speed
+	# with reference to the rotated frame (theta c)
+	var v2_orth: float = 5.0/7.0*speed*sin(theta_1-theta_c) - 2.0*BPhysics.RADIUS*omg_norm.length()/7.0
+	# final speed parallel to norm rotated by theta_c
+	var v2_normal : float = e*speed*cos(theta_1-theta_c)
+	
+	vel_norm = (v2_normal*cos(theta_c) + v2_orth*sin(theta_c))*normal
+	var orth_normal : Vector3 = vel_orth.normalized()
+	vel_orth = (-v2_normal*sin(theta_c) + v2_orth*cos(theta_c))*orth_normal
+	
+	omega = omg_norm + omg_orth
+	
+	return vel_norm + vel_orth
 
 func _try_recover_to_ground() -> bool:
 	var world := get_world_3d()
@@ -429,7 +195,7 @@ func _try_recover_to_ground() -> bool:
 	else:
 		hit_normal = hit_normal.normalized()
 
-	global_position = hit_position + hit_normal * (_ball_radius + GROUND_SNAP_OFFSET)
+	global_position = hit_position + hit_normal * (BPhysics.RADIUS + GROUND_SNAP_OFFSET)
 	floor_normal = hit_normal
 	velocity = _remove_velocity_along_normal(velocity, hit_normal)
 	on_ground = true
@@ -447,7 +213,7 @@ func _try_probe_ground() -> Dictionary:
 		return {"hit": false, "normal": Vector3.UP}
 
 	var ray_start := global_position + Vector3.UP * 0.05
-	var ray_end := global_position + Vector3.DOWN * (_ball_radius + GROUND_PROBE_DISTANCE)
+	var ray_end := global_position + Vector3.DOWN * (BPhysics.RADIUS + GROUND_PROBE_DISTANCE)
 	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
@@ -474,29 +240,16 @@ func _remove_velocity_along_normal(source_velocity: Vector3, normal: Vector3) ->
 	return source_velocity - normal_component
 
 
-func _print_impact_debug() -> void:
-	print("FIRST IMPACT at pos: ", position, ", downrange: %.2f yds" % get_downrange_yards())
-	print("  Velocity at impact: ", velocity, " (%.2f m/s)" % velocity.length())
-	print("  Spin at impact: ", omega, " (%.0f rpm)" % (omega.length() / 0.10472))
-	print("  Normal: ", floor_normal)
-
-
-func _enter_rest_state() -> void:
-	state = PhysicsEnums.BallState.REST
-	velocity = Vector3.ZERO
-	omega = Vector3.ZERO
-	emit_signal("rest")
+func get_downrange_yards() -> float:
+	var delta: Vector3 = position - shot_start_pos
+	var meters: float = delta.dot(Vector3.RIGHT)
+	return meters * 1.09361
 
 
 func reset() -> void:
 	position = Vector3(0.0, START_HEIGHT, 0.0)
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
-	aim_yaw_offset_deg = 0.0
-	launch_spin_rpm = 0.0
-	rollout_impact_spin_rpm = 0.0
-	_surface_zone_stack.clear()
-	set_surface(int(GlobalSettings.range_settings.surface_type.value))
 	state = PhysicsEnums.BallState.REST
 	on_ground = false
 
@@ -513,128 +266,21 @@ func hit() -> void:
 
 
 func hit_from_data(data: Dictionary) -> void:
-	if not _try_initialize_ball():
-		push_error("Cannot hit shot: OpenFairway classes are not available yet.")
-		return
 	var speed_mph: float = float(data.get("Speed", 0.0))
 	var speed_mps: float = speed_mph * 0.44704  # mph to m/s
 	var vla_deg: float = float(data.get("VLA", 0.0))
 	var hla_deg: float = float(data.get("HLA", 0.0))
+	var rpm2rad_s : float = 0.10472
+	var deg2rad : float = PI/180.0
+	var vla_rad : float = vla_deg*deg2rad
+	var hla_rad : float = hla_deg*deg2rad
 
-	var spin_data: Dictionary = {}
-	if _shot_setup != null:
-		var parsed_spin = _call_openfairway_method(_shot_setup, &"parse_spin", &"ParseSpin", [data])
-		if typeof(parsed_spin) == TYPE_DICTIONARY:
-			spin_data = parsed_spin
-	if spin_data.is_empty():
-		spin_data = _parse_spin_data(data)
-	var total_spin: float = spin_data.total
-	var spin_axis: float = spin_data.axis
-
-	var launch_data: Dictionary = {}
-	if _shot_setup != null:
-		var launch_result = _call_openfairway_method(
-			_shot_setup,
-			&"build_launch_vectors",
-			&"BuildLaunchVectors",
-			[speed_mph, vla_deg, hla_deg, total_spin, spin_axis]
-		)
-		if typeof(launch_result) == TYPE_DICTIONARY:
-			launch_data = launch_result
-
-	var launch_velocity: Vector3
-	var launch_omega: Vector3
-	var launch_direction: Vector3
-	if launch_data.is_empty():
-		launch_velocity = Vector3(speed_mps, 0, 0) \
-			.rotated(Vector3.FORWARD, deg_to_rad(-vla_deg)) \
-			.rotated(Vector3.UP, deg_to_rad(-hla_deg))
-		var flat_velocity := Vector3(launch_velocity.x, 0.0, launch_velocity.z)
-		launch_direction = flat_velocity.normalized() if flat_velocity.length() > 0.001 else Vector3.RIGHT
-		launch_omega = Vector3(0.0, 0.0, total_spin * 0.10472) \
-			.rotated(Vector3.RIGHT, deg_to_rad(spin_axis))
+	if data.has("TotalSpin") and data.has("SpinAxis"):
+		omega = Vector3(0.0, 0.0, data["TotalSpin"]*rpm2rad_s).rotated(Vector3.RIGHT, data["SpinAxis"]*deg2rad)
+	elif data.has("BackSpin") and data.has("SideSpin"):
+		omega = Vector3(0.0, data["SideSpin"], data["BackSpin"])*rpm2rad_s
 	else:
-		launch_velocity = launch_data.get("velocity", Vector3.ZERO)
-		launch_omega = launch_data.get("omega", Vector3.ZERO)
-		launch_direction = launch_data.get("shot_direction", Vector3.RIGHT)
-
-	if absf(aim_yaw_offset_deg) > 0.0001:
-		var aim_yaw_rad := deg_to_rad(aim_yaw_offset_deg)
-		launch_velocity = launch_velocity.rotated(Vector3.UP, aim_yaw_rad)
-		launch_omega = launch_omega.rotated(Vector3.UP, aim_yaw_rad)
-		launch_direction = launch_direction.rotated(Vector3.UP, aim_yaw_rad)
-	launch_direction.y = 0.0
-	if launch_direction.length_squared() < 0.000001:
-		launch_direction = Vector3.RIGHT
-	launch_direction = launch_direction.normalized()
-
+		push_error("Not enough spin information provided")
+	
+	velocity = Vector3(speed_mps, 0.0, 0.0).rotated(Vector3.BACK, vla_rad).rotated(Vector3.UP, -hla_rad)
 	state = PhysicsEnums.BallState.FLIGHT
-	on_ground = false
-	rollout_impact_spin_rpm = 0.0
-	_surface_zone_stack.clear()
-	set_surface(int(GlobalSettings.range_settings.surface_type.value))
-	position = Vector3(0.0, START_HEIGHT, 0.0)
-
-	velocity = launch_velocity
-	omega = launch_omega
-	shot_dir = launch_direction
-
-	shot_start_pos = position
-	launch_spin_rpm = total_spin
-
-	_print_launch_debug(data, speed_mps, vla_deg, hla_deg, total_spin, spin_axis)
-
-
-func _parse_spin_data(data: Dictionary) -> Dictionary:
-	var has_backspin := data.has("BackSpin")
-	var has_sidespin := data.has("SideSpin")
-	var has_total := data.has("TotalSpin")
-	var has_axis := data.has("SpinAxis")
-
-	var backspin: float = float(data.get("BackSpin", 0.0))
-	var sidespin: float = float(data.get("SideSpin", 0.0))
-	var total_spin: float = float(data.get("TotalSpin", 0.0))
-	var spin_axis: float = float(data.get("SpinAxis", 0.0))
-
-	# Calculate missing values
-	if total_spin == 0.0 and (has_backspin or has_sidespin):
-		total_spin = sqrt(backspin * backspin + sidespin * sidespin)
-
-	if not has_axis and (has_backspin or has_sidespin):
-		spin_axis = rad_to_deg(atan2(sidespin, backspin))
-
-	if has_total and has_axis:
-		if not has_backspin:
-			backspin = total_spin * cos(deg_to_rad(spin_axis))
-		if not has_sidespin:
-			sidespin = total_spin * sin(deg_to_rad(spin_axis))
-
-	return {
-		"backspin": backspin,
-		"sidespin": sidespin,
-		"total": total_spin,
-		"axis": spin_axis
-	}
-
-
-func _print_launch_debug(data: Dictionary, speed_mps: float, vla: float, hla: float, spin: float, axis: float) -> void:
-	print("=== SHOT DEBUG ===")
-	print("Speed: %.2f mph (%.2f m/s)" % [data.get("Speed", 0.0), speed_mps])
-	print("VLA: %.2f deg, HLA: %.2f deg" % [vla, hla])
-	print("Aim yaw offset: %.2f deg" % aim_yaw_offset_deg)
-	print("Spin: %.0f rpm, Axis: %.2f deg" % [spin, axis])
-	print("drag_cf: %.2f, lift_cf: %.2f" % [_drag_scale, _lift_scale])
-	print("Air density: %.4f kg/m^3" % _air_density)
-	print("Dynamic viscosity: %.11f" % _air_viscosity)
-
-	var Re_initial = _air_density * speed_mps * _ball_radius * 2.0 / _air_viscosity
-	var spin_ratio = (spin * 0.10472) * _ball_radius / speed_mps if speed_mps > 0.1 else 0.0
-	var cl_result = _call_openfairway_method(_aero, &"get_cl", &"GetCl", [Re_initial, spin_ratio])
-	var Cl_initial = float(cl_result) if cl_result != null else 0.0
-	print("Reynolds number: %.0f" % Re_initial)
-	print("Spin ratio: %.3f" % spin_ratio)
-	print("Cl (before scale): %.3f, after: %.3f" % [Cl_initial, Cl_initial * _lift_scale])
-	print("Initial velocity: ", velocity)
-	print("Initial omega: ", omega, " (%.0f rpm)" % (omega.length() / 0.10472))
-	print("Shot direction: ", shot_dir)
-	print("===================")
