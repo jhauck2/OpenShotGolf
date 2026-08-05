@@ -141,7 +141,7 @@ func bounce(vel: Vector3, normal: Vector3) -> Vector3:
 	
 	
 	# normal restitution
-	var vel1_iz : float = vel.dot(-local_z_i)
+	var vel1_iz : float = absf(vel.dot(-local_z_i))
 	var e : float = 0.0
 	if vel1_iz > 20.0:
 		e = 0.12
