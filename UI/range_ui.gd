@@ -116,6 +116,6 @@ func clear_total_distance() -> void:
 func set_physics_debug(vel: Vector3, omega: Vector3) -> void:
 	var speed = vel.length()
 	var omg_len = omega.length()
-	var re = Aero.GetRe(speed, BPhysics.RADIUS)
-	var spinRatio = omg_len*BPhysics.RADIUS/speed
+	var re = Aerodynamics.GetRe(speed, BallPhysics.RADIUS)
+	var spinRatio = omg_len*BallPhysics.RADIUS/speed
 	$HBoxContainer/PhysicsDebug.text = "speed: %3d   spin: %5d   Re: %6d   spin ratio: %5.3f" % [int(speed), int(omg_len), re, spinRatio]

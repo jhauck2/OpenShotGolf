@@ -1,14 +1,8 @@
 # Physics calculations for golf ball motion
+class_name BallPhysics
 extends Node
 
-# physical properties
-const MASS : float = 0.04592623 ## mass in kg
-const RADIUS : float = 0.021335 ## radius in m
-const A : float = PI*RADIUS*RADIUS ## cross-sectional area in m^2
-const I : float = 0.4*MASS*RADIUS*RADIUS
-const SPIN_DECAY_TAU : float = 5.0 ## spin decay time constant (s)
-
-const GRASS_VISCOSITY : float = 0.0020
+const GRASS_VISCOSITY : float = 0.035
 
 # Velocity Scaling
 const CHIP_SPEED_THRESHOLD : float = 20.0
@@ -31,48 +25,48 @@ const TANGET_VEL_THRESHOLD : float = 0.05
 const ROLLING_FRICTION : float = 0.18
 const KINETIC_FRICTION : float = 0.42
 
-var gravityForce : Vector3 = Vector3(0.0, -Aero.EARTH_GRAVITY*MASS, 0.0)
+static var gravityAccel : Vector3 = Vector3(0.0, -Aerodynamics.EARTH_GRAVITY, 0.0)
 
 
-func CalculateForces(vel: Vector3, omega: Vector3, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) -> Vector3:
+static func CalculateForces(ball: GolfBall, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) -> Vector3:
 	if onGround:
 		# When on ground, normal force cancels gravity vertically
 		# while gravity still contibutes along the local slope tangent
-		return CalculateGroundForces(vel, omega, floorNorm) + gravityForce
+		return CalculateGroundForces(ball, floorNorm) + gravityAccel*ball.MASS
 	else:
-		return gravityForce + CalculateAirForces(vel, omega)
+		return gravityAccel*ball.MASS + CalculateAirForces(ball)
 		
 
-func CalculateTorques(vel: Vector3, omega: Vector3, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) ->Vector3:
+static func CalculateTorques(ball: GolfBall, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) ->Vector3:
 	if onGround:
-		return CalculateGroundTorques(vel, omega, floorNorm)
+		return CalculateGroundTorques(ball, floorNorm)
 	else:
 		# Viscous Torque
-		return -8.0*PI*Aero.viscosity*RADIUS*RADIUS*RADIUS*omega
+		return -8.0*PI*Aerodynamics.viscosity*pow(ball.RADIUS,3)*ball.omega
 
 
 ## Calculates ground friction and drag forces
-func CalculateGroundForces(vel: Vector3, omega: Vector3, floorNorm: Vector3) -> Vector3:
-	var grassDrag : Vector3 = vel * (-6.0*PI*RADIUS*GRASS_VISCOSITY)
-	var friction : Vector3 = CalculateFrictionForce(vel, omega, floorNorm)
+static func CalculateGroundForces(ball: GolfBall, floorNorm: Vector3) -> Vector3:
+	var grassDrag : Vector3 = ball.velocity * (-6.0*PI*ball.RADIUS*GRASS_VISCOSITY)
+	var friction : Vector3 = CalculateFrictionForce(ball, floorNorm)
 	return grassDrag + friction
 	
 	
-func CalculateFrictionForce(vel: Vector3, omega: Vector3, floorNorm: Vector3) -> Vector3:
-	var contactVel : Vector3 = vel + omega.cross(floorNorm*RADIUS)
+static func CalculateFrictionForce(ball: GolfBall, floorNorm: Vector3) -> Vector3:
+	var contactVel : Vector3 = ball.velocity + ball.omega.cross(floorNorm*ball.RADIUS)
 	var tangentVel : Vector3 = contactVel - floorNorm*contactVel.dot(floorNorm)
 	var tangentSpeed : float = tangentVel.length()
 	if tangentSpeed < 0.01:
 		return Vector3.ZERO
 	if tangentSpeed < TANGET_VEL_THRESHOLD: # rolling without slipping
-		var ballTanVel : Vector3 = vel - floorNorm*vel.dot(floorNorm)
+		var ballTanVel : Vector3 = ball.velocity - floorNorm*ball.velocity.dot(floorNorm)
 		if ballTanVel.length() < 0.01: return Vector3.ZERO
 		
 		var frictionDir : Vector3 = ballTanVel.normalized()
 		
-		return frictionDir*ROLLING_FRICTION*MASS*gravityForce.dot(floorNorm)
+		return frictionDir*ROLLING_FRICTION*ball.MASS*gravityAccel.dot(floorNorm)
 	else: # rolling with slipping
-		var speed : float = vel.length()
+		var speed : float = ball.velocity.length()
 		var friction : float
 		var spinFrictionMultiplier : float = 1.0 # TODO: look into this
 		if speed < FRICTION_BLEND_SPEED: # Blend between kinetic and static friction constants
@@ -82,32 +76,26 @@ func CalculateFrictionForce(vel: Vector3, omega: Vector3, floorNorm: Vector3) ->
 			friction = KINETIC_FRICTION
 			
 		var effectiveFriction : float = friction*spinFrictionMultiplier
-		return tangentVel.normalized()*effectiveFriction*MASS*gravityForce.dot(floorNorm)
+		return tangentVel.normalized()*effectiveFriction*ball.MASS*gravityAccel.dot(floorNorm)
 
-func CalculateAirForces(vel: Vector3, omega: Vector3) -> Vector3:
+static func CalculateAirForces(ball: GolfBall) -> Vector3:
 	# Calculate reynolds number and spin ration
-	var speed : float = vel.length()
-	var re : float = Aero.GetRe(speed, RADIUS)
-	var spin : float = omega.length()*RADIUS/speed
+	var speed : float = ball.velocity.length()
+	var re : float = Aerodynamics.GetRe(speed, ball.RADIUS)
+	var spin : float = ball.omega.length()*ball.RADIUS/speed
 	
 	# Drag force
-	var drag : Vector3 = - 0.5*Aero.GetCd(re, spin)*Aero.density*A*vel*speed
+	var drag : Vector3 = - 0.5*Aerodynamics.GetCd(re, spin)*Aerodynamics.density*ball.A*ball.velocity*speed
 	
 	
 	# Magnus force
 	var magnus : Vector3 = Vector3.ZERO
-	if omega.length() > 0.1:
-		magnus = 0.5*Aero.GetCl(re, spin)*Aero.density*A*omega.cross(vel)*speed/omega.length()
+	if ball.omega.length() > 0.1:
+		magnus = 0.5*Aerodynamics.GetCl(re, spin)*Aerodynamics.density*ball.A*ball.omega.cross(ball.velocity)*speed/ball.omega.length()
 	
 	return drag + magnus
 
-func CalculateGroundTorques(vel: Vector3, omega: Vector3, floorNorm: Vector3) -> Vector3:
-	var grassTorque : Vector3 = -8.0*PI*GRASS_VISCOSITY*RADIUS*RADIUS*RADIUS*omega
+static func CalculateGroundTorques(ball: GolfBall, floorNorm: Vector3) -> Vector3:
+	var grassTorque : Vector3 = -8.0*PI*GRASS_VISCOSITY*pow(ball.RADIUS, 3)*ball.omega
 	
-	var frictionForce : Vector3 = CalculateFrictionForce(vel, omega, floorNorm)
-	
-	var frictionTorque : Vector3 = Vector3.ZERO
-	if frictionForce.length() > 0.001:
-		frictionTorque = -RADIUS*floorNorm.cross(frictionForce)
-	
-	return frictionTorque + grassTorque
+	return grassTorque

@@ -15,6 +15,12 @@ const MIN_GROUND_NORMAL := 0.7
 
 var ball_model : PackedScene = preload("res://assets/models/balls/golf_ball.glb")
 
+# Ball properties
+const MASS : float = 0.04592623 ## mass in kg
+const RADIUS : float = 0.021335 ## radius in m
+const A : float = PI*RADIUS*RADIUS ## cross-sectional area in m^2
+const I : float = 0.4*MASS*RADIUS*RADIUS
+
 # Ball state variables
 var state: int = PhysicsEnums.BallState.REST
 var omega := Vector3.ZERO  # Angular velocity (rad/s)
@@ -38,7 +44,7 @@ func initialize_ball() -> void:
 	# Create collision shape
 	var collision := CollisionShape3D.new()
 	var shape := SphereShape3D.new()
-	shape.set_radius(BPhysics.RADIUS)
+	shape.set_radius(RADIUS)
 	collision.set_shape(shape)
 	add_child(collision)
 	# Create model
@@ -60,15 +66,15 @@ func _physics_process(delta: float) -> void:
 	var prev_velocity := velocity
 
 	# Calculate forces and torques using BallPhysics
-	var total_force : Vector3 = BPhysics.CalculateForces(velocity, omega, was_on_ground, floor_normal)
-	var total_torque : Vector3 = BPhysics.CalculateTorques(velocity, omega, was_on_ground, floor_normal)
+	var total_force : Vector3 = BallPhysics.CalculateForces(velocity, omega, was_on_ground, floor_normal)
+	var total_torque : Vector3 = BallPhysics.CalculateTorques(velocity, omega, was_on_ground, floor_normal)
 	
 	if total_force == null or total_torque == null:
 		return
 
 	# Update velocity and angular velocity
-	velocity += (total_force / BPhysics.MASS) * delta
-	omega += (total_torque / BPhysics.I) * delta
+	velocity += (total_force / MASS) * delta
+	omega += (total_torque / I) * delta
 
 	# Safety: catch NaN/infinity before it reaches the physics engine
 	# Without this, ROUGH appears to error with FINITE bug. Do not remove until someone
@@ -149,8 +155,8 @@ func bounce(vel: Vector3, normal: Vector3) -> Vector3:
 		e = 0.510 - 0.0375*vel1_iz + 0.000903*vel1_iz*vel1_iz
 	
 	var vel2_iz : float = e*speed*cos(theta_1-theta_c)
-	var vel2_ix : float = (5.0*speed*sin(theta_1-theta_c) - 2.0*BPhysics.RADIUS*omega.dot(-local_y))/7.0
-	var vel2_iy : float = -2.0*BPhysics.RADIUS*omega.dot(local_x)/7.0
+	var vel2_ix : float = (5.0*speed*sin(theta_1-theta_c) - 2.0*RADIUS*omega.dot(-local_y))/7.0
+	var vel2_iy : float = -2.0*RADIUS*omega.dot(local_x)/7.0
 	
 	# velocity 2 in impact frame
 	var vel2_i : Vector3 = vel2_iz*local_z_i + vel2_ix*local_x_i + vel2_iy*local_y
@@ -159,8 +165,8 @@ func bounce(vel: Vector3, normal: Vector3) -> Vector3:
 	var w_back : float = omega.dot(local_y)
 	var w_side: float = omega.dot(local_x)
 	var w_axial: float = omega.dot(local_z)
-	var w2_back: float = absf(vel2_ix/BPhysics.RADIUS)
-	var w2_side: float = absf(vel2_iy/BPhysics.RADIUS)
+	var w2_back: float = absf(vel2_ix/RADIUS)
+	var w2_side: float = absf(vel2_iy/RADIUS)
 	
 	omega = sign(w_back)*w2_back*local_y + sign(w_side)*w2_side*local_x + w_axial*local_z
 	

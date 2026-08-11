@@ -8,7 +8,7 @@ const OPENFAIRWAY_LOG_LEVEL_INFO := 2
 
 
 func _ready() -> void:
-	PhysicsLogger.SetLevel(OPENFAIRWAY_LOG_LEVEL_INFO)
+	pass
 
 
 func resett_defaults() -> void:
