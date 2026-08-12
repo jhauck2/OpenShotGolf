@@ -66,8 +66,8 @@ func _physics_process(delta: float) -> void:
 	var prev_velocity := velocity
 
 	# Calculate forces and torques using BallPhysics
-	var total_force : Vector3 = BallPhysics.CalculateForces(velocity, omega, was_on_ground, floor_normal)
-	var total_torque : Vector3 = BallPhysics.CalculateTorques(velocity, omega, was_on_ground, floor_normal)
+	var total_force : Vector3 = BallPhysics.CalculateForces(self, was_on_ground, floor_normal)
+	var total_torque : Vector3 = BallPhysics.CalculateTorques(self, was_on_ground, floor_normal)
 	
 	if total_force == null or total_torque == null:
 		return
@@ -94,6 +94,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		omega = Vector3.ZERO
 		state = PhysicsEnums.BallState.REST
+		rest.emit()
 
 func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, prev_velocity: Vector3) -> void:
 	if collision:
@@ -140,6 +141,14 @@ func bounce(vel: Vector3, normal: Vector3) -> Vector3:
 	var speed : float = vel.length()
 	var theta_1 : float = normal.angle_to(-vel)
 	var theta_c : float = 15.4 * speed * theta_1 / 18.6 / 44.4 # Eq 18 from reference
+	
+	# Handle high theta 1 "skimming" shots
+	if theta_1 > 1.0: # ~ 60 degrees
+		var normal_vel := vel.project(normal)*0.5
+		var orth_vel := vel.slide(normal)*0.7
+		
+		omega *= 0.5
+		return -normal_vel + orth_vel
 	
 	# Set up local impact axes vectors
 	var local_x_i : Vector3 = local_x.rotated(local_y, theta_c)

@@ -28,18 +28,18 @@ static func runTests() -> void:
 		
 		while(true):
 			# Store max and min Re and Spin
-			var curRe: float = Aerodynamics.GetRe(ball.velocity.length(), BallPhysics.RADIUS)
-			var curS: float = ball.omega.length()*BallPhysics.RADIUS/ball.velocity.length()
+			var curRe: float = Aerodynamics.GetRe(ball.velocity.length(), ball.RADIUS)
+			var curS: float = ball.omega.length()*ball.RADIUS/ball.velocity.length()
 			if curRe < minRe: minRe = curRe
 			if curRe > maxRe: maxRe = curRe
 			if curS < minS: minS = curS
 			if curS > maxS: maxS = curS
 			
-			var force: Vector3 = BallPhysics.CalculateForces(ball.velocity, ball.omega, false)
-			var torque: Vector3 = BallPhysics.CalculateTorques(ball.velocity, ball.omega, false)
+			var force: Vector3 = BallPhysics.CalculateForces(ball, false)
+			var torque: Vector3 = BallPhysics.CalculateTorques(ball, false)
 			
-			ball.velocity += (force / BallPhysics.MASS) * delta
-			ball.omega += (torque / BallPhysics.I) * delta
+			ball.velocity += (force / ball.MASS) * delta
+			ball.omega += (torque / ball.I) * delta
 			ball.position += ball.velocity * delta
 			
 			if ball.position.y > apex:
