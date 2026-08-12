@@ -1,68 +1,68 @@
 [
 	{
-		"% Apex Diff": 1.0033258042306,
+		"% Apex Diff": 1.0033258923673,
 		"% Distance Diff": 0.892555782118851,
-		"Actual Apex": 142.472264200745,
+		"Actual Apex": 142.472276716156,
 		"Actual Distance": 313.376335101929,
 		"Expected Apex": 142.0,
 		"Expected Distance": 351.1,
 		"Max Re": 244762.766855109,
-		"Max Spin": 0.0764579649114951,
-		"Min Re": 79759.0141464393,
-		"Min Spin": 0.024988828012648,
-		"Shot Num": 1.0
+		"Max Spin": 0.0764579755038124,
+		"Min Re": 79759.0193679848,
+		"Min Spin": 0.0249888298332137,
+		"Shot Num": 1
 	},
 	{
-		"% Apex Diff": 1.05153821284441,
-		"% Distance Diff": 0.924076106081585,
-		"Actual Apex": 92.0095936238861,
-		"Actual Distance": 299.770288812866,
+		"% Apex Diff": 1.0515379982945,
+		"% Distance Diff": 0.924076003201411,
+		"Actual Apex": 92.009574850769,
+		"Actual Distance": 299.770255438538,
 		"Expected Apex": 87.5,
 		"Expected Distance": 324.4,
 		"Max Re": 244762.766855109,
-		"Max Spin": 0.0720056707188401,
-		"Min Re": 84674.2429395438,
-		"Min Spin": 0.024988828012648,
-		"Shot Num": 2.0
+		"Max Spin": 0.0720056848620858,
+		"Min Re": 84674.2324964527,
+		"Min Spin": 0.0249888298332137,
+		"Shot Num": 2
 	},
 	{
-		"% Apex Diff": 1.1828550972183,
+		"% Apex Diff": 1.18285517848721,
 		"% Distance Diff": 0.961741211335555,
-		"Actual Apex": 45.5399212429047,
+		"Actual Apex": 45.5399243717575,
 		"Actual Distance": 263.228569542541,
 		"Expected Apex": 38.5,
 		"Expected Distance": 273.7,
 		"Max Re": 244762.766855109,
-		"Max Spin": 0.0666848546902661,
+		"Max Spin": 0.0666848595614936,
 		"Min Re": 91477.2901936166,
-		"Min Spin": 0.024988828012648,
-		"Shot Num": 3.0
+		"Min Spin": 0.0249888298332137,
+		"Shot Num": 3
 	},
 	{
-		"% Apex Diff": 0.984968789417564,
+		"% Apex Diff": 0.984968869337177,
 		"% Distance Diff": 0.928308315381633,
-		"Actual Apex": 77.1230562113953,
+		"Actual Apex": 77.123062469101,
 		"Actual Distance": 226.971383110809,
 		"Expected Apex": 78.3,
 		"Expected Distance": 244.5,
 		"Max Re": 183572.080362877,
-		"Max Spin": 0.0751474598345767,
-		"Min Re": 81180.1047592518,
-		"Min Spin": 0.0333184364024838,
-		"Shot Num": 4.0
+		"Max Spin": 0.0751474734582174,
+		"Min Re": 81180.0995377063,
+		"Min Spin": 0.0333184388299046,
+		"Shot Num": 4
 	},
 	{
-		"% Apex Diff": 1.00664697377966,
+		"% Apex Diff": 1.00664704554234,
 		"% Distance Diff": 0.950551710334246,
-		"Actual Apex": 43.8898080567932,
+		"Actual Apex": 43.8898111856461,
 		"Actual Distance": 201.897183274994,
 		"Expected Apex": 43.6,
 		"Expected Distance": 212.4,
 		"Max Re": 183572.080362877,
-		"Max Spin": 0.0697883320423725,
+		"Max Spin": 0.0697883371389306,
 		"Min Re": 87432.8689934265,
-		"Min Spin": 0.0333184364024838,
-		"Shot Num": 5.0
+		"Min Spin": 0.0333184388299046,
+		"Shot Num": 5
 	},
 	{
 		"% Apex Diff": 1.05960033934581,
@@ -72,10 +72,10 @@
 		"Expected Apex": 15.4,
 		"Expected Distance": 156.8,
 		"Max Re": 183572.101249059,
-		"Max Spin": 0.060615084201568,
+		"Max Spin": 0.0606150886247184,
 		"Min Re": 100744.186369617,
-		"Min Spin": 0.0333184326116303,
-		"Shot Num": 6.0
+		"Min Spin": 0.0333184350390509,
+		"Shot Num": 6
 	},
 	{
 		"% Apex Diff": 0.988709327672848,
@@ -85,49 +85,49 @@
 		"Expected Apex": 91.9,
 		"Expected Distance": 159.3,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.0945827158333379,
+		"Max Spin": 0.0945827227364456,
 		"Min Re": 64551.6073811435,
-		"Min Spin": 0.0499776560252959,
-		"Shot Num": 7.0
+		"Min Spin": 0.0499776596664273,
+		"Shot Num": 7
 	},
 	{
-		"% Apex Diff": 1.02953793635681,
+		"% Apex Diff": 1.029538256936,
 		"% Distance Diff": 0.951541254415857,
-		"Actual Apex": 50.2414512942123,
+		"Actual Apex": 50.2414669384766,
 		"Actual Distance": 134.262470998077,
 		"Expected Apex": 48.8,
 		"Expected Distance": 141.1,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.0830410955999564,
-		"Min Re": 73524.0919333772,
-		"Min Spin": 0.0499776560252959,
-		"Shot Num": 8.0
+		"Max Spin": 0.0830411075580724,
+		"Min Re": 73524.0867118316,
+		"Min Spin": 0.0499776596664273,
+		"Shot Num": 8
 	},
 	{
-		"% Apex Diff": 1.05756598999257,
+		"% Apex Diff": 1.0575662028397,
 		"% Distance Diff": 1.02719513864517,
-		"Actual Apex": 15.5462200528908,
+		"Actual Apex": 15.5462231817436,
 		"Actual Distance": 97.7889771990204,
 		"Expected Apex": 14.7,
 		"Expected Distance": 95.2,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.07232170275514,
+		"Max Spin": 0.0723217080312531,
 		"Min Re": 84457.3817101472,
-		"Min Spin": 0.0499776560252959,
-		"Shot Num": 9.0
+		"Min Spin": 0.0499776596664273,
+		"Shot Num": 9
 	},
 	{
-		"% Apex Diff": 0.939641389361101,
-		"% Distance Diff": 0.847697011741487,
-		"Actual Apex": 83.9099760699463,
-		"Actual Distance": 94.4334471080017,
+		"% Apex Diff": 0.939641529511284,
+		"% Distance Diff": 0.847697161536499,
+		"Actual Apex": 83.9099885853577,
+		"Actual Distance": 94.433463795166,
 		"Expected Apex": 89.3,
 		"Expected Distance": 111.4,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.123794060691898,
-		"Min Re": 49335.4806347948,
-		"Min Spin": 0.0624720700316199,
-		"Shot Num": 10.0
+		"Max Spin": 0.123794056622016,
+		"Min Re": 49335.4858563403,
+		"Min Spin": 0.0624720745830341,
+		"Shot Num": 10
 	},
 	{
 		"% Apex Diff": 0.972955284332328,
@@ -137,10 +137,10 @@
 		"Expected Apex": 58.2,
 		"Expected Distance": 110.0,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.105446930666647,
+		"Max Spin": 0.105446938360606,
 		"Min Re": 57916.4380377498,
-		"Min Spin": 0.0624720700316199,
-		"Shot Num": 11.0
+		"Min Spin": 0.0624720745830341,
+		"Shot Num": 11
 	},
 	{
 		"% Apex Diff": 1.01357538899087,
@@ -150,10 +150,10 @@
 		"Expected Apex": 29.6,
 		"Expected Distance": 93.1,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.089144498720046,
+		"Max Spin": 0.0891445052232625,
 		"Min Re": 68520.968864186,
-		"Min Spin": 0.0624720700316199,
-		"Shot Num": 12.0
+		"Min Spin": 0.0624720745830341,
+		"Shot Num": 12
 	},
 	{
 		"% Apex Diff": 0.869866087167436,
@@ -163,10 +163,10 @@
 		"Expected Apex": 50.9,
 		"Expected Distance": 68.3,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.139756981282923,
+		"Max Spin": 0.139756991475441,
 		"Min Re": 43719.0008863465,
-		"Min Spin": 0.0832960992987031,
-		"Shot Num": 13.0
+		"Min Spin": 0.0832961053672559,
+		"Shot Num": 13
 	},
 	{
 		"% Apex Diff": 0.88931616158662,
@@ -176,36 +176,36 @@
 		"Expected Apex": 32.4,
 		"Expected Distance": 65.6,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.121522437561041,
+		"Max Spin": 0.121522446423147,
 		"Min Re": 50282.2564937809,
-		"Min Spin": 0.0832960992987031,
-		"Shot Num": 14.0
+		"Min Spin": 0.0832961053672559,
+		"Shot Num": 14
 	},
 	{
-		"% Apex Diff": 0.922244531220198,
+		"% Apex Diff": 0.922244824550152,
 		"% Distance Diff": 0.882234049095554,
-		"Actual Apex": 14.7559124995232,
+		"Actual Apex": 14.7559171928024,
 		"Actual Distance": 47.1112982217026,
 		"Expected Apex": 16.0,
 		"Expected Distance": 53.4,
 		"Max Re": 73428.8352780781,
-		"Max Spin": 0.108266695066585,
+		"Max Spin": 0.108266702961722,
 		"Min Re": 56440.6569569439,
-		"Min Spin": 0.0832960874522841,
-		"Shot Num": 15.0
+		"Min Spin": 0.083296093520836,
+		"Shot Num": 15
 	},
 	{
-		"% Apex Diff": 0.838255669719189,
+		"% Apex Diff": 0.838255779119638,
 		"% Distance Diff": 0.88235993803893,
-		"Actual Apex": 23.9741121539688,
+		"Actual Apex": 23.9741152828217,
 		"Actual Distance": 35.6473414967728,
 		"Expected Apex": 28.6,
 		"Expected Distance": 40.4,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.166840822971323,
+		"Max Spin": 0.166840835135554,
 		"Min Re": 36632.5438049608,
-		"Min Spin": 0.111061452568916,
-		"Shot Num": 16.0
+		"Min Spin": 0.111061460660319,
+		"Shot Num": 16
 	},
 	{
 		"% Apex Diff": 0.813522511608336,
@@ -215,10 +215,10 @@
 		"Expected Apex": 18.0,
 		"Expected Distance": 37.9,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.146279941520658,
-		"Min Re": 41785.3346447579,
-		"Min Spin": 0.111061452568916,
-		"Shot Num": 17.0
+		"Max Spin": 0.146279961324506,
+		"Min Re": 41785.3320339852,
+		"Min Spin": 0.111061460660319,
+		"Shot Num": 17
 	},
 	{
 		"% Apex Diff": 0.798951944409294,
@@ -228,36 +228,36 @@
 		"Expected Apex": 8.7,
 		"Expected Distance": 30.1,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.132251192387463,
+		"Max Spin": 0.132251202027961,
 		"Min Re": 46222.3742972447,
-		"Min Spin": 0.111061452568916,
-		"Shot Num": 18.0
+		"Min Spin": 0.111061460660319,
+		"Shot Num": 18
 	},
 	{
-		"% Apex Diff": 0.944410507950797,
+		"% Apex Diff": 0.944410598119466,
 		"% Distance Diff": 0.889756326367648,
-		"Actual Apex": 131.084178503571,
+		"Actual Apex": 131.084191018982,
 		"Actual Distance": 235.785426487427,
 		"Expected Apex": 138.8,
 		"Expected Distance": 265.0,
 		"Max Re": 183572.080362877,
-		"Max Spin": 0.169970523501503,
+		"Max Spin": 0.169970535915139,
 		"Min Re": 71792.4968934411,
-		"Min Spin": 0.0666368728049676,
-		"Shot Num": 19.0
+		"Min Spin": 0.0666368776598093,
+		"Shot Num": 19
 	},
 	{
-		"% Apex Diff": 0.960047447001606,
+		"% Apex Diff": 0.960047510790655,
 		"% Distance Diff": 0.892097430262278,
-		"Actual Apex": 94.1806545508575,
+		"Actual Apex": 94.1806608085632,
 		"Actual Distance": 228.822990862274,
 		"Expected Apex": 98.1,
 		"Expected Distance": 256.5,
 		"Max Re": 183572.080362877,
-		"Max Spin": 0.159416985293606,
+		"Max Spin": 0.159416996936265,
 		"Min Re": 76547.241484352,
-		"Min Spin": 0.0666368728049676,
-		"Shot Num": 20.0
+		"Min Spin": 0.0666368776598093,
+		"Shot Num": 20
 	},
 	{
 		"% Apex Diff": 0.966785937346119,
@@ -267,101 +267,101 @@
 		"Expected Apex": 59.0,
 		"Expected Distance": 236.4,
 		"Max Re": 183572.080362877,
-		"Max Spin": 0.151580706347973,
-		"Min Re": 80504.5098679223,
-		"Min Spin": 0.0666368728049676,
-		"Shot Num": 21.0
+		"Max Spin": 0.151580727249896,
+		"Min Re": 80504.5046463767,
+		"Min Spin": 0.0666368776598093,
+		"Shot Num": 21
 	},
 	{
-		"% Apex Diff": 0.959408211040592,
+		"% Apex Diff": 0.959408584634961,
 		"% Distance Diff": 0.898417186443622,
-		"Actual Apex": 96.4205252095795,
+		"Actual Apex": 96.4205627558136,
 		"Actual Distance": 138.985138742828,
 		"Expected Apex": 100.5,
 		"Expected Distance": 154.7,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.201091634600262,
-		"Min Re": 60721.045021664,
-		"Min Spin": 0.0999553120505918,
-		"Shot Num": 22.0
+		"Max Spin": 0.201091666569782,
+		"Min Re": 60721.0398001185,
+		"Min Spin": 0.0999553193328546,
+		"Shot Num": 22
 	},
 	{
-		"% Apex Diff": 0.999228233132514,
+		"% Apex Diff": 0.999228343692685,
 		"% Distance Diff": 0.932462145852715,
-		"Actual Apex": 56.5563179953003,
+		"Actual Apex": 56.556324253006,
 		"Actual Distance": 135.952980865326,
 		"Expected Apex": 56.6,
 		"Expected Distance": 145.8,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.172597957756749,
+		"Max Spin": 0.172597970353676,
 		"Min Re": 70748.474970305,
-		"Min Spin": 0.0999553120505918,
-		"Shot Num": 23.0
+		"Min Spin": 0.0999553193328546,
+		"Shot Num": 23
 	},
 	{
-		"% Apex Diff": 1.08336119801832,
+		"% Apex Diff": 1.08336136533666,
 		"% Distance Diff": 0.990420667271049,
-		"Actual Apex": 20.2588544029427,
+		"Actual Apex": 20.2588575317955,
 		"Actual Distance": 107.856810665817,
 		"Expected Apex": 18.7,
 		"Expected Distance": 108.9,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.154189202333343,
-		"Min Re": 79210.8249663029,
-		"Min Spin": 0.0999553120505918,
-		"Shot Num": 24.0
+		"Max Spin": 0.154189223748591,
+		"Min Re": 79210.8197447573,
+		"Min Spin": 0.0999553193328546,
+		"Shot Num": 24
 	},
 	{
-		"% Apex Diff": 0.896180441715265,
+		"% Apex Diff": 0.896180508428545,
 		"% Distance Diff": 0.895841118892709,
-		"Actual Apex": 84.0617254328918,
+		"Actual Apex": 84.0617316905975,
 		"Actual Distance": 94.8695744907379,
 		"Expected Apex": 93.8,
 		"Expected Distance": 105.9,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.242016105587986,
+		"Max Spin": 0.242016123245158,
 		"Min Re": 50473.1666418401,
-		"Min Spin": 0.12494414006324,
-		"Shot Num": 25.0
+		"Min Spin": 0.124944149166068,
+		"Shot Num": 25
 	},
 	{
-		"% Apex Diff": 0.913885883225569,
-		"% Distance Diff": 0.87194034336466,
-		"Actual Apex": 58.0317535848236,
-		"Actual Distance": 95.5646616327667,
+		"% Apex Diff": 0.913885981772115,
+		"% Distance Diff": 0.871940267237086,
+		"Actual Apex": 58.0317598425293,
+		"Actual Distance": 95.5646532891846,
 		"Expected Apex": 63.5,
 		"Expected Distance": 109.6,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.208473832598868,
+		"Max Spin": 0.20847384780829,
 		"Min Re": 58596.1370638744,
-		"Min Spin": 0.12494414006324,
-		"Shot Num": 26.0
+		"Min Spin": 0.124944149166068,
+		"Shot Num": 26
 	},
 	{
-		"% Apex Diff": 0.92094959195905,
+		"% Apex Diff": 0.920949684255594,
 		"% Distance Diff": 0.912528243444992,
-		"Actual Apex": 31.2201911674118,
+		"Actual Apex": 31.2201942962646,
 		"Actual Distance": 89.7015263306427,
 		"Expected Apex": 33.9,
 		"Expected Distance": 98.3,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.181079306857547,
+		"Max Spin": 0.181079320068015,
 		"Min Re": 67462.6660139961,
-		"Min Spin": 0.12494414006324,
-		"Shot Num": 27.0
+		"Min Spin": 0.124944149166068,
+		"Shot Num": 27
 	},
 	{
-		"% Apex Diff": 0.842252268622946,
+		"% Apex Diff": 0.842252387590735,
 		"% Distance Diff": 0.913999962007677,
-		"Actual Apex": 44.302469329567,
+		"Actual Apex": 44.3024755872726,
 		"Actual Distance": 60.8723974697113,
 		"Expected Apex": 52.6,
 		"Expected Distance": 66.6,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.272135604702514,
+		"Max Spin": 0.272135624549623,
 		"Min Re": 44903.9392697624,
-		"Min Spin": 0.166592198597406,
-		"Shot Num": 28.0
+		"Min Spin": 0.166592210734512,
+		"Shot Num": 28
 	},
 	{
 		"% Apex Diff": 0.830328217509189,
@@ -371,10 +371,10 @@
 		"Expected Apex": 34.3,
 		"Expected Distance": 65.9,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.235161001637989,
-		"Min Re": 51969.9017849008,
-		"Min Spin": 0.166592198597406,
-		"Shot Num": 29.0
+		"Max Spin": 0.235161042413506,
+		"Min Re": 51969.8965633553,
+		"Min Spin": 0.166592210734512,
+		"Shot Num": 29
 	},
 	{
 		"% Apex Diff": 0.864560661899084,
@@ -384,23 +384,23 @@
 		"Expected Apex": 17.4,
 		"Expected Distance": 55.8,
 		"Max Re": 73428.8352780781,
-		"Max Spin": 0.211158151464709,
+		"Max Spin": 0.211158166861472,
 		"Min Re": 57882.7747336489,
-		"Min Spin": 0.166592174904568,
-		"Shot Num": 30.0
+		"Min Spin": 0.166592187041672,
+		"Shot Num": 30
 	},
 	{
-		"% Apex Diff": 0.864965003192507,
+		"% Apex Diff": 0.864965057138246,
 		"% Distance Diff": 0.949710649435724,
-		"Actual Apex": 25.0839850925827,
+		"Actual Apex": 25.0839866570091,
 		"Actual Distance": 37.7984838475418,
 		"Expected Apex": 29.0,
 		"Expected Distance": 39.8,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.333520041738969,
-		"Min Re": 36649.2997446009,
-		"Min Spin": 0.222122905137832,
-		"Shot Num": 31.0
+		"Max Spin": 0.333520089815155,
+		"Min Re": 36649.2971338282,
+		"Min Spin": 0.222122921320638,
+		"Shot Num": 31
 	},
 	{
 		"% Apex Diff": 0.826443287032584,
@@ -410,10 +410,10 @@
 		"Expected Apex": 18.4,
 		"Expected Distance": 37.9,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.289472201349779,
+		"Max Spin": 0.289472222453438,
 		"Min Re": 42230.278204918,
-		"Min Spin": 0.222122905137832,
-		"Shot Num": 32.0
+		"Min Spin": 0.222122921320638,
+		"Shot Num": 32
 	},
 	{
 		"% Apex Diff": 0.777932097985194,
@@ -423,15 +423,15 @@
 		"Expected Apex": 9.1,
 		"Expected Distance": 30.7,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.259963657493145,
+		"Max Spin": 0.259963676443289,
 		"Min Re": 47029.3746036516,
-		"Min Spin": 0.222122905137832,
-		"Shot Num": 33.0
+		"Min Spin": 0.222122921320638,
+		"Shot Num": 33
 	},
 	{
-		"% Apex Diff": 0.989888844786849,
+		"% Apex Diff": 0.989888917890888,
 		"% Distance Diff": 0.931855079758769,
-		"Actual Apex": 84.7344851137543,
+		"Actual Apex": 84.73449137146,
 		"Actual Distance": 138.380479344177,
 		"Expected Apex": 85.6,
 		"Expected Distance": 148.5,
@@ -439,33 +439,33 @@
 		"Max Spin": 0.335643379094339,
 		"Min Re": 54562.9630727789,
 		"Min Spin": 0.149932991793416,
-		"Shot Num": 34.0
+		"Shot Num": 34
 	},
 	{
-		"% Apex Diff": 0.996647434978545,
+		"% Apex Diff": 0.996647629922647,
 		"% Distance Diff": 0.948342787011006,
-		"Actual Apex": 63.9847653256226,
+		"Actual Apex": 63.9847778410339,
 		"Actual Distance": 137.983875510101,
 		"Expected Apex": 64.2,
 		"Expected Distance": 145.5,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.308865849035368,
-		"Min Re": 59291.2239847074,
+		"Max Spin": 0.308865876235975,
+		"Min Re": 59291.2187631619,
 		"Min Spin": 0.149932978999282,
-		"Shot Num": 35.0
+		"Shot Num": 35
 	},
 	{
-		"% Apex Diff": 1.00647189604339,
-		"% Distance Diff": 0.975270514580169,
-		"Actual Apex": 43.5802330986786,
-		"Actual Distance": 133.319479343109,
+		"% Apex Diff": 1.00647196830327,
+		"% Distance Diff": 0.97527039250874,
+		"Actual Apex": 43.5802362275314,
+		"Actual Distance": 133.319462655945,
 		"Expected Apex": 43.3,
 		"Expected Distance": 136.7,
 		"Max Re": 122381.383427554,
-		"Max Spin": 0.286162300406828,
-		"Min Re": 63994.1134068536,
+		"Max Spin": 0.286162347105178,
+		"Min Re": 63994.1029637625,
 		"Min Spin": 0.149932978999282,
-		"Shot Num": 36.0
+		"Shot Num": 36
 	},
 	{
 		"% Apex Diff": 0.961272811876082,
@@ -478,7 +478,7 @@
 		"Max Spin": 0.440157345731727,
 		"Min Re": 41623.354469767,
 		"Min Spin": 0.187416223749102,
-		"Shot Num": 37.0
+		"Shot Num": 37
 	},
 	{
 		"% Apex Diff": 0.968981426823514,
@@ -491,12 +491,12 @@
 		"Max Spin": 0.367563427449454,
 		"Min Re": 49847.0563375998,
 		"Min Spin": 0.187416223749102,
-		"Shot Num": 38.0
+		"Shot Num": 38
 	},
 	{
-		"% Apex Diff": 0.986011502428029,
+		"% Apex Diff": 0.986011837961846,
 		"% Distance Diff": 0.946685410830001,
-		"Actual Apex": 36.7782290405655,
+		"Actual Apex": 36.7782415559769,
 		"Actual Distance": 94.1005298365021,
 		"Expected Apex": 37.3,
 		"Expected Distance": 99.4,
@@ -504,7 +504,7 @@
 		"Max Spin": 0.320350922401342,
 		"Min Re": 57187.2753107182,
 		"Min Spin": 0.187416223749102,
-		"Shot Num": 39.0
+		"Shot Num": 39
 	},
 	{
 		"% Apex Diff": 0.953073630702944,
@@ -517,20 +517,20 @@
 		"Max Spin": 0.473072593810569,
 		"Min Re": 38742.2414005904,
 		"Min Spin": 0.249888316101768,
-		"Shot Num": 40.0
+		"Shot Num": 40
 	},
 	{
 		"% Apex Diff": 0.951382462215423,
-		"% Distance Diff": 0.949306375286143,
+		"% Distance Diff": 0.949306311203331,
 		"Actual Apex": 33.4886626699829,
-		"Actual Distance": 61.7998450311279,
+		"Actual Distance": 61.7998408593369,
 		"Expected Apex": 35.2,
 		"Expected Distance": 65.1,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.396337284990843,
-		"Min Re": 46247.5055959321,
+		"Max Spin": 0.39633732973906,
+		"Min Re": 46247.5003743866,
 		"Min Spin": 0.249888316101768,
-		"Shot Num": 41.0
+		"Shot Num": 41
 	},
 	{
 		"% Apex Diff": 0.967938581870032,
@@ -543,12 +543,12 @@
 		"Max Spin": 0.352931506228246,
 		"Min Re": 51936.7293060807,
 		"Min Spin": 0.249888280562508,
-		"Shot Num": 42.0
+		"Shot Num": 42
 	},
 	{
-		"% Apex Diff": 0.967918985259696,
+		"% Apex Diff": 0.967919092412191,
 		"% Distance Diff": 0.992573709563434,
-		"Actual Apex": 28.2632343695831,
+		"Actual Apex": 28.263237498436,
 		"Actual Distance": 39.1074041567993,
 		"Expected Apex": 29.2,
 		"Expected Distance": 39.4,
@@ -556,20 +556,20 @@
 		"Max Spin": 0.544499349497739,
 		"Min Re": 33670.5437738132,
 		"Min Spin": 0.333184381980956,
-		"Shot Num": 43.0
+		"Shot Num": 43
 	},
 	{
-		"% Apex Diff": 0.958732154368329,
-		"% Distance Diff": 0.984409241040379,
-		"Actual Apex": 17.8324180712509,
-		"Actual Distance": 37.1122283872223,
+		"% Apex Diff": 0.958732490804118,
+		"% Distance Diff": 0.984409130382791,
+		"Actual Apex": 17.8324243289566,
+		"Actual Distance": 37.1122242154312,
 		"Expected Apex": 18.6,
 		"Expected Distance": 37.7,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.463676536215709,
-		"Min Re": 39542.6207872517,
+		"Max Spin": 0.463676566829457,
+		"Min Re": 39542.6181764789,
 		"Min Spin": 0.333184381980956,
-		"Shot Num": 44.0
+		"Shot Num": 44
 	},
 	{
 		"% Apex Diff": 0.935271225118124,
@@ -582,7 +582,7 @@
 		"Max Spin": 0.408056871802398,
 		"Min Re": 44937.9419743235,
 		"Min Spin": 0.333184381980956,
-		"Shot Num": 45.0
+		"Shot Num": 45
 	},
 	{
 		"% Apex Diff": 1.00816753237969,
@@ -592,23 +592,23 @@
 		"Expected Apex": 95.8,
 		"Expected Distance": 96.0,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.62676081450456,
-		"Min Re": 38973.6028619534,
-		"Min Spin": 0.24988828012648,
-		"Shot Num": 46.0
+		"Max Spin": 0.626760902224371,
+		"Min Re": 38973.6002511807,
+		"Min Spin": 0.249888298332137,
+		"Shot Num": 46
 	},
 	{
-		"% Apex Diff": 1.01690110089919,
+		"% Apex Diff": 1.01690128494936,
 		"% Distance Diff": 0.995268778425982,
-		"Actual Apex": 69.149274861145,
+		"Actual Apex": 69.1492873765564,
 		"Actual Distance": 102.413157300034,
 		"Expected Apex": 68.0,
 		"Expected Distance": 102.9,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.513698218827069,
+		"Max Spin": 0.51369825631153,
 		"Min Re": 47551.0331108957,
-		"Min Spin": 0.24988828012648,
-		"Shot Num": 47.0
+		"Min Spin": 0.249888298332137,
+		"Shot Num": 47
 	},
 	{
 		"% Apex Diff": 1.03070997647363,
@@ -618,49 +618,49 @@
 		"Expected Apex": 39.2,
 		"Expected Distance": 98.4,
 		"Max Re": 97905.1067420434,
-		"Max Spin": 0.432369430079856,
+		"Max Spin": 0.432369461628921,
 		"Min Re": 56496.976547146,
-		"Min Spin": 0.24988828012648,
-		"Shot Num": 48.0
+		"Min Spin": 0.249888298332137,
+		"Shot Num": 48
 	},
 	{
 		"% Apex Diff": 1.00077276409684,
-		"% Distance Diff": 0.998705924797058,
+		"% Distance Diff": 0.998705793608659,
 		"Actual Apex": 53.5413428791809,
-		"Actual Distance": 63.5176968170929,
+		"Actual Distance": 63.5176884735107,
 		"Expected Apex": 53.5,
 		"Expected Distance": 63.6,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.654406917319833,
-		"Min Re": 37341.2694027462,
-		"Min Spin": 0.333184397194813,
-		"Shot Num": 49.0
+		"Max Spin": 0.654407056561029,
+		"Min Re": 37341.2641812006,
+		"Min Spin": 0.333184421469024,
+		"Shot Num": 49
 	},
 	{
-		"% Apex Diff": 1.0064355456901,
-		"% Distance Diff": 0.999844810805113,
-		"Actual Apex": 36.0303925357056,
-		"Actual Distance": 64.3900058158493,
+		"% Apex Diff": 1.00643563308822,
+		"% Distance Diff": 0.999845005143207,
+		"Actual Apex": 36.0303956645584,
+		"Actual Distance": 64.3900183312225,
 		"Expected Apex": 35.8,
 		"Expected Distance": 64.4,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.54680946651291,
-		"Min Re": 44690.8114454275,
-		"Min Spin": 0.333184397194813,
-		"Shot Num": 50.0
+		"Max Spin": 0.546809442508918,
+		"Min Re": 44690.816666973,
+		"Min Spin": 0.333184421469024,
+		"Shot Num": 50
 	},
 	{
-		"% Apex Diff": 1.00983684160848,
-		"% Distance Diff": 1.01008543976999,
-		"Actual Apex": 19.0859163064003,
-		"Actual Distance": 57.3728529789352,
+		"% Apex Diff": 1.00983692438237,
+		"% Distance Diff": 1.01008536632296,
+		"Actual Apex": 19.0859178708267,
+		"Actual Distance": 57.3728488071442,
 		"Expected Apex": 18.9,
 		"Expected Distance": 56.8,
 		"Max Re": 73428.8352780781,
-		"Max Spin": 0.471055479605892,
-		"Min Re": 51879.6891425941,
-		"Min Spin": 0.333184349809136,
-		"Shot Num": 51.0
+		"Max Spin": 0.471055561372702,
+		"Min Re": 51879.6839210485,
+		"Min Spin": 0.333184374083344,
+		"Shot Num": 51
 	},
 	{
 		"% Apex Diff": 0.997073351248783,
@@ -670,10 +670,10 @@
 		"Expected Apex": 29.3,
 		"Expected Distance": 39.1,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.746513970782158,
+		"Max Spin": 0.746514025216289,
 		"Min Re": 32744.6540969899,
-		"Min Spin": 0.444245810275664,
-		"Shot Num": 52.0
+		"Min Spin": 0.444245842641275,
+		"Shot Num": 52
 	},
 	{
 		"% Apex Diff": 0.99877900745615,
@@ -683,36 +683,36 @@
 		"Expected Apex": 18.8,
 		"Expected Distance": 37.6,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.629939660991362,
-		"Min Re": 38807.4167320295,
-		"Min Spin": 0.444245810275664,
-		"Shot Num": 53.0
+		"Max Spin": 0.629939664542164,
+		"Min Re": 38807.4193428022,
+		"Min Spin": 0.444245842641275,
+		"Shot Num": 53
 	},
 	{
-		"% Apex Diff": 1.00064491882121,
+		"% Apex Diff": 1.00064516846373,
 		"% Distance Diff": 1.01021689544727,
-		"Actual Apex": 9.4060622369194,
+		"Actual Apex": 9.40606458355904,
 		"Actual Distance": 31.2157020693207,
 		"Expected Apex": 9.4,
 		"Expected Distance": 30.9,
 		"Max Re": 55071.6251531722,
-		"Max Spin": 0.556350143530198,
-		"Min Re": 43944.5220490223,
-		"Min Spin": 0.444245810275664,
-		"Shot Num": 54.0
+		"Max Spin": 0.556350250197303,
+		"Min Re": 43944.5168274768,
+		"Min Spin": 0.444245842641275,
+		"Shot Num": 54
 	},
 	{
-		"% Apex Diff": 0.967593845553912,
+		"% Apex Diff": 0.967593961868144,
 		"% Distance Diff": 0.974710750379639,
-		"Actual Apex": 52.0565488908005,
+		"Actual Apex": 52.0565551485062,
 		"Actual Distance": 60.9194218987274,
 		"Expected Apex": 53.8,
 		"Expected Distance": 62.5,
 		"Max Re": 73428.824834987,
-		"Max Spin": 0.842269214380339,
-		"Min Re": 36266.301989963,
+		"Max Spin": 0.842269275014414,
+		"Min Re": 36266.2993791903,
 		"Min Spin": 0.416480502562068,
-		"Shot Num": 55.0
+		"Shot Num": 55
 	},
 	{
 		"% Apex Diff": 0.960974201290424,
@@ -725,20 +725,20 @@
 		"Max Spin": 0.700180315150859,
 		"Min Re": 43628.1616585749,
 		"Min Spin": 0.416480502562068,
-		"Shot Num": 56.0
+		"Shot Num": 56
 	},
 	{
-		"% Apex Diff": 0.96252041618445,
+		"% Apex Diff": 0.962520656865438,
 		"% Distance Diff": 0.957682653839379,
-		"Actual Apex": 18.7691481155968,
+		"Actual Apex": 18.769152808876,
 		"Actual Distance": 54.5879112688446,
 		"Expected Apex": 19.5,
 		"Expected Distance": 57.0,
 		"Max Re": 73428.8352780781,
-		"Max Spin": 0.608379414536015,
+		"Max Spin": 0.608379477798057,
 		"Min Re": 50214.6009282099,
 		"Min Spin": 0.416480443329972,
-		"Shot Num": 57.0
+		"Shot Num": 57
 	},
 	{
 		"% Apex Diff": 0.981766230710348,
@@ -751,7 +751,7 @@
 		"Max Spin": 0.948535590624008,
 		"Min Re": 32213.4427721791,
 		"Min Spin": 0.555307270935983,
-		"Shot Num": 58.0
+		"Shot Num": 58
 	},
 	{
 		"% Apex Diff": 0.980906210047606,
@@ -764,7 +764,7 @@
 		"Max Spin": 0.801388553132475,
 		"Min Re": 38130.7148730452,
 		"Min Spin": 0.555307270935983,
-		"Shot Num": 59.0
+		"Shot Num": 59
 	},
 	{
 		"% Apex Diff": 0.967718285253424,
@@ -777,6 +777,6 @@
 		"Max Spin": 0.702217778470197,
 		"Min Re": 43520.0286719724,
 		"Min Spin": 0.555307270935983,
-		"Shot Num": 60.0
+		"Shot Num": 60
 	}
 ]

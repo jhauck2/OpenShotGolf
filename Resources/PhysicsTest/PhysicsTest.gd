@@ -70,4 +70,6 @@ static func runTests() -> void:
 	var file: FileAccess = FileAccess.open("res://Resources/PhysicsTest/test_results.json", FileAccess.WRITE)
 	file.store_string(output_string)
 	file.close()
+	
+	print("Finished running test")
 		

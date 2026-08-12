@@ -63,11 +63,10 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var was_on_ground := on_ground
-	var prev_velocity := velocity
 
 	# Calculate forces and torques using BallPhysics
 	var total_force : Vector3 = BallPhysics.CalculateForces(self, was_on_ground, floor_normal)
-	var total_torque : Vector3 = BallPhysics.CalculateTorques(self, was_on_ground, floor_normal)
+	var total_torque : Vector3 = BallPhysics.CalculateTorques(self, was_on_ground)
 	
 	if total_force == null or total_torque == null:
 		return

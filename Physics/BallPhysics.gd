@@ -37,9 +37,9 @@ static func CalculateForces(ball: GolfBall, onGround: bool, floorNorm: Vector3 =
 		return gravityAccel*ball.MASS + CalculateAirForces(ball)
 		
 
-static func CalculateTorques(ball: GolfBall, onGround: bool, floorNorm: Vector3 = Vector3.ZERO) ->Vector3:
+static func CalculateTorques(ball: GolfBall, onGround: bool) ->Vector3:
 	if onGround:
-		return CalculateGroundTorques(ball, floorNorm)
+		return CalculateGroundTorques(ball)
 	else:
 		# Viscous Torque
 		return -8.0*PI*Aerodynamics.viscosity*pow(ball.RADIUS,3)*ball.omega
@@ -95,7 +95,7 @@ static func CalculateAirForces(ball: GolfBall) -> Vector3:
 	
 	return drag + magnus
 
-static func CalculateGroundTorques(ball: GolfBall, floorNorm: Vector3) -> Vector3:
+static func CalculateGroundTorques(ball: GolfBall) -> Vector3:
 	var grassTorque : Vector3 = -8.0*PI*GRASS_VISCOSITY*pow(ball.RADIUS, 3)*ball.omega
 	
 	return grassTorque
