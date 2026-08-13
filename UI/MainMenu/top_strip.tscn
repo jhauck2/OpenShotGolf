@@ -5,9 +5,9 @@
 [ext_resource type="Texture2D" uid="uid://dqmpeykcpbwto" path="res://UI/MainMenu/images/menu.svg" id="1_w6xrq"]
 [ext_resource type="Texture2D" uid="uid://7h84ji1c4crd" path="res://UI/MainMenu/images/exit_door.svg" id="2_ea01u"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_w6xrq"]
-
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ea01u"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_w6xrq"]
 
 [node name="TopStrip" type="ColorRect" unique_id=879948689]
 custom_minimum_size = Vector2(0, 60)
@@ -22,35 +22,23 @@ mouse_filter = 2
 color = Color(0.07058824, 0.20784314, 0.14117648, 1)
 script = ExtResource("1_gg2hk")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=779687155]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=973155233]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 22
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
 
-[node name="Control3" type="Control" parent="HBoxContainer" unique_id=342678048]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=779687155]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.01
 
-[node name="SettingsButton" type="Button" parent="HBoxContainer" unique_id=706130722]
+[node name="ExitButton" type="Button" parent="MarginContainer/HBoxContainer" unique_id=1480722308]
+custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.5
-theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
-theme_override_colors/icon_normal_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
-theme_override_fonts/font = ExtResource("1_ea01u")
-theme_override_styles/normal = SubResource("StyleBoxEmpty_w6xrq")
-text = "SETTINGS"
-icon = ExtResource("1_w6xrq")
-
-[node name="ExitButton" type="Button" parent="HBoxContainer" unique_id=1480722308]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.3
+size_flags_horizontal = 0
 theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
 theme_override_colors/icon_normal_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
 theme_override_fonts/font = ExtResource("1_ea01u")
@@ -58,25 +46,18 @@ theme_override_styles/normal = SubResource("StyleBoxEmpty_ea01u")
 text = "EXIT"
 icon = ExtResource("2_ea01u")
 
-[node name="Control" type="Control" parent="HBoxContainer" unique_id=1657138599]
+[node name="Control" type="Control" parent="MarginContainer/HBoxContainer" unique_id=1657138599]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.8
 
-[node name="TitleLabel" type="Label" parent="HBoxContainer" unique_id=49985678]
+[node name="SettingsButton" type="Button" parent="MarginContainer/HBoxContainer" unique_id=706130722]
+custom_minimum_size = Vector2(155, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 1
 theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_colors/icon_normal_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
 theme_override_fonts/font = ExtResource("1_ea01u")
-theme_override_font_sizes/font_size = 50
-text = "OPEN SHOT GOLF"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_styles/normal = SubResource("StyleBoxEmpty_w6xrq")
+text = "SETTINGS"
+icon = ExtResource("1_w6xrq")
 
-[node name="Control2" type="Control" parent="HBoxContainer" unique_id=976126675]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 1.7
-
-[connection signal="pressed" from="HBoxContainer/ExitButton" to="." method="_on_exit_button_pressed"]
+[connection signal="pressed" from="MarginContainer/HBoxContainer/ExitButton" to="." method="_on_exit_button_pressed"]

@@ -27,9 +27,16 @@ alignment = 1
 [node name="TopStrip" parent="VBoxContainer" unique_id=879948689 instance=ExtResource("2_uiv3i")]
 layout_mode = 2
 
-[node name="Logo" type="HBoxContainer" parent="VBoxContainer" unique_id=1110417534]
+[node name="Logo" type="Label" parent="VBoxContainer" unique_id=309797885]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("4_suulr")
+theme_override_font_sizes/font_size = 120
+text = "OPEN SHOT
+GOLF"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="VBoxContainer" unique_id=1465981423]
 layout_mode = 2
@@ -85,11 +92,19 @@ size_flags_horizontal = 3
 [node name="Control" type="Control" parent="VBoxContainer" unique_id=1582845461]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.3
+size_flags_stretch_ratio = 0.1
 
-[node name="Version" type="Label" parent="VBoxContainer" unique_id=1125823364]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=599713435]
+layout_mode = 2
+
+[node name="Version" type="Label" parent="VBoxContainer/HBoxContainer" unique_id=1125823364]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
 theme_override_fonts/font = ExtResource("4_suulr")
 
+[node name="PhysicsTestButton" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=446865086]
+layout_mode = 2
+text = "Physics Test"
+
 [connection signal="pressed" from="VBoxContainer/Buttons/Range/TextureButton" to="." method="_on_range_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/PhysicsTestButton" to="." method="_on_physics_test_button_pressed"]
