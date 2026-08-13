@@ -2,20 +2,9 @@
 
 [ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="1_jld46"]
 [ext_resource type="Texture2D" uid="uid://de6jxkjax3ee5" path="res://assets/images/menu/cabo_openfairway_bnw.png" id="2_h8rmy"]
-[ext_resource type="Texture2D" uid="uid://dqmpeykcpbwto" path="res://UI/MainMenu/images/menu.svg" id="3_iyy2y"]
-[ext_resource type="Texture2D" uid="uid://7h84ji1c4crd" path="res://UI/MainMenu/images/exit_door.svg" id="4_trkrl"]
+[ext_resource type="PackedScene" uid="uid://wtuyppwnndj" path="res://UI/MainMenu/top_strip.tscn" id="3_iyy2y"]
 [ext_resource type="Texture2D" uid="uid://cjj74w7djkfgf" path="res://assets/images/menu/range_small.png" id="5_iyy2y"]
 [ext_resource type="Texture2D" uid="uid://cvbxn5mtc5xeh" path="res://assets/images/menu/airways_small.png" id="6_trkrl"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bddxb"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_iau2q"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pbebc"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_u0e1r"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ejg71"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iyy2y"]
 bg_color = Color(0.1, 0.1, 0.1, 0.6)
@@ -27,6 +16,8 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bddxb"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iau2q"]
 content_margin_left = 4.0
@@ -71,81 +62,8 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 alignment = 1
 
-[node name="TopStrip" type="ColorRect" parent="VerticalLayout" unique_id=116081111]
-custom_minimum_size = Vector2(0, 60)
+[node name="TopStrip" parent="VerticalLayout" unique_id=879948689 instance=ExtResource("3_iyy2y")]
 layout_mode = 2
-size_flags_vertical = 0
-mouse_filter = 2
-color = Color(0.043137256, 0.18039216, 0.30980393, 0.92156863)
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VerticalLayout/TopStrip" unique_id=1106119119]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 22
-
-[node name="Control3" type="Control" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=1410551906]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.01
-
-[node name="SettingsButton" type="Button" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=7225641]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.5
-theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
-theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
-theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_iau2q")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_pbebc")
-theme_override_styles/disabled = SubResource("StyleBoxEmpty_u0e1r")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_ejg71")
-text = "SETTINGS"
-icon = ExtResource("3_iyy2y")
-
-[node name="ExitButton" type="Button" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=801750399]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.5
-theme_override_colors/font_color = Color(0.875, 0.875, 0.875, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(0.95, 0.95, 0.95, 1)
-theme_override_colors/icon_normal_color = Color(1, 1, 1, 1)
-theme_override_colors/icon_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/icon_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_iau2q")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_pbebc")
-theme_override_styles/disabled = SubResource("StyleBoxEmpty_u0e1r")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_ejg71")
-text = "EXIT"
-icon = ExtResource("4_trkrl")
-
-[node name="Control" type="Control" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=1594888509]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="TitleLabel" type="Label" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=1261978394]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 1
-size_flags_stretch_ratio = 10.0
-theme_override_font_sizes/font_size = 44
-text = "Open Shot Golf"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Control2" type="Control" parent="VerticalLayout/TopStrip/HBoxContainer" unique_id=751780754]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 2.0
 
 [node name="TopStripAccent" type="ColorRect" parent="VerticalLayout" unique_id=47812395]
 custom_minimum_size = Vector2(0, 10)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dtmsoso3uo2ym"
-path="res://.godot/imported/range_logo.svg-c562a5d2e8d24567d6c431abaa4b47a5.ctex"
+uid="uid://dgonnmxdp8k01"
+path="res://.godot/imported/courses_logo.svg-13ceb8322144fe52aea83d64c4444356.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://UI/MainMenu/Logos/range_logo.svg"
-dest_files=["res://.godot/imported/range_logo.svg-c562a5d2e8d24567d6c431abaa4b47a5.ctex"]
+source_file="res://UI/MainMenu/Logos/courses_logo.svg"
+dest_files=["res://.godot/imported/courses_logo.svg-13ceb8322144fe52aea83d64c4444356.ctex"]
 
 [params]
 

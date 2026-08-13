@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://cm0rx8sqb8pgl"]
+
+[ext_resource type="Texture2D" uid="uid://dtmsoso3uo2ym" path="res://UI/MainMenu/Logos/range_logo.svg" id="1_j28xa"]
+[ext_resource type="Script" uid="uid://c85uby2c5wn5w" path="res://UI/MainMenu/new_main_menu.gd" id="1_sixdi"]
+[ext_resource type="Texture2D" uid="uid://dgonnmxdp8k01" path="res://UI/MainMenu/Logos/courses_logo.svg" id="2_sixdi"]
+[ext_resource type="PackedScene" uid="uid://wtuyppwnndj" path="res://UI/MainMenu/top_strip.tscn" id="2_uiv3i"]
+[ext_resource type="FontFile" uid="uid://bbxhar22ytj6r" path="res://UI/Fonts/AGRESSIVE.otf" id="4_suulr"]
+
+[node name="NewMainMenu" type="ColorRect" unique_id=568308475]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.11871684, 0.31866404, 0.22088292, 1)
+script = ExtResource("1_sixdi")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=965789135]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="TopStrip" parent="VBoxContainer" unique_id=879948689 instance=ExtResource("2_uiv3i")]
+layout_mode = 2
+
+[node name="Logo" type="HBoxContainer" parent="VBoxContainer" unique_id=1110417534]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Buttons" type="HBoxContainer" parent="VBoxContainer" unique_id=1465981423]
+layout_mode = 2
+size_flags_vertical = 6
+
+[node name="Spacer" type="Control" parent="VBoxContainer/Buttons" unique_id=1668370378]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Range" type="VBoxContainer" parent="VBoxContainer/Buttons" unique_id=355567267]
+layout_mode = 2
+
+[node name="TextureButton" type="TextureButton" parent="VBoxContainer/Buttons/Range" unique_id=1540106912]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("1_j28xa")
+
+[node name="Label" type="Label" parent="VBoxContainer/Buttons/Range" unique_id=1327901383]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("4_suulr")
+theme_override_font_sizes/font_size = 60
+text = "RANGE"
+horizontal_alignment = 1
+
+[node name="Spacer2" type="Control" parent="VBoxContainer/Buttons" unique_id=602054063]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
+
+[node name="Courses" type="VBoxContainer" parent="VBoxContainer/Buttons" unique_id=1685158827]
+layout_mode = 2
+
+[node name="TextureButton" type="TextureButton" parent="VBoxContainer/Buttons/Courses" unique_id=53371201]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("2_sixdi")
+
+[node name="Label" type="Label" parent="VBoxContainer/Buttons/Courses" unique_id=1190176746]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("4_suulr")
+theme_override_font_sizes/font_size = 60
+text = "COURSES"
+horizontal_alignment = 1
+
+[node name="Spacer3" type="Control" parent="VBoxContainer/Buttons" unique_id=1145309204]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Control" type="Control" parent="VBoxContainer" unique_id=1582845461]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="Version" type="Label" parent="VBoxContainer" unique_id=1125823364]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("4_suulr")
+
+[connection signal="pressed" from="VBoxContainer/Buttons/Range/TextureButton" to="." method="_on_range_button_pressed"]
