@@ -54,10 +54,10 @@ static func runTests() -> void:
 		out["Shot Num"] = int(shot["No."])
 		out["Expected Distance"] = shot["Carry (yd)"]
 		out["Actual Distance"] = distance*1.09361
-		out["% Distance Diff"] = out["Actual Distance"]/out["Expected Distance"]
+		out["% Distance Diff"] = (out["Actual Distance"]-out["Expected Distance"])/out["Expected Distance"]
 		out["Expected Apex"] = shot["Height (ft)"]
 		out["Actual Apex"] = apex*3.28084
-		out["% Apex Diff"] = out["Actual Apex"]/out["Expected Apex"]
+		out["% Apex Diff"] = (out["Actual Apex"]-out["Expected Apex"])/out["Expected Apex"]
 		out["Min Re"] = minRe
 		out["Max Re"] = maxRe
 		out["Min Spin"] = minS

@@ -98,10 +98,10 @@ func GetValue(Re: float, spin: float) -> float:
 		if spinIndexHiReBelow == spinIndexHiReAbove: # Hi Re spin off table, set cdHiRe directly
 			clHiRe = data[ReIndexAbove][spinIndexHiReBelow]
 		else: # Hi Re spin not off table, interpolate cdHiRe
-			var spinBelowHiRe : float = spinValues[ReIndexBelow][spinIndexHiReBelow]
-			var spinAboveHiRe : float = spinValues[ReIndexBelow][spinIndexHiReAbove]
+			var spinBelowHiRe : float = spinValues[ReIndexAbove][spinIndexHiReBelow]
+			var spinAboveHiRe : float = spinValues[ReIndexAbove][spinIndexHiReAbove]
 			var weightSpinHiRe : float = (spin - spinBelowHiRe)/(spinAboveHiRe - spinBelowHiRe)
-			clHiRe = lerpf(data[ReIndexBelow][spinIndexHiReBelow], data[ReIndexBelow][spinIndexHiReAbove], weightSpinHiRe)
+			clHiRe = lerpf(data[ReIndexAbove][spinIndexHiReBelow], data[ReIndexAbove][spinIndexHiReAbove], weightSpinHiRe)
 	
 	var ReBelow : float = reValues[ReIndexBelow]
 	var ReAbove : float = reValues[ReIndexAbove]

@@ -15,6 +15,7 @@ var ClTableLowRe : Resource = null
 var ClTableHiRe : Resource = null
 var CdTableLowRe : Resource = null
 var CdTableHiRe : Resource = null
+var unifiedTable : Resource = null
 
 var density : float = 1.0225 # kg/m3
 var viscosity : float # dynamic viscosity
@@ -26,6 +27,7 @@ func _ready() -> void:
 	ClTableHiRe = load("res://Physics/LookupTables/cl_data_hi_re.gd").new()
 	CdTableLowRe = load("res://Physics/LookupTables/cd_data_low_re.gd").new()
 	CdTableHiRe = load("res://Physics/LookupTables/cd_data_hi_re.gd").new()
+	unifiedTable = load("res://Physics/LookupTables/unified_cl_cd_data.gd").new()
 	
 	# TODO: move these values to "EnvironmentSettings"
 	SetAirDensity(GlobalSettings.range_settings.altitude.value, 
@@ -81,6 +83,7 @@ func GetRe(speed: float, radius: float) -> float:
 
 # From Bearman & harvey (1976) - Re > 1.26e5 : Cd -> F(spin)
 func GetCd(Re: float, spin: float) -> float:
+	#return unifiedTable.getCd(Re, spin)
 	if Re > 126000.0:
 		return GetCdHiRe(spin)
 	else:
@@ -123,6 +126,7 @@ func GetCdHiRe(spin: float) -> float:
 
 # From Bearman & harvey (1976) - Re > 1.26e5 : Cd -> F(spin)
 func GetCl(Re: float, spin: float) -> float:
+	#return unifiedTable.getCl(Re, spin)
 	if Re > 126000:
 		return GetClHiRe(spin)
 	else:

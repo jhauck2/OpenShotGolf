@@ -20,18 +20,24 @@ var cd_data : Array[Array] = [
 ]
 
 var cl_data : Array[Array] = [
-	[0.000, -0.085, 0.095, 0.210, 0.265],  # Re = 5.0e4
-	[0.000, -0.030, 0.145, 0.235, 0.272],  # Re = 7.5e4
-	[0.000,  0.090, 0.190, 0.246, 0.280],  # Re = 1.0e5
-	[0.000,  0.108, 0.187, 0.243, 0.277],  # Re = 1.25e5
-	[0.000,  0.105, 0.184, 0.240, 0.274],  # Re = 1.5e5
-	[0.000,  0.103, 0.181, 0.237, 0.271],  # Re = 1.75e5
-	[0.000,  0.102, 0.179, 0.235, 0.269],  # Re = 2.0e5
-	[0.000,  0.101, 0.178, 0.234, 0.268]   # Re = 2.25e5
+	[0.000, -0.150, 0.085, 0.190, 0.245],  # Re = 5.0e4 (Deep -0.150 peak inversion)
+	[0.000, -0.100, 0.120, 0.215, 0.250],  # Re = 7.5e4 (Sustained -0.100 transition)
+	[0.000,  0.080, 0.180, 0.235, 0.252],  # Re = 1.0e5 
+	[0.000,  0.095, 0.185, 0.240, 0.252],  # Re = 1.25e5
+	[0.000,  0.100, 0.182, 0.238, 0.250],  # Re = 1.5e5
+	[0.000,  0.102, 0.180, 0.236, 0.248],  # Re = 1.75e5 (Asymptotic cap implemented)
+	[0.000,  0.101, 0.179, 0.235, 0.245],  # Re = 2.0e5
+	[0.000,  0.100, 0.178, 0.234, 0.242]   # Re = 2.25e5
 ]
 
 
-func GetValue(Re: float, spin: float) -> float:
+func getCd(Re: float, spin: float) -> float:
+	return getValue(Re, spin, cd_data)
+	
+func getCl(Re: float, spin: float) -> float:
+	return getValue(Re, spin, cl_data)
+
+func getValue(Re: float, spin: float, data: Array[Array]) -> float:
 	# Get min and max Re values from table
 	var ReMin : float = reValues[0]
 	var ReMax : float = reValues[-1]
@@ -52,67 +58,47 @@ func GetValue(Re: float, spin: float) -> float:
 				ReIndexBelow = i - 1
 				break
 	
-	var spinIndexLowReBelow : int = 0
-	var spinIndexLowReAbove : int = 1
-	
-	var spinIndexHiReBelow : int = 0
-	var spinIndexHiReAbove : int = 1
+	var spinIndexBelow : int = 0
+	var spinIndexAbove : int = 1
 	
 	# Check for off table - Lower Re
-	if spin < spinValues[ReIndexBelow][0]:
-		spinIndexLowReAbove = 0
-	elif spin > spinValues[ReIndexBelow][-1]:
-		spinIndexLowReBelow = spinValues[ReIndexBelow].size()-1
-		spinIndexLowReAbove = spinValues[ReIndexBelow].size()-1
+	if spin < spinValues[0]:
+		spinIndexAbove = 0
+	elif spin > spinValues[-1]:
+		spinIndexBelow = spinValues.size()-1
+		spinIndexBelow = spinValues.size()-1
 	else:
-		for i in range(1, spinValues[ReIndexBelow].size()):
-			if spin < spinValues[ReIndexBelow][i]:
-				spinIndexLowReAbove = i
-				spinIndexLowReBelow = i - 1
+		for i in range(1, spinValues.size()):
+			if spin < spinValues[i]:
+				spinIndexAbove = i
+				spinIndexBelow = i - 1
 				break
 	
-	# Check for off table - Higher Re
-	if spin < spinValues[ReIndexAbove][0]:
-		spinIndexHiReAbove = 0
-	elif spin > spinValues[ReIndexAbove][-1]:
-		spinIndexHiReBelow = spinValues[ReIndexAbove].size()-1
-		spinIndexHiReAbove = spinValues[ReIndexAbove].size()-1
-	else:
-		for i in range(1, spinValues[ReIndexAbove].size()):
-			if spin < spinValues[ReIndexAbove][i]:
-				spinIndexHiReAbove = i
-				spinIndexHiReBelow = i - 1
-				break
-	
-	var cdLowRe : float
-	var cdHiRe : float
+	var valLowRe : float
+	var valHiRe : float
 	if ReIndexBelow == ReIndexAbove: # Re off table
-		if spinIndexLowReBelow == spinIndexLowReAbove: # Both off table, take value directly
-			return data[ReIndexBelow][spinIndexLowReBelow]
+		if spinIndexBelow == spinIndexAbove: # Both off table, take value directly
+			return data[ReIndexBelow][spinIndexBelow]
 		else: # Only Re off table, interpolate between spin values
-			var spinBelow : float = spinValues[ReIndexBelow][spinIndexLowReBelow]
-			var spinAbove : float = spinValues[ReIndexBelow][spinIndexLowReAbove]
+			var spinBelow : float = spinValues[spinIndexBelow]
+			var spinAbove : float = spinValues[spinIndexAbove]
 			var weight : float = (spin - spinBelow)/(spinAbove - spinBelow)
-			return lerpf(data[ReIndexBelow][spinIndexLowReBelow], data[ReIndexBelow][spinIndexLowReAbove], weight)
+			return lerpf(data[ReIndexBelow][spinIndexBelow], data[ReIndexBelow][spinIndexAbove], weight)
 	else: # Re not off table
-		if spinIndexLowReBelow == spinIndexLowReAbove: # Low Re spin off table, set cdLowRe directly
-			cdLowRe = data[ReIndexBelow][spinIndexLowReBelow]
-		else: # Low Re spin not off table, interpolate cdLowRe
-			var spinBelowLowRe : float = spinValues[ReIndexBelow][spinIndexLowReBelow]
-			var spinAboveLowRe : float = spinValues[ReIndexBelow][spinIndexLowReAbove]
-			var weightSpinLowRe : float = (spin - spinBelowLowRe)/(spinAboveLowRe - spinBelowLowRe)
-			cdLowRe = lerpf(data[ReIndexBelow][spinIndexLowReBelow], data[ReIndexBelow][spinIndexLowReAbove], weightSpinLowRe)
+		if spinIndexBelow == spinIndexAbove: # Low Re spin off table, set cdLowRe directly
+			valLowRe = data[ReIndexBelow][spinIndexBelow]
+		else: # Spin not off table
+			# interpolate valLowRe
+			var spinBelowLowRe : float = spinValues[spinIndexBelow]
+			var spinAboveLowRe : float = spinValues[spinIndexAbove]
+			var weightSpin : float = (spin - spinBelowLowRe)/(spinAboveLowRe - spinBelowLowRe)
+			valLowRe = lerpf(data[ReIndexBelow][spinIndexBelow], data[ReIndexBelow][spinIndexAbove], weightSpin)
 			
-		if spinIndexHiReBelow == spinIndexHiReAbove: # Hi Re spin off table, set cdHiRe directly
-			cdHiRe = data[ReIndexAbove][spinIndexHiReBelow]
-		else: # Hi Re spin not off table, interpolate cdHiRe
-			var spinBelowHiRe : float = spinValues[ReIndexBelow][spinIndexHiReBelow]
-			var spinAboveHiRe : float = spinValues[ReIndexBelow][spinIndexHiReAbove]
-			var weightSpinHiRe : float = (spin - spinBelowHiRe)/(spinAboveHiRe - spinBelowHiRe)
-			cdHiRe = lerpf(data[ReIndexBelow][spinIndexHiReBelow], data[ReIndexBelow][spinIndexHiReAbove], weightSpinHiRe)
+			# interpolate valHiRe
+			valHiRe = lerpf(data[ReIndexAbove][spinIndexBelow], data[ReIndexAbove][spinIndexAbove], weightSpin)
 	
 	var ReBelow : float = reValues[ReIndexBelow]
 	var ReAbove : float = reValues[ReIndexAbove]
 	var weightRe : float = (Re - ReBelow)/(ReAbove - ReBelow)
 	
-	return lerpf(cdLowRe, cdHiRe, weightRe)
+	return lerpf(valLowRe, valHiRe, weightRe)
