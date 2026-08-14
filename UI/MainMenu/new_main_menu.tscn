@@ -53,6 +53,8 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
+focus_neighbor_top = NodePath("../../../TopStrip/MarginContainer/HBoxContainer/ExitButton")
+focus_neighbor_right = NodePath("../../Courses/TextureButton")
 texture_normal = ExtResource("1_j28xa")
 
 [node name="Label" type="Label" parent="VBoxContainer/Buttons/Range" unique_id=1327901383]
@@ -75,6 +77,8 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
+focus_neighbor_left = NodePath("../../Range/TextureButton")
+focus_neighbor_top = NodePath("../../../TopStrip/MarginContainer/HBoxContainer/SettingsButton")
 texture_normal = ExtResource("2_sixdi")
 
 [node name="Label" type="Label" parent="VBoxContainer/Buttons/Courses" unique_id=1190176746]
@@ -108,3 +112,5 @@ text = "Physics Test"
 
 [connection signal="pressed" from="VBoxContainer/Buttons/Range/TextureButton" to="." method="_on_range_button_pressed"]
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/PhysicsTestButton" to="." method="_on_physics_test_button_pressed"]
+
+[editable path="VBoxContainer/TopStrip"]
