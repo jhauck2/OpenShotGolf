@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://mreef38eayen"]
+
+[ext_resource type="PackedScene" uid="uid://bybyru7sqjtp7" path="res://addons/gdterm/terminal/main.tscn" id="1_102el"]
+[ext_resource type="Script" path="res://addons/gdterm/terminal/border.gd" id="1_dlllo"]
+
+[node name="border" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_dlllo")
+
+[node name="main" parent="." instance=ExtResource("1_102el")]
+layout_mode = 2
+
+[connection signal="theme_changed" from="." to="." method="_on_theme_changed"]

@@ -1,0 +1,33 @@
+[configuration]
+
+entry_symbol = "term_library_init"
+compatibility_minimum = "4.3"
+reloadable = true
+
+[libraries]
+
+macos.debug = "res://addons/gdterm/bin/libgdterm.macos.template_debug.framework"
+macos.release = "res://addons/gdterm/bin/libgdterm.macos.template_release.framework"
+ios.debug = "res://addons/gdterm/bin/libgdterm.ios.template_debug.xcframework"
+ios.release = "res://addons/gdterm/bin/libgdterm.ios.template_release.xcframework"
+windows.debug.x86_64 = "res://addons/gdterm/bin/libgdterm.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/gdterm/bin/libgdterm.windows.template_release.x86_64.dll"
+windows.debug.arm64 = "res://addons/gdterm/bin/libgdterm.windows.template_debug.arm64.dll"
+windows.release.arm64 = "res://addons/gdterm/bin/libgdterm.windows.template_release.arm64.dll"
+linux.debug.x86_64 = "res://addons/gdterm/bin/libgdterm.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://addons/gdterm/bin/libgdterm.linux.template_release.x86_64.so"
+linux.debug.arm64 = "res://addons/gdterm/bin/libgdterm.linux.template_debug.arm64.so"
+linux.release.arm64 = "res://addons/gdterm/bin/libgdterm.linux.template_release.arm64.so"
+
+[dependencies]
+ios.debug = {
+    "res://addons/gdterm/bin/libgodot-cpp.ios.template_debug.xcframework": ""
+}
+ios.release = {
+    "res://addons/gdterm/bin/libgodot-cpp.ios.template_release.xcframework": ""
+}
+
+[icons]
+
+GDTerm = "res://addons/gdterm/icon/gdterm.svg"
+

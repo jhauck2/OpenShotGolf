@@ -1,0 +1,62 @@
+[gd_scene load_steps=5 format=3 uid="uid://b62ioxhftvwg7"]
+
+[ext_resource type="Script" path="res://addons/gdterm/terminal/term.gd" id="1_o0o4i"]
+[ext_resource type="FontFile" uid="uid://be4ro0vum8y1d" path="res://addons/gdterm/fonts/SourceCodePro-Medium.ttf" id="2_vxjtp"]
+[ext_resource type="FontFile" uid="uid://be2ygu4u3hve7" path="res://addons/gdterm/fonts/SourceCodePro-Light.ttf" id="3_308uo"]
+[ext_resource type="FontFile" uid="uid://dro74qegmjqgl" path="res://addons/gdterm/fonts/SourceCodePro-Bold.ttf" id="4_roq5w"]
+
+[node name="term" type="HBoxContainer"]
+script = ExtResource("1_o0o4i")
+
+[node name="menu" type="PopupMenu" parent="."]
+auto_translate_mode = 1
+size = Vector2i(63, 62)
+always_on_top = true
+system_menu_id = 0
+item_count = 9
+item_0/text = "Copy (Shift+Ctrl+C)"
+item_1/text = "Paste (Shift+Ctrl+V)"
+item_1/id = 1
+item_2/text = "Restart"
+item_2/id = 2
+item_3/text = "Close"
+item_3/id = 8
+item_4/id = 7
+item_4/separator = true
+item_5/text = "New Above"
+item_5/id = 3
+item_6/text = "New Below"
+item_6/id = 4
+item_7/text = "New Left"
+item_7/id = 5
+item_8/text = "New Right"
+item_8/id = 6
+
+[node name="GDTerm" type="GDTerm" parent="." node_paths=PackedStringArray("shortcut_context")]
+font = ExtResource("2_vxjtp")
+dim_font = ExtResource("3_308uo")
+bold_font = ExtResource("4_roq5w")
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+shortcut_context = NodePath("..")
+
+[node name="scrollbar" type="VScrollBar" parent="."]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+size_flags_horizontal = 1
+mouse_filter = 1
+max_value = 48.0
+step = 1.0
+page = 24.0
+value = 24.0
+
+[connection signal="visibility_changed" from="." to="." method="_on_visibility_changed"]
+[connection signal="id_pressed" from="menu" to="." method="_on_menu_id_pressed"]
+[connection signal="bell_request" from="GDTerm" to="." method="_on_gd_term_bell_request"]
+[connection signal="copy_request" from="GDTerm" to="." method="_on_gd_term_copy_request"]
+[connection signal="inactive" from="GDTerm" to="." method="_on_gd_term_inactive"]
+[connection signal="paste_request" from="GDTerm" to="." method="_on_gd_term_paste_request"]
+[connection signal="scrollback_changed" from="GDTerm" to="." method="_on_gd_term_scrollback_changed"]
+[connection signal="tree_entered" from="GDTerm" to="." method="_on_gd_term_tree_entered"]
+[connection signal="value_changed" from="scrollbar" to="." method="_on_scrollbar_value_changed"]

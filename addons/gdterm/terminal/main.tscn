@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3 uid="uid://bybyru7sqjtp7"]
+
+[ext_resource type="Theme" uid="uid://dg6omohogcvmn" path="res://addons/gdterm/themes/light.tres" id="1_na4fp"]
+[ext_resource type="Script" path="res://addons/gdterm/terminal/term_container.gd" id="1_ptxgd"]
+[ext_resource type="Script" path="res://addons/gdterm/terminal/main.gd" id="2_eh8tx"]
+[ext_resource type="PackedScene" uid="uid://b62ioxhftvwg7" path="res://addons/gdterm/terminal/term.tscn" id="3_u81lm"]
+[ext_resource type="AudioStream" uid="uid://dxb1sddgekrg5" path="res://addons/gdterm/audio/bell.mp3" id="5_8xiy1"]
+
+[node name="main" type="MarginContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("1_na4fp")
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+script = ExtResource("2_eh8tx")
+
+[node name="term_container" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+script = ExtResource("1_ptxgd")
+
+[node name="player" type="AudioStreamPlayer" parent="term_container"]
+stream = ExtResource("5_8xiy1")
+
+[node name="term" parent="term_container" instance=ExtResource("3_u81lm")]
+layout_mode = 2
+
+[connection signal="theme_changed" from="." to="." method="_on_theme_changed"]
+[connection signal="mouse_entered" from="term_container" to="term_container" method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="term_container" to="term_container" method="_on_mouse_exited"]
+[connection signal="visibility_changed" from="term_container" to="term_container" method="_on_visibility_changed"]
