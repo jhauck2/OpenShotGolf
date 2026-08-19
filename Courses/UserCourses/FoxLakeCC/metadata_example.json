@@ -1,0 +1,37 @@
+{
+    "Course Info": {
+        "Tee Colors": ["Black", "Blue", "White", "Red"],
+        "Texture Indices": {
+            "Green": [0],
+            "Fairway": [1],
+            "Rough" : [2],
+            "Sand": [3],
+            "Water": [4],
+            "Penalty": [5]
+        }
+    },
+
+    "Hole Info": {
+        "Hole 1": {
+            "Par": 4,
+            "Hole Location": [385, -10],
+            "Tee Boxes": {
+                "Black": [0.0, 0.0],
+                "Blue": [10.0, 0.0],
+                "White": [25.0, 3.0],
+                "Red": [50.0, -5.5]
+            }
+        },
+        "Hole 2": {
+            "Par": 3,
+            "Hole Location": [152.3, 5.5],
+            "Tee Boxes": {
+                "Black": [0.0, 0.0],
+                "Blue": [6.0, 1.0],
+                "White": [11.0, 3.0],
+                "Red": [20.0, -5.5]
+            }
+        }
+    }
+}
+

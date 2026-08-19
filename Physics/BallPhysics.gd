@@ -49,7 +49,8 @@ static func CalculateTorques(ball: GolfBall, onGround: bool) ->Vector3:
 static func CalculateGroundForces(ball: GolfBall, floorNorm: Vector3) -> Vector3:
 	var grassDrag : Vector3 = ball.velocity * (-6.0*PI*ball.RADIUS*GRASS_VISCOSITY)
 	var friction : Vector3 = CalculateFrictionForce(ball, floorNorm)
-	return grassDrag + friction
+	var normal : Vector3 = -floorNorm*floorNorm.dot(gravityAccel)*ball.MASS
+	return grassDrag + friction + normal
 	
 	
 static func CalculateFrictionForce(ball: GolfBall, floorNorm: Vector3) -> Vector3:
