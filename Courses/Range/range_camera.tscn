@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bom2ok6ydtd6b"]
+
+[ext_resource type="Script" uid="uid://6oo05v4fedwn" path="res://Courses/Range/range_camera.gd" id="1_2jwa0"]
+
+[node name="RangeCamera" type="Camera3D" unique_id=950061257]
+script = ExtResource("1_2jwa0")

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcer8mmhms0ck"
-path="res://.godot/imported/icon_selected.svg-f2a8af4c89a396e547d22164285f37d2.ctex"
+uid="uid://b5ll4pf4vqkdn"
+path="res://.godot/imported/courses_hover.svg-9e6ff936e2c19e344ce35c9759dfcfee.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://UI/MainMenu/Logos/icon_selected.svg"
-dest_files=["res://.godot/imported/icon_selected.svg-f2a8af4c89a396e547d22164285f37d2.ctex"]
+source_file="res://UI/MainMenu/Logos/courses_hover.svg"
+dest_files=["res://.godot/imported/courses_hover.svg-9e6ff936e2c19e344ce35c9759dfcfee.ctex"]
 
 [params]
 

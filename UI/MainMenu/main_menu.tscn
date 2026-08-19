@@ -1,182 +1,122 @@
-[gd_scene format=3 uid="uid://dgyd437dgyv0y"]
+[gd_scene format=3 uid="uid://cm0rx8sqb8pgl"]
 
-[ext_resource type="Script" uid="uid://d258y2met40xv" path="res://UI/MainMenu/main_menu.gd" id="1_jld46"]
-[ext_resource type="Texture2D" uid="uid://de6jxkjax3ee5" path="res://assets/images/menu/cabo_openfairway_bnw.png" id="2_h8rmy"]
+[ext_resource type="Script" uid="uid://c85uby2c5wn5w" path="res://UI/MainMenu/main_menu.gd" id="1_jld46"]
 [ext_resource type="PackedScene" uid="uid://wtuyppwnndj" path="res://UI/MainMenu/top_strip.tscn" id="3_iyy2y"]
-[ext_resource type="Texture2D" uid="uid://cjj74w7djkfgf" path="res://assets/images/menu/range_small.png" id="5_iyy2y"]
-[ext_resource type="Texture2D" uid="uid://cvbxn5mtc5xeh" path="res://assets/images/menu/airways_small.png" id="6_trkrl"]
+[ext_resource type="FontFile" uid="uid://bbxhar22ytj6r" path="res://UI/Fonts/AGRESSIVE.otf" id="3_trkrl"]
+[ext_resource type="Texture2D" uid="uid://dtmsoso3uo2ym" path="res://UI/MainMenu/Logos/range_logo.svg" id="4_bddxb"]
+[ext_resource type="Texture2D" uid="uid://dgonnmxdp8k01" path="res://UI/MainMenu/Logos/courses_logo.svg" id="5_iau2q"]
+[ext_resource type="Texture2D" uid="uid://b5ll4pf4vqkdn" path="res://UI/MainMenu/Logos/courses_hover.svg" id="6_pbebc"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iyy2y"]
-bg_color = Color(0.1, 0.1, 0.1, 0.6)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_61cdy"]
+load_path = "res://.godot/imported/range_hover.svg-cb3a0a0ee28d3533be20effbad1cbb5e.ctex"
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bddxb"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iau2q"]
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-bg_color = Color(0.225, 0.225, 0.225, 0.6)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-corner_detail = 5
-
-[node name="Main Menu" type="Control" unique_id=1031038325]
-layout_mode = 3
+[node name="MainMenu" type="ColorRect" unique_id=568308475]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+color = Color(0.11871684, 0.31866404, 0.22088292, 1)
 script = ExtResource("1_jld46")
 
-[node name="Background" type="TextureRect" parent="." unique_id=1108104200]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=965789135]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_h8rmy")
-expand_mode = 1
-
-[node name="VerticalLayout" type="VBoxContainer" parent="." unique_id=857443223]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 0
 alignment = 1
 
-[node name="TopStrip" parent="VerticalLayout" unique_id=879948689 instance=ExtResource("3_iyy2y")]
+[node name="TopStrip" parent="VBoxContainer" unique_id=879948689 instance=ExtResource("3_iyy2y")]
 layout_mode = 2
 
-[node name="TopStripAccent" type="ColorRect" parent="VerticalLayout" unique_id=47812395]
-custom_minimum_size = Vector2(0, 10)
-layout_mode = 2
-size_flags_vertical = 2
-color = Color(0.0627451, 0.08627451, 0.1254902, 0.85882354)
-
-[node name="Spacer" type="Control" parent="VerticalLayout" unique_id=80362024]
+[node name="Logo" type="Label" parent="VBoxContainer" unique_id=309797885]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_stretch_ratio = 4.0
-
-[node name="TilesRow" type="HBoxContainer" parent="VerticalLayout" unique_id=10469375]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 40
-alignment = 1
-
-[node name="RangeTile" type="PanelContainer" parent="VerticalLayout/TilesRow" unique_id=901128909]
-custom_minimum_size = Vector2(221, 221)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_iyy2y")
-
-[node name="RangeImage" type="TextureRect" parent="VerticalLayout/TilesRow/RangeTile" unique_id=511829533]
-layout_mode = 2
-texture = ExtResource("5_iyy2y")
-expand_mode = 1
-stretch_mode = 6
-
-[node name="RangeTextBackdrop" type="ColorRect" parent="VerticalLayout/TilesRow/RangeTile" unique_id=648304962]
-layout_mode = 2
-color = Color(0, 0, 0, 0.34901962)
-
-[node name="RangeLabel" type="Label" parent="VerticalLayout/TilesRow/RangeTile/RangeTextBackdrop" unique_id=861476676]
-layout_mode = 0
-offset_right = 217.0
-offset_bottom = 215.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0.7490196)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 38
-text = "RANGE
-"
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_trkrl")
+theme_override_font_sizes/font_size = 120
+text = "OPEN SHOT
+GOLF"
 horizontal_alignment = 1
-vertical_alignment = 2
-
-[node name="RangeButton" type="Button" parent="VerticalLayout/TilesRow/RangeTile/RangeTextBackdrop" unique_id=1561429347]
-layout_mode = 0
-offset_right = 217.0
-offset_bottom = 217.0
-theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/hover = SubResource("StyleBoxFlat_iau2q")
-theme_override_styles/disabled = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_bddxb")
-
-[node name="CoursesTile" type="PanelContainer" parent="VerticalLayout/TilesRow" unique_id=833852705]
-custom_minimum_size = Vector2(221, 221)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_iyy2y")
-
-[node name="CoursesImage" type="TextureRect" parent="VerticalLayout/TilesRow/CoursesTile" unique_id=1182025324]
-layout_mode = 2
-texture = ExtResource("6_trkrl")
-expand_mode = 1
-stretch_mode = 6
-
-[node name="CoursesTextBackdrop" type="ColorRect" parent="VerticalLayout/TilesRow/CoursesTile" unique_id=1527802554]
-layout_mode = 2
-color = Color(0, 0, 0, 0.34901962)
-
-[node name="CoursesLabel" type="Label" parent="VerticalLayout/TilesRow/CoursesTile/CoursesTextBackdrop" unique_id=759733965]
-layout_mode = 0
-offset_right = 217.0
-offset_bottom = 215.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0.7490196)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 38
-text = "COURSES
-"
-horizontal_alignment = 1
-vertical_alignment = 2
-
-[node name="CoursesButton" type="Button" parent="VerticalLayout/TilesRow/CoursesTile/CoursesTextBackdrop" unique_id=1072632761]
-layout_mode = 0
-offset_right = 217.0
-offset_bottom = 217.0
-theme_override_styles/normal = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/hover = SubResource("StyleBoxFlat_iau2q")
-theme_override_styles/disabled = SubResource("StyleBoxEmpty_bddxb")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_bddxb")
-
-[node name="Spacer2" type="Control" parent="VerticalLayout" unique_id=696130811]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="VerAndTest" type="HBoxContainer" parent="VerticalLayout" unique_id=1849977518]
-layout_mode = 2
-
-[node name="VersionLabel" type="Label" parent="VerticalLayout/VerAndTest" unique_id=1316645986]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 10
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 18
-horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="PhysicsTestButton" type="Button" parent="VerticalLayout/VerAndTest" unique_id=865771104]
+[node name="Buttons" type="HBoxContainer" parent="VBoxContainer" unique_id=1465981423]
 layout_mode = 2
-text = "Test Physics"
+size_flags_vertical = 6
 
-[connection signal="pressed" from="VerticalLayout/VerAndTest/PhysicsTestButton" to="." method="_on_physics_test_button_pressed"]
+[node name="Spacer" type="Control" parent="VBoxContainer/Buttons" unique_id=1668370378]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Range" type="VBoxContainer" parent="VBoxContainer/Buttons" unique_id=355567267]
+layout_mode = 2
+
+[node name="TextureButton" type="TextureButton" parent="VBoxContainer/Buttons/Range" unique_id=1540106912]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+focus_neighbor_top = NodePath("../../../TopStrip/MarginContainer/HBoxContainer/ExitButton")
+focus_neighbor_right = NodePath("../../Courses/TextureButton")
+texture_normal = ExtResource("4_bddxb")
+texture_hover = SubResource("CompressedTexture2D_61cdy")
+
+[node name="Label" type="Label" parent="VBoxContainer/Buttons/Range" unique_id=1327901383]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_trkrl")
+theme_override_font_sizes/font_size = 60
+text = "RANGE"
+horizontal_alignment = 1
+
+[node name="Spacer2" type="Control" parent="VBoxContainer/Buttons" unique_id=602054063]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
+
+[node name="Courses" type="VBoxContainer" parent="VBoxContainer/Buttons" unique_id=1685158827]
+layout_mode = 2
+
+[node name="TextureButton" type="TextureButton" parent="VBoxContainer/Buttons/Courses" unique_id=53371201]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+focus_neighbor_left = NodePath("../../Range/TextureButton")
+focus_neighbor_top = NodePath("../../../TopStrip/MarginContainer/HBoxContainer/SettingsButton")
+texture_normal = ExtResource("5_iau2q")
+texture_hover = ExtResource("6_pbebc")
+
+[node name="Label" type="Label" parent="VBoxContainer/Buttons/Courses" unique_id=1190176746]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_trkrl")
+theme_override_font_sizes/font_size = 60
+text = "COURSES"
+horizontal_alignment = 1
+
+[node name="Spacer3" type="Control" parent="VBoxContainer/Buttons" unique_id=1145309204]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Control" type="Control" parent="VBoxContainer" unique_id=1582845461]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=599713435]
+layout_mode = 2
+
+[node name="Version" type="Label" parent="VBoxContainer/HBoxContainer" unique_id=1125823364]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9254902, 0.87058824, 0.72156864, 1)
+theme_override_fonts/font = ExtResource("3_trkrl")
+
+[node name="PhysicsTestButton" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=446865086]
+layout_mode = 2
+text = "Physics Test"
+
+[connection signal="pressed" from="VBoxContainer/Buttons/Range/TextureButton" to="." method="_on_range_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/PhysicsTestButton" to="." method="_on_physics_test_button_pressed"]
+
+[editable path="VBoxContainer/TopStrip"]

@@ -114,8 +114,8 @@ func clear_total_distance() -> void:
 		$OverlayLayer/TotalDistanceOverlay.text = "Total Distance --"
 		
 func set_physics_debug(vel: Vector3, omega: Vector3) -> void:
-	var speed = vel.length()
-	var omg_len = omega.length()
-	var re = Aerodynamics.GetRe(speed, GolfBall.RADIUS)
-	var spinRatio = omg_len*GolfBall.RADIUS/speed
+	var speed : float = vel.length()
+	var omg_len : float = omega.length()
+	var re : float = Aerodynamics.GetRe(speed, GolfBall.RADIUS)
+	var spinRatio : float = omg_len*GolfBall.RADIUS/speed
 	$HBoxContainer/PhysicsDebug.text = "speed: %3d   spin: %5d   Re: %6d   spin ratio: %5.3f" % [int(speed), int(omg_len), re, spinRatio]
