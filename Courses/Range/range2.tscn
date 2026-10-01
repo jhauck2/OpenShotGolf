@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bg5tbfjpq3flx" path="res://addons/launch_monitors/common/tcp_server/TcpServer.cs" id="2_3luo5"]
 [ext_resource type="PackedScene" uid="uid://w55fmvo7ly8g" path="res://Player/player.tscn" id="3_f2gud"]
 [ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="4_eenhk"]
+[ext_resource type="Script" uid="uid://ckpcib17q5ltq" path="res://Courses/Range/ground.gd" id="7_0psbt"]
 [ext_resource type="Shader" uid="uid://cvd0x7lon1ur6" path="res://addons/sky_3d/shaders/SkyMaterial.gdshader" id="9_ydhkh"]
 [ext_resource type="Texture2D" uid="uid://dfrpctfpmv3c7" path="res://addons/sky_3d/assets/thirdparty/textures/milkyway/Milkyway.jpg" id="10_edhr3"]
 [ext_resource type="Texture2D" uid="uid://cfqk60lpl5ljv" path="res://addons/sky_3d/assets/resources/SNoise.tres" id="11_0eg6x"]
@@ -15,22 +16,8 @@
 [ext_resource type="Script" uid="uid://b4tkplvh7fq40" path="res://addons/sky_3d/src/Skydome.gd" id="17_np6t1"]
 [ext_resource type="PackedScene" uid="uid://bom2ok6ydtd6b" path="res://Courses/Range/range_camera.tscn" id="18_0psbt"]
 [ext_resource type="Script" uid="uid://cjmkcj8hwm7ts" path="res://addons/sky_3d/src/TimeOfDay.gd" id="18_ptgkq"]
-[ext_resource type="Shader" uid="uid://bsxkf7pu7msya" path="res://Courses/Range/ground.gdshader" id="20_y1lg4"]
 [ext_resource type="Texture2D" uid="uid://bm5ic1m84j5cd" path="res://Courses/Range/Range_Distances.png" id="22_70x44"]
 [ext_resource type="Script" uid="uid://c521mpxrgwa74" path="res://SessionRecorder/session_recorder.gd" id="23_niwn0"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_440xq"]
-render_priority = 0
-shader = ExtResource("20_y1lg4")
-shader_parameter/color = Vector3(0.2, 0.5, 0.05)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_ly6t1"]
-material = SubResource("ShaderMaterial_440xq")
-size = Vector2(800, 600)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_y1lg4"]
-margin = 0.01
-size = Vector3(800, 1, 600)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0yxxa"]
 shader = ExtResource("9_ydhkh")
@@ -142,16 +129,8 @@ script = ExtResource("23_niwn0")
 [node name="RangeCamera" parent="." unique_id=950061257 instance=ExtResource("18_0psbt")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 5, 0)
 
-[node name="Grass" type="StaticBody3D" parent="." unique_id=1054184861]
-
-[node name="GroundMesh" type="MeshInstance3D" parent="Grass" unique_id=592170117]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, 0, 0)
-mesh = SubResource("PlaneMesh_ly6t1")
-skeleton = NodePath("../..")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Grass" unique_id=1231519253]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, -0.5, 0)
-shape = SubResource("BoxShape3D_y1lg4")
+[node name="Ground" type="Node3D" parent="." unique_id=772935316]
+script = ExtResource("7_0psbt")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1789725117]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 174.334, 165.881, 0)

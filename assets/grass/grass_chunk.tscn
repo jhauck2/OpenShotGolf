@@ -1,0 +1,121 @@
+[gd_scene format=3 uid="uid://cnhjdcsr1e0ov"]
+
+[ext_resource type="Script" uid="uid://d1dwxbiaspoy0" path="res://assets/grass/grass_chunk.gd" id="1_ofmm3"]
+[ext_resource type="Shader" uid="uid://plvkuvhd0b1d" path="res://assets/grass/grass.gdshader" id="2_0pvim"]
+[ext_resource type="MultiMesh" uid="uid://dk4vggvqcb1x8" path="res://assets/grass/grass_multimesh_simple.tres" id="3_ittp6"]
+[ext_resource type="Script" uid="uid://efi6sgu1sxbd" path="res://assets/grass/grass.gd" id="4_sx5rw"]
+[ext_resource type="Shader" uid="uid://b7gskdobyga7o" path="res://assets/grass/impostor_grass.gdshader" id="5_ry5bi"]
+[ext_resource type="Texture2D" uid="uid://d0lsmqsvgv0ft" path="res://assets/grass/grass_normals.png" id="6_pxbre"]
+[ext_resource type="ArrayMesh" uid="uid://dye805uuatwvq" path="res://assets/grass/grass-stalk-simple.obj" id="7_8qg5i"]
+
+[sub_resource type="Gradient" id="Gradient_odt3n"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_jugg6"]
+gradient = SubResource("Gradient_odt3n")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_301yx"]
+albedo_color = Color(0, 0, 0, 1)
+ao_enabled = true
+ao_light_affect = 1.0
+ao_texture = SubResource("GradientTexture1D_jugg6")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_n0l7m"]
+size = Vector2(4, 4)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_tid6t"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_h2qfw"]
+noise = SubResource("FastNoiseLite_tid6t")
+seamless = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_tlwt5"]
+frequency = 0.0043
+fractal_type = 2
+fractal_gain = 0.45
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_aqk2v"]
+noise = SubResource("FastNoiseLite_tlwt5")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fj7yv"]
+render_priority = 0
+shader = ExtResource("2_0pvim")
+shader_parameter/size_small = 0.06
+shader_parameter/size_large = 0.09
+shader_parameter/blade_bend = 0.5
+shader_parameter/color_small = Color(0.6, 0.8, 0.1, 1)
+shader_parameter/color_large = Color(0.7, 0.9, 0.2, 1)
+shader_parameter/patch_noise = SubResource("NoiseTexture2D_h2qfw")
+shader_parameter/patch_scale = 5.0
+shader_parameter/wind_noise = SubResource("NoiseTexture2D_aqk2v")
+shader_parameter/wind_strength = 0.15
+shader_parameter/wind_direction = Vector2(1, 0)
+shader_parameter/wind_bend_strength = 2.0
+shader_parameter/wind_ao_affect = 1.0
+shader_parameter/object_radius = 1.0
+shader_parameter/object_position = Vector3(0, 0.3, 0)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_aqk2v"]
+frequency = 0.1
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_036b0"]
+noise = SubResource("FastNoiseLite_aqk2v")
+seamless_blend_skirt = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_036b0"]
+render_priority = 0
+shader = ExtResource("5_ry5bi")
+shader_parameter/color_small = Color(0.3, 0.6, 0.1, 1)
+shader_parameter/color_large = Color(0.9, 0.9, 0.2, 1)
+shader_parameter/ground_color = Color(0, 0, 0, 1)
+shader_parameter/patch_noise = SubResource("NoiseTexture2D_h2qfw")
+shader_parameter/patch_scale = 5.0
+shader_parameter/high_frequency_noise = SubResource("NoiseTexture2D_036b0")
+shader_parameter/baked_normals = ExtResource("6_pxbre")
+shader_parameter/wind_noise = SubResource("NoiseTexture2D_aqk2v")
+shader_parameter/wind_strength = 0.1
+shader_parameter/wind_direction = Vector2(1, 0)
+shader_parameter/wind_bend_strength = 2.0
+shader_parameter/wind_ao_affect = 1.5
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_dwbse"]
+size = Vector2(4, 4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ittp6"]
+size = Vector3(4, 1, 4)
+
+[node name="GrassChunk" type="Node3D" unique_id=1472507291]
+script = ExtResource("1_ofmm3")
+lod_switch = 7.0
+
+[node name="Ground" type="MeshInstance3D" parent="." unique_id=1443738668]
+material_override = SubResource("StandardMaterial3D_301yx")
+mesh = SubResource("PlaneMesh_n0l7m")
+skeleton = NodePath("../..")
+
+[node name="Grass" type="MultiMeshInstance3D" parent="." unique_id=136526788]
+transform = Transform3D(0.999976, -0.0069289017, 0, 0.0069289017, 0.999976, 0, 0, 0, 1, 0, 0, 0)
+material_override = SubResource("ShaderMaterial_fj7yv")
+cast_shadow = 0
+instance_shader_parameters/alpha = 1.0
+multimesh = ExtResource("3_ittp6")
+script = ExtResource("4_sx5rw")
+
+[node name="Impostor" type="MeshInstance3D" parent="." unique_id=2128024131]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+material_override = SubResource("ShaderMaterial_036b0")
+instance_shader_parameters/alpha = 0.0
+mesh = SubResource("PlaneMesh_dwbse")
+skeleton = NodePath("../..")
+
+[node name="ChunkBody" type="StaticBody3D" parent="." unique_id=1473176312]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ChunkBody" unique_id=903941390]
+shape = SubResource("BoxShape3D_ittp6")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1445243268]
+visible = false
+mesh = ExtResource("7_8qg5i")

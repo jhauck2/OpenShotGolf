@@ -45,7 +45,7 @@ project/assembly_name="OpenShotGolf"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gdterm/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+enabled=PackedStringArray("res://addons/phantom_camera/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
 
 [input]
 
@@ -67,6 +67,7 @@ pause={
 
 [physics]
 
+common/physics_ticks_per_second=120
 3d/physics_engine="JoltPhysics3D"
 common/physics_interpolation=true
 
