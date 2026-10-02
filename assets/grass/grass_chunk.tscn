@@ -83,9 +83,6 @@ shader_parameter/wind_ao_affect = 1.5
 [sub_resource type="PlaneMesh" id="PlaneMesh_dwbse"]
 size = Vector2(4, 4)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_ittp6"]
-size = Vector3(4, 1, 4)
-
 [node name="GrassChunk" type="Node3D" unique_id=1472507291]
 script = ExtResource("1_ofmm3")
 lod_switch = 7.0
@@ -109,12 +106,6 @@ material_override = SubResource("ShaderMaterial_036b0")
 instance_shader_parameters/alpha = 0.0
 mesh = SubResource("PlaneMesh_dwbse")
 skeleton = NodePath("../..")
-
-[node name="ChunkBody" type="StaticBody3D" parent="." unique_id=1473176312]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ChunkBody" unique_id=903941390]
-shape = SubResource("BoxShape3D_ittp6")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1445243268]
 visible = false

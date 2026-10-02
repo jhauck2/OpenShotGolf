@@ -5,6 +5,8 @@
 [ext_resource type="PackedScene" uid="uid://w55fmvo7ly8g" path="res://Player/player.tscn" id="3_f2gud"]
 [ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="4_eenhk"]
 [ext_resource type="Script" uid="uid://ckpcib17q5ltq" path="res://Courses/Range/ground.gd" id="7_0psbt"]
+[ext_resource type="Texture2D" uid="uid://d0lsmqsvgv0ft" path="res://assets/grass/grass_normals.png" id="8_djpkn"]
+[ext_resource type="Shader" uid="uid://b7gskdobyga7o" path="res://assets/grass/impostor_grass.gdshader" id="8_y1lg4"]
 [ext_resource type="Shader" uid="uid://cvd0x7lon1ur6" path="res://addons/sky_3d/shaders/SkyMaterial.gdshader" id="9_ydhkh"]
 [ext_resource type="Texture2D" uid="uid://dfrpctfpmv3c7" path="res://addons/sky_3d/assets/thirdparty/textures/milkyway/Milkyway.jpg" id="10_edhr3"]
 [ext_resource type="Texture2D" uid="uid://cfqk60lpl5ljv" path="res://addons/sky_3d/assets/resources/SNoise.tres" id="11_0eg6x"]
@@ -18,6 +20,47 @@
 [ext_resource type="Script" uid="uid://cjmkcj8hwm7ts" path="res://addons/sky_3d/src/TimeOfDay.gd" id="18_ptgkq"]
 [ext_resource type="Texture2D" uid="uid://bm5ic1m84j5cd" path="res://Courses/Range/Range_Distances.png" id="22_70x44"]
 [ext_resource type="Script" uid="uid://c521mpxrgwa74" path="res://SessionRecorder/session_recorder.gd" id="23_niwn0"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_440xq"]
+frequency = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_ly6t1"]
+noise = SubResource("FastNoiseLite_440xq")
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_rniap"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_3luo5"]
+noise = SubResource("FastNoiseLite_rniap")
+seamless = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_f2gud"]
+frequency = 0.0048
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_eenhk"]
+noise = SubResource("FastNoiseLite_f2gud")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_h75fb"]
+render_priority = 0
+shader = ExtResource("8_y1lg4")
+shader_parameter/color_small = Color(0.3, 0.6, 0.1, 1)
+shader_parameter/color_large = Color(0.9, 0.9, 0.2, 1)
+shader_parameter/ground_color = Color(0, 0, 0, 1)
+shader_parameter/patch_noise = SubResource("NoiseTexture2D_3luo5")
+shader_parameter/patch_scale = 5.0
+shader_parameter/high_frequency_noise = SubResource("NoiseTexture2D_ly6t1")
+shader_parameter/baked_normals = ExtResource("8_djpkn")
+shader_parameter/wind_noise = SubResource("NoiseTexture2D_eenhk")
+shader_parameter/wind_strength = 0.1
+shader_parameter/wind_direction = Vector2(1, 0)
+shader_parameter/wind_bend_strength = 2.0
+shader_parameter/wind_ao_affect = 1.5
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_440xq"]
+size = Vector2(600, 600)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_djpkn"]
+size = Vector3(600, 1, 600)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0yxxa"]
 shader = ExtResource("9_ydhkh")
@@ -131,6 +174,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 5, 0)
 
 [node name="Ground" type="Node3D" parent="." unique_id=772935316]
 script = ExtResource("7_0psbt")
+
+[node name="BasicGround" type="MeshInstance3D" parent="Ground" unique_id=1163434195]
+material_override = SubResource("ShaderMaterial_h75fb")
+mesh = SubResource("PlaneMesh_440xq")
+
+[node name="GroundBody" type="StaticBody3D" parent="Ground" unique_id=2047709615]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/GroundBody" unique_id=874143107]
+shape = SubResource("BoxShape3D_djpkn")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1789725117]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 174.334, 165.881, 0)
