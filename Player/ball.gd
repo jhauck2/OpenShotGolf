@@ -85,8 +85,12 @@ func _physics_process(delta: float) -> void:
 		
 	# Move and handle collisions
 	var vel_before_collision : Vector3 = velocity
-	var collision := move_and_collide(velocity * delta, false, COLLISION_SAFE_MARGIN)
-	_handle_collision(collision, was_on_ground, vel_before_collision)
+	var collision := move_and_collide(velocity * delta, true)
+	if collision:
+		_handle_collision(collision, vel_before_collision)
+	else:
+		on_ground = false
+		move_and_collide(velocity*delta)
 
 	# Check for rest
 	if velocity.length() < 0.1:
@@ -95,36 +99,21 @@ func _physics_process(delta: float) -> void:
 		state = PhysicsEnums.BallState.REST
 		rest.emit()
 
-func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, prev_velocity: Vector3) -> void:
-	if collision:
-		var normal := collision.get_normal()
+func _handle_collision(collision: KinematicCollision3D, prev_velocity: Vector3) -> void:
+	var normal := collision.get_normal()
 
-		if _is_ground_normal(normal): # regular floor collision
-			floor_normal = normal
-			var prev_normal_velocity := prev_velocity.dot(normal)
-			var is_landing := (state == PhysicsEnums.BallState.FLIGHT) or prev_normal_velocity < -0.5
+	if _is_ground_normal(normal): # regular floor collision
+		floor_normal = normal
+		var prev_normal_velocity := prev_velocity.dot(normal)
 
-			if is_landing:
-				velocity = bounce(prev_velocity, normal)
-				if absf(velocity.dot(normal)) < 0.15:
-					on_ground = true
-				else:
-					on_ground = false
-			else:
-				on_ground = true
-		else:
-			# Wall collision - damped reflection
-			on_ground = false
-			floor_normal = Vector3.UP
-			velocity = velocity.bounce(normal) * 0.30
+		if prev_normal_velocity < -0.5 or prev_velocity.length_squared() > 1:
+			velocity = bounce(prev_velocity, normal)
+		on_ground = true
 	else:
-		# No collision - only stay grounded if terrain is still directly beneath the ball.
-		if state != PhysicsEnums.BallState.FLIGHT and was_on_ground:
-			on_ground = true
-			floor_normal = Vector3.UP
-		else:
-			on_ground = false
-			floor_normal = Vector3.UP
+		# Wall collision - damped reflection
+		floor_normal = Vector3.UP
+		velocity = prev_velocity.bounce(normal) * 0.30
+		on_ground = false
 
 
 func bounce(vel: Vector3, normal: Vector3) -> Vector3:

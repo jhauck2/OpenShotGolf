@@ -60,6 +60,7 @@ shader_parameter/wind_ao_affect = 1.5
 size = Vector2(600, 600)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_djpkn"]
+margin = 0.001
 size = Vector3(600, 1, 600)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0yxxa"]
@@ -179,8 +180,14 @@ script = ExtResource("7_0psbt")
 material_override = SubResource("ShaderMaterial_h75fb")
 mesh = SubResource("PlaneMesh_440xq")
 
-[node name="GroundBody" type="StaticBody3D" parent="Ground" unique_id=2047709615]
+[node name="GroundBody" type="StaticBody3D" parent="Ground" unique_id=16655708]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+axis_lock_linear_x = true
+axis_lock_linear_y = true
+axis_lock_linear_z = true
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/GroundBody" unique_id=874143107]
 shape = SubResource("BoxShape3D_djpkn")
