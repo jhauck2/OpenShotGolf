@@ -26,6 +26,7 @@ var state: int = PhysicsEnums.BallState.REST
 var omega := Vector3.ZERO  # Angular velocity (rad/s)
 var on_ground := false
 var floor_normal := Vector3.UP
+var calculate_ground_forces := false
 
 # Surface parameters
 var surface_type: int = PhysicsEnums.SurfaceType.FAIRWAY
@@ -43,8 +44,8 @@ func _ready() -> void:
 func initialize_ball() -> void:
 	# Create collision shape
 	var collision := CollisionShape3D.new()
-	var shape := SphereShape3D.new()
-	shape.set_radius(RADIUS)
+	var shape := BoxShape3D.new()
+	shape.set_size(Vector3(RADIUS, RADIUS, RADIUS))
 	collision.set_shape(shape)
 	add_child(collision)
 	# Create model
@@ -65,8 +66,8 @@ func _physics_process(delta: float) -> void:
 	var was_on_ground := on_ground
 
 	# Calculate forces and torques using BallPhysics
-	var total_force : Vector3 = BallPhysics.CalculateForces(self, was_on_ground, floor_normal)
-	var total_torque : Vector3 = BallPhysics.CalculateTorques(self, was_on_ground)
+	var total_force : Vector3 = BallPhysics.CalculateForces(self, calculate_ground_forces, floor_normal)
+	var total_torque : Vector3 = BallPhysics.CalculateTorques(self, calculate_ground_forces)
 	
 	if total_force == null or total_torque == null:
 		return
@@ -85,12 +86,15 @@ func _physics_process(delta: float) -> void:
 		
 	# Move and handle collisions
 	var vel_before_collision : Vector3 = velocity
-	var collision := move_and_collide(velocity * delta, true)
+	var collision := move_and_collide(velocity * delta, false, COLLISION_SAFE_MARGIN)
 	if collision:
 		_handle_collision(collision, vel_before_collision)
 	else:
 		on_ground = false
-		move_and_collide(velocity*delta)
+		#move_and_collide(velocity*delta)
+		
+	# Determine whether to calculate ground forces if we were on ground the last two frames
+	calculate_ground_forces = was_on_ground and on_ground
 
 	# Check for rest
 	if velocity.length() < 0.1:
@@ -106,7 +110,7 @@ func _handle_collision(collision: KinematicCollision3D, prev_velocity: Vector3) 
 		floor_normal = normal
 		var prev_normal_velocity := prev_velocity.dot(normal)
 
-		if prev_normal_velocity < -0.5 or prev_velocity.length_squared() > 1:
+		if prev_normal_velocity < -0.5 or prev_velocity.length_squared() > 4.0:
 			velocity = bounce(prev_velocity, normal)
 		on_ground = true
 	else:
