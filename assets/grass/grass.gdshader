@@ -6,8 +6,8 @@ uniform float size_large = 0.09;
 
 uniform float blade_bend = 0.5;
 
-uniform vec3 color_small: source_color = vec3(0.6, 0.8, 0.1);
-uniform vec3 color_large: source_color = vec3(0.7, 0.9, 0.2);
+uniform vec3 color_small: source_color = vec3(0.1, 0.7, 0.1);
+uniform vec3 color_large: source_color = vec3(0.1, 0.7, 0.1);
 
 uniform sampler2D patch_noise;
 uniform float patch_scale = 5.0;

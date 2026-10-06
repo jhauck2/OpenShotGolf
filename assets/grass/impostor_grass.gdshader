@@ -1,9 +1,10 @@
 shader_type spatial;
 
-uniform vec3 color_small: source_color = vec3(0.3, 0.6, 0.1);
-uniform vec3 color_large: source_color = vec3(0.9, 0.9, 0.2);
+uniform vec3 color_small: source_color = vec3(0.1, 0.6, 0.1);
+uniform vec3 color_large: source_color = vec3(0.1, 0.8, 0.1);
 
 uniform vec3 ground_color: source_color = vec3(0.0, 0.0, 0.0);
+instance uniform float ground_alpha = 1.0;
 
 uniform sampler2D patch_noise;
 uniform float patch_scale = 5.0;
@@ -38,7 +39,7 @@ void fragment() {
 	float spottiness = (1.0 - normal_to_view) * 0.5 - patch_factor * 0.2;
 	float ground_factor = smoothstep(spottiness + 0.1, spottiness - 0.1, high_frequency_sample);
 
-	ALBEDO = mix(ALBEDO, ground_color, clamp(ground_factor + 1.0 - alpha, 0.0, 1.0));
+	ALBEDO = mix(ALBEDO, ground_color, clamp(ground_factor + 1.0 - ground_alpha, 0.0, 1.0));
 
 	// Wind
 	vec2 wind_position = world_vertex.xz / 10.0;
@@ -58,4 +59,5 @@ void fragment() {
 	BACKLIGHT = vec3(0.2);
 	ROUGHNESS = 0.4;
 	SPECULAR = 0.12;
+	ALPHA = alpha;
 }

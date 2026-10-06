@@ -8,18 +8,8 @@
 [ext_resource type="Texture2D" uid="uid://d0lsmqsvgv0ft" path="res://assets/grass/grass_normals.png" id="6_pxbre"]
 [ext_resource type="ArrayMesh" uid="uid://dye805uuatwvq" path="res://assets/grass/grass-stalk-simple.obj" id="7_8qg5i"]
 
-[sub_resource type="Gradient" id="Gradient_odt3n"]
-offsets = PackedFloat32Array(0)
-colors = PackedColorArray(0, 0, 0, 1)
-
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_jugg6"]
-gradient = SubResource("Gradient_odt3n")
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_301yx"]
-albedo_color = Color(0, 0, 0, 1)
-ao_enabled = true
-ao_light_affect = 1.0
-ao_texture = SubResource("GradientTexture1D_jugg6")
+albedo_color = Color(0, 0, 0, 0)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_n0l7m"]
 size = Vector2(4, 4)
@@ -45,8 +35,8 @@ shader = ExtResource("2_0pvim")
 shader_parameter/size_small = 0.06
 shader_parameter/size_large = 0.09
 shader_parameter/blade_bend = 0.5
-shader_parameter/color_small = Color(0.6, 0.8, 0.1, 1)
-shader_parameter/color_large = Color(0.7, 0.9, 0.2, 1)
+shader_parameter/color_small = Color(0.1, 0.7, 0.1, 1)
+shader_parameter/color_large = Color(0.1, 0.7, 0.1, 1)
 shader_parameter/patch_noise = SubResource("NoiseTexture2D_h2qfw")
 shader_parameter/patch_scale = 5.0
 shader_parameter/wind_noise = SubResource("NoiseTexture2D_aqk2v")
@@ -67,8 +57,8 @@ seamless_blend_skirt = 0.0
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_036b0"]
 render_priority = 0
 shader = ExtResource("5_ry5bi")
-shader_parameter/color_small = Color(0.3, 0.6, 0.1, 1)
-shader_parameter/color_large = Color(0.9, 0.9, 0.2, 1)
+shader_parameter/color_small = Color(0.1, 0.6, 0.1, 1)
+shader_parameter/color_large = Color(0.1, 0.8, 0.1, 1)
 shader_parameter/ground_color = Color(0, 0, 0, 1)
 shader_parameter/patch_noise = SubResource("NoiseTexture2D_h2qfw")
 shader_parameter/patch_scale = 5.0

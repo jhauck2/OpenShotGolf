@@ -5,11 +5,14 @@
 [ext_resource type="PackedScene" uid="uid://w55fmvo7ly8g" path="res://Player/player.tscn" id="3_f2gud"]
 [ext_resource type="PackedScene" uid="uid://da1vsfwmbk8vw" path="res://UI/range_ui.tscn" id="4_eenhk"]
 [ext_resource type="Script" uid="uid://ckpcib17q5ltq" path="res://Courses/Range/ground.gd" id="7_0psbt"]
-[ext_resource type="Texture2D" uid="uid://d0lsmqsvgv0ft" path="res://assets/grass/grass_normals.png" id="8_djpkn"]
-[ext_resource type="Shader" uid="uid://b7gskdobyga7o" path="res://assets/grass/impostor_grass.gdshader" id="8_y1lg4"]
+[ext_resource type="Texture2D" uid="uid://csl33tlcg727" path="res://assets/grass/grass1-bl/grass1-albedo3.png" id="8_rniap"]
+[ext_resource type="Texture2D" uid="uid://dnx0u56tbruii" path="res://assets/grass/grass1-bl/grass1-ao.png" id="9_3luo5"]
 [ext_resource type="Shader" uid="uid://cvd0x7lon1ur6" path="res://addons/sky_3d/shaders/SkyMaterial.gdshader" id="9_ydhkh"]
 [ext_resource type="Texture2D" uid="uid://dfrpctfpmv3c7" path="res://addons/sky_3d/assets/thirdparty/textures/milkyway/Milkyway.jpg" id="10_edhr3"]
+[ext_resource type="Texture2D" uid="uid://ctf7wf3hjejqd" path="res://assets/grass/grass1-bl/grass1-height.png" id="10_f2gud"]
 [ext_resource type="Texture2D" uid="uid://cfqk60lpl5ljv" path="res://addons/sky_3d/assets/resources/SNoise.tres" id="11_0eg6x"]
+[ext_resource type="Texture2D" uid="uid://c3yikl1w3rouo" path="res://assets/grass/grass1-bl/grass1-normal1-ogl.png" id="11_eenhk"]
+[ext_resource type="Texture2D" uid="uid://bs0sy3104rpxf" path="res://assets/grass/grass1-bl/grass1-rough.png" id="12_h75fb"]
 [ext_resource type="Texture2D" uid="uid://dtt1t7bd56iol" path="res://addons/sky_3d/assets/textures/noiseClouds.png" id="12_l0sep"]
 [ext_resource type="Texture2D" uid="uid://c0wjs755653c1" path="res://addons/sky_3d/assets/thirdparty/textures/moon/MoonMap.png" id="13_n5bqh"]
 [ext_resource type="Texture2D" uid="uid://b1k4d6vag2lrf" path="res://addons/sky_3d/assets/textures/noise.jpg" id="14_coxeu"]
@@ -21,40 +24,17 @@
 [ext_resource type="Texture2D" uid="uid://bm5ic1m84j5cd" path="res://Courses/Range/Range_Distances.png" id="22_70x44"]
 [ext_resource type="Script" uid="uid://c521mpxrgwa74" path="res://SessionRecorder/session_recorder.gd" id="23_niwn0"]
 
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_440xq"]
-frequency = 1.0
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_ly6t1"]
-noise = SubResource("FastNoiseLite_440xq")
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_rniap"]
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_3luo5"]
-noise = SubResource("FastNoiseLite_rniap")
-seamless = true
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_f2gud"]
-frequency = 0.0048
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_eenhk"]
-noise = SubResource("FastNoiseLite_f2gud")
-seamless = true
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_h75fb"]
-render_priority = 0
-shader = ExtResource("8_y1lg4")
-shader_parameter/color_small = Color(0.3, 0.6, 0.1, 1)
-shader_parameter/color_large = Color(0.9, 0.9, 0.2, 1)
-shader_parameter/ground_color = Color(0, 0, 0, 1)
-shader_parameter/patch_noise = SubResource("NoiseTexture2D_3luo5")
-shader_parameter/patch_scale = 5.0
-shader_parameter/high_frequency_noise = SubResource("NoiseTexture2D_ly6t1")
-shader_parameter/baked_normals = ExtResource("8_djpkn")
-shader_parameter/wind_noise = SubResource("NoiseTexture2D_eenhk")
-shader_parameter/wind_strength = 0.1
-shader_parameter/wind_direction = Vector2(1, 0)
-shader_parameter/wind_bend_strength = 2.0
-shader_parameter/wind_ao_affect = 1.5
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qab75"]
+albedo_color = Color(0, 0.99387103, 3.85046e-07, 1)
+albedo_texture = ExtResource("8_rniap")
+roughness_texture = ExtResource("12_h75fb")
+normal_enabled = true
+normal_texture = ExtResource("11_eenhk")
+ao_enabled = true
+ao_texture = ExtResource("9_3luo5")
+heightmap_enabled = true
+heightmap_texture = ExtResource("10_f2gud")
+uv1_scale = Vector3(600, 600, 600)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_440xq"]
 size = Vector2(600, 600)
@@ -177,7 +157,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 5, 0)
 script = ExtResource("7_0psbt")
 
 [node name="BasicGround" type="MeshInstance3D" parent="Ground" unique_id=1163434195]
-material_override = SubResource("ShaderMaterial_h75fb")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.01, 0)
+material_override = SubResource("StandardMaterial3D_qab75")
 mesh = SubResource("PlaneMesh_440xq")
 
 [node name="GroundBody" type="StaticBody3D" parent="Ground" unique_id=16655708]
