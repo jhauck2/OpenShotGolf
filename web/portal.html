@@ -354,6 +354,7 @@
           <!-- Portal Tabs Navigation -->
           <div class="portal-nav-tabs">
             <button class="portal-tab-btn active" data-tab="overview">Overview &amp; Clubs</button>
+            <button class="portal-tab-btn" data-tab="shot-analysis">Shot Data Analysis</button>
             <button class="portal-tab-btn" data-tab="analytics">📈 Improvement Analytics</button>
             <button class="portal-tab-btn" data-tab="matches">Recent Matches</button>
             <button class="portal-tab-btn" data-tab="swing">🎯 Swing Analysis</button>
@@ -429,6 +430,33 @@
               </div>
               <div id="best-courses-container">
                 <!-- Populated by portal.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Uploaded Shot Data Analysis -->
+          <div class="portal-tab-pane" id="portal-tab-shot-analysis">
+            <div class="portal-card">
+              <div class="portal-card-header">
+                <h3 class="portal-card-title">🎯 Shot Data Analysis</h3>
+                <button class="btn-action-outline" id="shot-analysis-refresh">↻ Refresh</button>
+              </div>
+              <p class="shot-analysis-intro">Analysis sessions uploaded from the range. Download a CSV, view the raw shot data and charts, or delete an uploaded session.</p>
+              <div id="shot-analysis-list">
+                <div class="empty-state"><p>Open this tab to load your uploaded sessions.</p></div>
+              </div>
+              <div id="shot-analysis-detail" class="shot-analysis-detail" hidden>
+                <div class="portal-card-header shot-analysis-detail-header">
+                  <h4 id="shot-analysis-detail-title">Analysis Session</h4>
+                  <label class="shot-analysis-mode">Flight view
+                    <select id="shot-analysis-view-mode">
+                      <option value="best">Best shot</option>
+                      <option value="average">Group average</option>
+                    </select>
+                  </label>
+                </div>
+                <canvas id="shot-analysis-canvas" class="shot-analysis-canvas" aria-label="Shot flight and landing dispersion charts"></canvas>
+                <div id="shot-analysis-table" class="table-responsive"></div>
               </div>
             </div>
           </div>

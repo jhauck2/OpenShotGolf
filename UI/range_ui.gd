@@ -36,6 +36,8 @@ var _settings_btn: Button = null
 var _exit_confirm_dialog: Control = null
 var _hide_helpers_btn: Button = null
 var _stats_btn: Button = null
+var _shot_data_btn: Button = null
+var _shot_data_window: Window = null
 var _map_btn: Button = null
 var _skip_btn: Button = null
 var _imm_menu_btn: Button = null
@@ -771,6 +773,27 @@ func _ready() -> void:
 		$OverlayLayer.add_child(stats_btn)
 		_stats_btn = stats_btn
 
+		# Shot Data Analysis Window Button
+		var shot_data_btn := Button.new()
+		shot_data_btn.name = "ShotDataAnalysisButton"
+		shot_data_btn.text = "📈"
+		shot_data_btn.tooltip_text = "Open Shot Data Analysis"
+		shot_data_btn.custom_minimum_size = Vector2(64, 64)
+		shot_data_btn.add_theme_font_size_override("font_size", 24)
+		apply_circular_button_style(shot_data_btn, Color(0.33, 0.3, 0.62, 0.9))
+		shot_data_btn.anchor_left = 0.0
+		shot_data_btn.anchor_right = 0.0
+		shot_data_btn.anchor_top = 1.0
+		shot_data_btn.anchor_bottom = 1.0
+		shot_data_btn.offset_left = 102
+		shot_data_btn.offset_top = -88
+		shot_data_btn.offset_right = 166
+		shot_data_btn.offset_bottom = -24
+		shot_data_btn.pressed.connect(_toggle_shot_data_window)
+		$OverlayLayer.add_child(shot_data_btn)
+		_shot_data_btn = shot_data_btn
+		_shot_data_btn.visible = is_driving_range()
+
 		# Dedicated Map Toggle Button (Icon Only) - Bottom-Right Corner
 		var map_btn = Button.new()
 		map_btn.name = "MapButton"
@@ -1477,8 +1500,7 @@ func _attach_swing_replay_modal(modal: Control) -> void:
 			_detached_window.remove_child(modal)
 		_detached_window.queue_free()
 		_detached_window = null
-		if get_tree() != null and get_tree().root != null:
-			get_tree().root.gui_embed_subwindows = true
+		_update_subwindow_embedding()
 
 	_detached_modal = null
 	modal.is_detached = false
@@ -1511,8 +1533,7 @@ func _close_detached_window() -> void:
 		_detached_window.queue_free()
 		_detached_window = null
 		_detached_modal = null
-		if get_tree() != null and get_tree().root != null:
-			get_tree().root.gui_embed_subwindows = true
+		_update_subwindow_embedding()
 
 
 func _format_angle(value) -> String:
@@ -2174,6 +2195,96 @@ func toggle_stats_visibility() -> void:
 	set_stats_visible(not is_stats_visible())
 
 
+func _toggle_shot_data_window() -> void:
+	if _shot_data_window == null or not is_instance_valid(_shot_data_window):
+		var window := Window.new()
+		window.title = "Shot Data Analysis"
+		window.size = Vector2i(1000, 720)
+		window.min_size = Vector2i(720, 520)
+		window.popup_window = false
+		window.borderless = false
+		window.unresizable = false
+		window.mode = Window.MODE_WINDOWED
+		window.transient = false
+		window.exclusive = false
+		window.always_on_top = false
+		window.close_requested.connect(func():
+			window.hide()
+			_update_subwindow_embedding()
+			_update_shot_data_button_style()
+		)
+		var content := Control.new()
+		content.set_script(load("res://UI/ShotAnalysis/shot_analysis_window.gd"))
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		window.add_child(content)
+		if DisplayServer.has_feature(DisplayServer.FEATURE_SUBWINDOWS):
+			get_tree().root.gui_embed_subwindows = false
+		window.position = _get_shot_analysis_window_position(window.size)
+		get_tree().root.add_child(window)
+		_shot_data_window = window
+		tree_exiting.connect(_on_analysis_owner_tree_exiting.bind(window), CONNECT_ONE_SHOT)
+		var range_node := get_parent()
+		var history: Variant = range_node.get("shot_history") if range_node != null else []
+		content.call("initialize", history if history is Array else [])
+		window.show()
+	else:
+		if _shot_data_window.visible:
+			_shot_data_window.hide()
+		else:
+			if DisplayServer.has_feature(DisplayServer.FEATURE_SUBWINDOWS):
+				get_tree().root.gui_embed_subwindows = false
+			_shot_data_window.show()
+	_update_subwindow_embedding()
+	_update_shot_data_button_style()
+
+
+func record_analysis_shot(data: Dictionary) -> void:
+	if _shot_data_window == null or not is_instance_valid(_shot_data_window):
+		return
+	if _shot_data_window.get_child_count() == 0:
+		return
+	var content := _shot_data_window.get_child(0)
+	if content.has_method("add_shot"):
+		content.call("add_shot", data)
+
+
+func _on_analysis_owner_tree_exiting(window: Window) -> void:
+	if is_instance_valid(window):
+		window.hide()
+		window.queue_free()
+		_update_subwindow_embedding()
+
+
+func _get_shot_analysis_window_position(window_size: Vector2i) -> Vector2i:
+	var screen_count := DisplayServer.get_screen_count()
+	var current_screen := DisplayServer.window_get_current_screen()
+	var target_screen := current_screen
+	if screen_count > 1:
+		target_screen = (current_screen + 1) % screen_count
+	var usable_rect := DisplayServer.screen_get_usable_rect(target_screen)
+	if target_screen != current_screen:
+		return usable_rect.position + (usable_rect.size - window_size) / 2
+	return usable_rect.position + Vector2i(24, 48)
+
+
+func _update_subwindow_embedding() -> void:
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_SUBWINDOWS) or get_tree() == null or get_tree().root == null:
+		return
+	var detached_replay_open := _detached_window != null and is_instance_valid(_detached_window)
+	var analysis_window_open := _shot_data_window != null and is_instance_valid(_shot_data_window) and _shot_data_window.visible
+	if detached_replay_open or analysis_window_open:
+		get_tree().root.gui_embed_subwindows = false
+	else:
+		get_tree().root.gui_embed_subwindows = bool(ProjectSettings.get_setting("display/window/subwindows/embed_subwindows", true))
+
+
+func _update_shot_data_button_style() -> void:
+	if _shot_data_btn == null or not is_instance_valid(_shot_data_btn):
+		return
+	var is_open := _shot_data_window != null and is_instance_valid(_shot_data_window) and _shot_data_window.visible
+	apply_circular_button_style(_shot_data_btn, Color(0.43, 0.4, 0.78, 0.95) if is_open else Color(0.33, 0.3, 0.62, 0.9))
+
+
 func apply_material_button_style(btn: Button, bg_color: Color):
 	var style_normal = StyleBoxFlat.new()
 	style_normal.bg_color = bg_color
@@ -2787,6 +2898,8 @@ func set_hud_elements_visible(is_vis: bool) -> void:
 			_golfer_cam_panel.visible = is_camera_modal_open()
 	if _stats_btn != null and is_instance_valid(_stats_btn):
 		_stats_btn.visible = is_vis
+	if _shot_data_btn != null and is_instance_valid(_shot_data_btn):
+		_shot_data_btn.visible = is_vis and is_driving_range()
 	if _map_btn != null and is_instance_valid(_map_btn):
 		_map_btn.visible = is_vis
 
@@ -3018,6 +3131,10 @@ func _update_button_shifts() -> void:
 		else:
 			_stats_btn.offset_left = 30
 			_stats_btn.offset_right = 94
+	if _shot_data_btn != null and is_instance_valid(_shot_data_btn):
+		var left_edge := 567 if modal_open else 102
+		_shot_data_btn.offset_left = left_edge
+		_shot_data_btn.offset_right = left_edge + 64
 
 	var grid = get_node_or_null("GridCanvas")
 	if grid != null:
@@ -5279,15 +5396,25 @@ func _update_hud_focus_neighbors() -> void:
 		elif _profile_option != null and is_instance_valid(_profile_option) and _profile_option.visible:
 			_stats_btn.focus_neighbor_top = _stats_btn.get_path_to(_profile_option)
 		if _prev_shot_btn != null and is_instance_valid(_prev_shot_btn) and _prev_shot_btn.visible:
-			_stats_btn.focus_neighbor_right = _stats_btn.get_path_to(_prev_shot_btn)
+			_stats_btn.focus_neighbor_right = _stats_btn.get_path_to(_shot_data_btn) if _shot_data_btn != null and is_instance_valid(_shot_data_btn) and _shot_data_btn.visible else _stats_btn.get_path_to(_prev_shot_btn)
 		elif _map_btn != null and is_instance_valid(_map_btn):
-			_stats_btn.focus_neighbor_right = _stats_btn.get_path_to(_map_btn)
+			_stats_btn.focus_neighbor_right = _stats_btn.get_path_to(_shot_data_btn) if _shot_data_btn != null and is_instance_valid(_shot_data_btn) and _shot_data_btn.visible else _stats_btn.get_path_to(_map_btn)
 		if _map_btn != null and is_instance_valid(_map_btn):
 			_stats_btn.focus_neighbor_left = _stats_btn.get_path_to(_map_btn)
 
+	if _shot_data_btn != null and is_instance_valid(_shot_data_btn) and _shot_data_btn.visible:
+		if _stats_btn != null and is_instance_valid(_stats_btn):
+			_shot_data_btn.focus_neighbor_left = _shot_data_btn.get_path_to(_stats_btn)
+		if _prev_shot_btn != null and is_instance_valid(_prev_shot_btn) and _prev_shot_btn.visible:
+			_shot_data_btn.focus_neighbor_right = _shot_data_btn.get_path_to(_prev_shot_btn)
+		elif _map_btn != null and is_instance_valid(_map_btn):
+			_shot_data_btn.focus_neighbor_right = _shot_data_btn.get_path_to(_map_btn)
+
 	# 2. Previous Shot button (Bottom-Center)
 	if _prev_shot_btn != null and is_instance_valid(_prev_shot_btn) and _prev_shot_btn.visible:
-		if _stats_btn != null and is_instance_valid(_stats_btn):
+		if _shot_data_btn != null and is_instance_valid(_shot_data_btn) and _shot_data_btn.visible:
+			_prev_shot_btn.focus_neighbor_left = _prev_shot_btn.get_path_to(_shot_data_btn)
+		elif _stats_btn != null and is_instance_valid(_stats_btn):
 			_prev_shot_btn.focus_neighbor_left = _prev_shot_btn.get_path_to(_stats_btn)
 		if _map_btn != null and is_instance_valid(_map_btn):
 			_prev_shot_btn.focus_neighbor_right = _prev_shot_btn.get_path_to(_map_btn)

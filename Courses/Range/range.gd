@@ -2267,6 +2267,8 @@ func _on_golf_ball_rest(_ball_data) -> void:
 			if has_node("/root/AchievementManager") and not practice_mode_active and recorded:
 				var total_yds = (raw_ball_data.get("TotalDistance", 0.0) as float) * 1.09361
 				get_node("/root/AchievementManager").check_shot_achievements(p_name, club_name, total_yds, prev_longest_drive)
+		if has_node("RangeUI") and $RangeUI.has_method("record_analysis_shot"):
+			$RangeUI.call("record_analysis_shot", raw_ball_data)
 		_update_averages()
 
 	# Announce shot

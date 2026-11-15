@@ -5,7 +5,7 @@ signal wind_changed(speed_mph: float, direction_rad: float)
 signal fullscreen_changed(is_fullscreen: bool)
 
 # Range Settings
-var range_settings := RangeSettings.new()
+var range_settings: RangeSettings = RangeSettings.new()
 const OPENFAIRWAY_LOG_LEVEL_INFO := 2
 var practice_mode_primed : bool = false
 var is_chipping_minigame : bool = false
@@ -839,7 +839,6 @@ func get_relative_wind_arrow_and_angle(ball_pos: Vector3, aim_target_pos: Vector
 		"w_right": w_right,
 		"speed_mph": current_wind_speed_mph
 	}
-
 
 
 

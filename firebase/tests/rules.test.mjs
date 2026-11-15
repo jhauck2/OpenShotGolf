@@ -95,6 +95,27 @@ describe("Firebase Backend Security Rules & Budget Guard Suite", () => {
       );
     });
 
+    it("allows owners to upload, read, and delete private shot analysis sessions only", async () => {
+      const alice = testEnv.authenticatedContext("uid_1");
+      const bob = testEnv.authenticatedContext("uid_2");
+      const sessionRef = doc(alice.firestore(), "profiles", "uid_1", "shot_analysis", "session_1");
+      const payload = {
+        schema_version: 1,
+        session_id: "session_1",
+        created_at: Math.floor(Date.now() / 1000),
+        groups: [{ id: 0, label: "Driver" }],
+        records: [{ group_id: 0, included: true, shot: { CarryDistance: 200 } }],
+      };
+
+      await assertSucceeds(setDoc(sessionRef, payload));
+      await assertSucceeds(getDoc(sessionRef));
+      await assertFails(getDoc(doc(bob.firestore(), "profiles", "uid_1", "shot_analysis", "session_1")));
+      await assertFails(setDoc(doc(bob.firestore(), "profiles", "uid_1", "shot_analysis", "stolen"), payload));
+      await assertFails(deleteDoc(doc(bob.firestore(), "profiles", "uid_1", "shot_analysis", "session_1")));
+      await assertFails(updateDoc(sessionRef, { records: [] }));
+      await assertSucceeds(deleteDoc(sessionRef));
+    });
+
     it("grants profile, stats, and match access to owner and approved delegates", async () => {
       const alice = testEnv.authenticatedContext("uid_1");
       const bob = testEnv.authenticatedContext("uid_2");
@@ -404,6 +425,15 @@ describe("Firebase Backend Security Rules & Budget Guard Suite", () => {
           match_id: "match_new",
           strokes: 72,
           holes_count: 18,
+        })
+      );
+      await assertFails(
+        setDoc(doc(aliceDb, "profiles", "budget_user", "shot_analysis", "session_paused"), {
+          schema_version: 1,
+          session_id: "session_paused",
+          created_at: Math.floor(Date.now() / 1000),
+          groups: [],
+          records: [],
         })
       );
       await assertFails(

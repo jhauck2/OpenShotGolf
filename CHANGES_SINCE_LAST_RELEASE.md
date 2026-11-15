@@ -1,0 +1,19 @@
+### New Features
+- Open a movable Shot Data Analysis window from beside the Stats button. Review launch monitor readings in editable player-and-club groups, rename or create groups, move shots between groups, and exclude individual shots from group averages.
+- Compare best-shot or group-average flight paths and view color-matched landing dispersion, with excluded shots still visible in a dimmed style.
+- Keep using the range controls while Shot Data Analysis is open; its window no longer blocks interaction with the main screen.
+- Open Shot Data Analysis as a regular desktop window instead of a popup, and place it on a second monitor when one is available.
+- Fixed startup script errors that could prevent the range and minigames from loading.
+- Keep player selection, settings, and range buttons usable while the non-modal analysis window is open.
+- Fixed a crash when the shot list refreshes after changing clubs or recording another shot.
+- Use a newly created custom group for the next shot, including when the player or club changed before the shot.
+- Prevent creating another custom group until the pending group has received a shot.
+- Show landing dispersion left-to-right from tee to landing, aligned to the flight chart with one shared 50-yard distance ruler.
+- Organize shot spreadsheet stats under clear categories and hide player metadata and internal fields that are not useful for shot analysis.
+- Delete a shot group and its shots from the analysis window without affecting shots stored on the range.
+- Upload shot-analysis sessions to Firebase and review, visualize, download as CSV, or delete them from the signed-in Player Portal.
+- Keep the Shot Data Analysis window’s standard minimize and maximize controls visible.
+- Display apex height in feet and scale the yardage range to keep dispersion circles within the chart while showing the full distance range.
+- Remove duplicate Ball Speed and aim/target-only columns while retaining all other launch-monitor fields in shot analysis.
+- Add Descent Angle as the first stat in the Ball Flight category.
+- Match shot-analysis table values and chart distance labels to the range's selected imperial or metric units.
