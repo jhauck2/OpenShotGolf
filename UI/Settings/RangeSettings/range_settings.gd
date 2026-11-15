@@ -335,13 +335,12 @@ func _ready() -> void:
 
 	# Wind Simulation toggle in Gameplay tab
 	var wind_toggle_row = _create_toggle_setting_row("Wind Simulation", "wind_enabled")
-	var tee_shot_view_toggle_row = _create_toggle_setting_row("Overhead Tee Shot", "tee_shot_view_enabled")
 
 	if units_row != null:
 		units_row.get_parent().remove_child(units_row)
 	if auto_reset_row != null:
 		auto_reset_row.get_parent().remove_child(auto_reset_row)
-	var gameplay_top_toggles = _create_toggle_grid([units_row, auto_reset_row, wind_toggle_row, tee_shot_view_toggle_row], 3)
+	var gameplay_top_toggles = _create_toggle_grid([units_row, auto_reset_row, wind_toggle_row], 3)
 	gameplay_vbox.add_child(gameplay_top_toggles)
 	gameplay_vbox.move_child(gameplay_top_toggles, 0)
 

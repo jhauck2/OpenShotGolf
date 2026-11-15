@@ -1487,6 +1487,29 @@ func _setup_hud() -> void:
 	imm_menu_container.add_child(putting_cam_btn)
 	_update_course_putting_cam_btn_state()
 
+	# Tee-shot flight view toggle
+	var tee_shot_view_btn := Button.new()
+	tee_shot_view_btn.name = "TeeShotViewButton"
+	tee_shot_view_btn.tooltip_text = "Show the overhead flight view for tee shots in Course Play"
+	tee_shot_view_btn.custom_minimum_size = Vector2(180, 56)
+	var tee_shot_view_enabled := bool(GlobalSettings.range_settings.tee_shot_view_enabled.value)
+	tee_shot_view_btn.text = "📺 Tee Shot View: ON" if tee_shot_view_enabled else "📺 Tee Shot View: OFF"
+	apply_material_button_style(
+		tee_shot_view_btn,
+		Color(0.2, 0.5, 0.75, 0.85) if tee_shot_view_enabled else Color(0.5, 0.5, 0.5, 0.85)
+	)
+	tee_shot_view_btn.pressed.connect(func():
+		var enabled := not bool(GlobalSettings.range_settings.tee_shot_view_enabled.value)
+		GlobalSettings.range_settings.tee_shot_view_enabled.set_value(enabled)
+		GlobalSettings.save_settings()
+		tee_shot_view_btn.text = "📺 Tee Shot View: ON" if enabled else "📺 Tee Shot View: OFF"
+		apply_material_button_style(
+			tee_shot_view_btn,
+			Color(0.2, 0.5, 0.75, 0.85) if enabled else Color(0.5, 0.5, 0.5, 0.85)
+		)
+	)
+	imm_menu_container.add_child(tee_shot_view_btn)
+
 	# Screen Offset Toggle & Dual Sliders (General & Putter)
 	var so_script = load("res://UI/ScreenOffset/screen_offset_control.gd")
 	var so_ctrl = so_script.new()

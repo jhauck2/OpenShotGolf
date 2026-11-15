@@ -41,17 +41,18 @@ func _run_test() -> void:
 	view.show_shot(tee, tee + Vector3(0.0, 2.0, -1.0), Vector3(20.0, 0.0, -220.0))
 	assert(view.visible, "Tee shot must show the inset")
 	assert(view._flight_overlay._points.is_empty(), "Previous shot tracer must be cleared before the next window expands")
-	assert(view._split_mode, "Tee shot must switch to the overhead main-view layout")
-	assert(main_camera.cull_mask == 3, "Main camera must remain active while the overhead view expands")
-	assert(is_equal_approx(view._split_progress, 0.0), "Overhead view transition must start at minimap size")
+	assert(view._split_mode, "Tee shot must switch to the side-by-side layout")
+	assert(main_camera.cull_mask == 0, "Main camera rendering must be replaced by its mirrored split-screen viewport")
+	assert(is_equal_approx(view._split_progress, 0.0), "Side-by-side transition must start with the tee view offscreen")
 	assert(view._viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS, "Inset must update during flight")
 	assert(view.SIZE_TRANSITION_DURATION == EXPECTED_TRANSITION_DURATION, "Opening and closing transitions must use the longer duration")
 	assert(view._viewport_container.visible, "Course picture must stay visible while the window expands")
-	assert(is_equal_approx(view._aspect_container.ratio, minimap_rect.size.x / minimap_rect.size.y), "Course picture must preserve its portrait ratio while expanding")
 	var screen_size: Vector2 = view.get_viewport_rect().size
-	assert(view.position.is_equal_approx(minimap_rect.position), "Overhead view must start from the minimap position")
-	assert(view.size.is_equal_approx(minimap_rect.size), "Overhead view must start at minimap size")
-	assert(view.get_node_or_null("MainViewClip") == null, "Overhead main view must not create a duplicate course viewport")
+	assert(view.position.is_zero_approx(), "Split layout must cover the screen from the origin")
+	assert(view.size.is_equal_approx(screen_size), "Split layout must cover the screen")
+	assert(view.get_node_or_null("MainViewClip") != null, "Split layout must render the main course view on the left")
+	assert(view._main_viewport.world_3d == view.get_viewport().world_3d, "Mirrored main view must share the course world")
+	assert(view._main_viewport.size.x == int(screen_size.x), "The main view must initially retain the full width")
 	var close_shot_camera_position: Vector3 = view._camera.global_position
 	assert(view._camera.global_position.z - tee.z > 55.0, "Camera must sit farther behind the tee")
 	assert(view._camera.global_position.y - tee.y > 65.0, "Camera must sit well above the tee to see over trees")
@@ -73,17 +74,18 @@ func _run_test() -> void:
 	await process_frame
 	assert(view._camera.global_position.is_equal_approx(close_shot_camera_position), "Camera position must stay fixed for the duration of the shot")
 	await create_timer(EXPECTED_TRANSITION_DURATION + 0.1).timeout
-	assert(is_equal_approx(view._split_progress, 1.0), "Overhead transition must finish at full-screen size")
-	assert(view.position.is_zero_approx(), "Overhead view must occupy the main view from the screen origin")
-	assert(view.size.is_equal_approx(screen_size), "Overhead view must fill the main screen")
-	assert(main_camera.cull_mask == 0, "Covered main camera must stop drawing the hidden course during the shot")
+	assert(is_equal_approx(view._split_progress, 1.0), "Side-by-side transition must finish")
+	assert(view._main_viewport.size.x == int(round(screen_size.x * view.MAIN_VIEW_FINAL_WIDTH_RATIO)), "Main course view must occupy the left two-thirds")
+	assert(is_equal_approx(view._shot_panel.position.x, screen_size.x * view.MAIN_VIEW_FINAL_WIDTH_RATIO), "Tee view must enter from the right")
+	assert(is_equal_approx(view._shot_panel.size.x, screen_size.x / 3.0), "Tee view must occupy the right third")
+	assert(main_camera.cull_mask == 0, "The original course camera must stay suppressed during the shot")
 	view.hide_shot()
-	assert(main_camera.cull_mask == 3, "Closing must restore main camera rendering before shrinking the overhead view")
+	assert(main_camera.cull_mask == 3, "Closing must restore main camera rendering before shrinking the split view")
 	assert(view.visible, "Split layout must remain visible while transitioning back")
 	await create_timer(EXPECTED_TRANSITION_DURATION * 0.5).timeout
 	assert(view.visible, "Split layout must stay visible during the closing transition")
 	assert(view._split_progress < 1.0 and view._split_progress > 0.0, "Split layout must visibly close over time")
-	await create_timer(EXPECTED_TRANSITION_DURATION + 0.1).timeout
+	await create_timer(EXPECTED_TRANSITION_DURATION * 0.6).timeout
 	assert(not view.visible, "Split layout must hide after returning to the full gameplay view")
 	assert(not view._split_mode, "Closing must restore normal inset mode")
 	assert(main_camera.cull_mask == 3, "Closing the split screen must restore the main camera")
@@ -97,5 +99,5 @@ func _run_test() -> void:
 	assert(not view.visible, "Disabling the overhead tee shot must immediately hide the split view")
 	assert(not view._main_camera_render_suppressed, "Disabling the overhead tee shot must restore normal course rendering")
 
-	print("PASS: Tee-shot view uses an elevated rear perspective and can be disabled immediately.")
+	print("PASS: Tee-shot view uses a right-side split layout and can be disabled immediately.")
 	quit(0)

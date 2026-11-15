@@ -13,10 +13,15 @@ const CAMERA_LOOK_DISTANCE := 140.0
 const CAMERA_LOOK_HEIGHT := 18.0
 const CAMERA_FIELD_OF_VIEW := 50.0
 const TRACER_HEIGHT_OFFSET := 0.3
+const MAIN_VIEW_FINAL_WIDTH_RATIO := 2.0 / 3.0
 
 var _viewport: SubViewport
 var _aspect_container: AspectRatioContainer
 var _viewport_container: SubViewportContainer
+var _main_view_clip: Control
+var _main_viewport_container: SubViewportContainer
+var _main_viewport: SubViewport
+var _main_view_camera: Camera3D
 var _shot_panel: PanelContainer
 var _layout: VBoxContainer
 var _title_label: Label
@@ -37,7 +42,32 @@ func _ready() -> void:
 	name = "TeeShotView"
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip_contents = true
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
+
+	_main_view_clip = Control.new()
+	_main_view_clip.name = "MainViewClip"
+	_main_view_clip.clip_contents = true
+	_main_view_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_main_view_clip)
+
+	_main_viewport_container = SubViewportContainer.new()
+	_main_viewport_container.name = "MainViewViewportContainer"
+	_main_viewport_container.stretch = true
+	_main_viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_main_viewport_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_main_view_clip.add_child(_main_viewport_container)
+
+	_main_viewport = SubViewport.new()
+	_main_viewport.name = "MainViewViewport"
+	_main_viewport.own_world_3d = false
+	_main_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	_main_viewport_container.add_child(_main_viewport)
+
+	_main_view_camera = Camera3D.new()
+	_main_view_camera.name = "MainViewCamera"
+	_main_view_camera.current = true
+	_main_viewport.add_child(_main_view_camera)
 
 	_shot_panel = PanelContainer.new()
 	_shot_panel.name = "ShotPanel"
@@ -129,6 +159,7 @@ func set_main_camera(camera: Camera3D) -> void:
 		return
 	_restore_main_camera_rendering()
 	_main_camera = camera
+	_sync_main_camera()
 
 
 func prepare_for_shot(start_pos: Vector3, current_pos: Vector3, target_pos: Vector3) -> void:
@@ -141,18 +172,21 @@ func prepare_for_shot(start_pos: Vector3, current_pos: Vector3, target_pos: Vect
 func show_shot(start_pos: Vector3, _current_pos: Vector3, target_pos: Vector3) -> void:
 	_stop_split_transition()
 	_flight_overlay.call("clear_flight_path")
-	_split_mode = false
+	_split_mode = true
 	visible = true
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
-	position = _map_position
-	size = _map_size
-	_split_mode = true
+	position = Vector2.ZERO
+	size = get_viewport_rect().size
 	_split_progress = 0.0
 	_set_full_view_style(true)
+	_main_view_clip.visible = true
+	_main_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_update_split_layout()
 	_viewport_container.visible = true
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_shot_panel.visible = true
+	_sync_main_camera()
+	_suppress_main_camera_rendering()
 	split_started.emit()
 	_split_tween = create_tween()
 	_split_tween.set_trans(Tween.TRANS_CUBIC)
@@ -187,11 +221,17 @@ func _update_split_layout() -> void:
 	if not _split_mode:
 		return
 	var screen_size := get_viewport_rect().size
-	position = _map_position.lerp(Vector2.ZERO, _split_progress)
-	size = _map_size.lerp(screen_size, _split_progress)
-	_shot_panel.position = Vector2.ZERO
-	_shot_panel.size = size
-	_aspect_container.ratio = size.x / maxf(1.0, size.y)
+	position = Vector2.ZERO
+	size = screen_size
+	var main_view_width := lerpf(screen_size.x, screen_size.x * MAIN_VIEW_FINAL_WIDTH_RATIO, _split_progress)
+	var tee_view_width := screen_size.x - main_view_width
+	_main_view_clip.position = Vector2.ZERO
+	_main_view_clip.size = Vector2(main_view_width, screen_size.y)
+	_main_viewport.size = Vector2i(maxi(1, int(round(main_view_width))), maxi(1, int(round(screen_size.y))))
+	_main_viewport_container.size = _main_view_clip.size
+	_shot_panel.position = Vector2(main_view_width, 0.0)
+	_shot_panel.size = Vector2(tee_view_width, screen_size.y)
+	_aspect_container.ratio = maxf(0.01, tee_view_width / maxf(1.0, screen_size.y))
 
 
 func _set_full_view_style(is_full_view: bool) -> void:
@@ -215,6 +255,24 @@ func _suppress_main_camera_rendering() -> void:
 	_main_camera.cull_mask = 0
 
 
+func _sync_main_camera() -> void:
+	if _main_camera == null or not is_instance_valid(_main_camera) or _main_view_camera == null:
+		return
+	_main_view_camera.global_transform = _main_camera.global_transform
+	_main_view_camera.projection = _main_camera.projection
+	_main_view_camera.fov = _main_camera.fov
+	_main_view_camera.size = _main_camera.size
+	_main_view_camera.near = _main_camera.near
+	_main_view_camera.far = _main_camera.far
+	_main_view_camera.frustum_offset = _main_camera.frustum_offset
+	_main_view_camera.h_offset = _main_camera.h_offset
+	_main_view_camera.v_offset = _main_camera.v_offset
+	_main_view_camera.environment = _main_camera.environment
+	_main_view_camera.attributes = _main_camera.attributes
+	_main_view_camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	_main_view_camera.cull_mask = _main_camera_cull_mask if _main_camera_render_suppressed else _main_camera.cull_mask
+
+
 func _restore_main_camera_rendering() -> void:
 	if _main_camera_render_suppressed and _main_camera != null and is_instance_valid(_main_camera):
 		_main_camera.cull_mask = _main_camera_cull_mask
@@ -223,13 +281,13 @@ func _restore_main_camera_rendering() -> void:
 
 func _process(_delta: float) -> void:
 	if _split_mode:
+		_sync_main_camera()
 		_update_split_layout()
 
 
 func _finish_split_open() -> void:
 	_split_progress = 1.0
 	_update_split_layout()
-	_suppress_main_camera_rendering()
 	_split_tween = null
 
 
@@ -273,6 +331,8 @@ func _finish_split_close() -> void:
 	_split_tween = null
 	_split_mode = false
 	_restore_main_camera_rendering()
+	_main_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	_main_view_clip.visible = false
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	_flight_overlay.call("clear_flight_path")
 	position = _map_position
