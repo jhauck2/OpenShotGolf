@@ -1,5 +1,7 @@
 extends Control
 
+const TeeShotFlightOverlayScript = preload("res://UI/tee_shot_overlay.gd")
+
 signal split_started
 signal split_closed
 
@@ -23,7 +25,7 @@ var _main_camera: Camera3D
 var _main_camera_cull_mask := 0
 var _main_camera_render_suppressed := false
 var _camera: Camera3D
-var _flight_overlay: TeeShotFlightOverlay
+var _flight_overlay: Control
 var _map_size := Vector2.ZERO
 var _map_position := Vector2.ZERO
 var _split_mode := false
@@ -100,7 +102,7 @@ func _ready() -> void:
 	_viewport.add_child(_camera)
 	_camera.make_current()
 
-	_flight_overlay = TeeShotFlightOverlay.new()
+	_flight_overlay = TeeShotFlightOverlayScript.new()
 	_flight_overlay.name = "TeeShotFlightOverlay"
 	_flight_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_flight_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -138,7 +140,7 @@ func prepare_for_shot(start_pos: Vector3, current_pos: Vector3, target_pos: Vect
 
 func show_shot(start_pos: Vector3, _current_pos: Vector3, target_pos: Vector3) -> void:
 	_stop_split_transition()
-	_flight_overlay.clear_flight_path()
+	_flight_overlay.call("clear_flight_path")
 	_split_mode = false
 	visible = true
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -242,11 +244,11 @@ func update_tracer(local_points: Array, player_transform: Transform3D, start_pos
 	if not points.back().is_equal_approx(current_pos + Vector3.UP * TRACER_HEIGHT_OFFSET):
 		points.append(current_pos + Vector3.UP * TRACER_HEIGHT_OFFSET)
 
-	_flight_overlay.set_flight_path(_camera, points, start_pos + Vector3.UP * TRACER_HEIGHT_OFFSET)
+	_flight_overlay.call("set_flight_path", _camera, points, start_pos + Vector3.UP * TRACER_HEIGHT_OFFSET)
 
 
 func update_ball_position(current_pos: Vector3) -> void:
-	_flight_overlay.set_ball_position(current_pos + Vector3.UP * TRACER_HEIGHT_OFFSET)
+	_flight_overlay.call("set_ball_position", current_pos + Vector3.UP * TRACER_HEIGHT_OFFSET)
 
 
 func hide_shot(immediate: bool = false) -> void:
@@ -272,7 +274,7 @@ func _finish_split_close() -> void:
 	_split_mode = false
 	_restore_main_camera_rendering()
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	_flight_overlay.clear_flight_path()
+	_flight_overlay.call("clear_flight_path")
 	position = _map_position
 	size = _map_size
 	_set_full_view_style(false)

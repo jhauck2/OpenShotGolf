@@ -144,6 +144,27 @@ func _create_tab_style(bg_color: Color, border_color: Color) -> StyleBoxFlat:
 	return style
 
 
+func _get_tab_scroll_margin_right(scroll: ScrollContainer = null) -> int:
+	var is_mob: bool = MobilePerformance.is_mobile()
+	var bar_w: float = 56.0 if is_mob else 28.0
+	if scroll != null:
+		var v_bar = scroll.get_v_scroll_bar()
+		if v_bar != null and v_bar.custom_minimum_size.x > 0:
+			bar_w = maxf(bar_w, v_bar.custom_minimum_size.x)
+	var clearance: int = 20 if (is_mob or bar_w >= 50.0) else 16
+	return int(bar_w + clearance)
+
+
+func _apply_tab_scroll_style(scroll: ScrollContainer) -> void:
+	if scroll == null:
+		return
+	ThemeManager.apply_scroll_container_style(scroll, 28)
+	var right_margin: int = _get_tab_scroll_margin_right(scroll)
+	for child in scroll.get_children():
+		if child is MarginContainer:
+			child.add_theme_constant_override("margin_right", right_margin)
+
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	ThemeManager.apply_modal_style(self, 0)
@@ -188,11 +209,11 @@ func _ready() -> void:
 		tab_container.set_tab_title(3, "📡 Launch Monitor")
 		tab_container.set_tab_title(4, "🎙 Announcer")
 
-	# Apply touch-friendly scrollbar styling and kinetic swipe scrolling to all tabs
+	# Apply touch-friendly scrollbar styling, kinetic swipe scrolling, and clearance padding to all tabs
 	for tab_name in ["Gameplay", "Stats", "Camera", "LaunchMonitor", "Announcer"]:
 		var tab_scroll = get_node_or_null("MarginContainer/VBoxContainer/TabContainer/" + tab_name) as ScrollContainer
 		if tab_scroll != null:
-			ThemeManager.apply_scroll_container_style(tab_scroll, 28)
+			_apply_tab_scroll_style(tab_scroll)
 
 	reset_spin_box = $MarginContainer/VBoxContainer/TabContainer/Gameplay/MarginContainer/GameplayVBox/BallResetTimer/ResetSpinBox
 	temperature_spin_box = $MarginContainer/VBoxContainer/TabContainer/Gameplay/MarginContainer/GameplayVBox/Temperature/TemperatureSpinBox
@@ -251,6 +272,7 @@ func _ready() -> void:
 	var units_row = gameplay_vbox.get_node_or_null("Units") as HBoxContainer
 	var auto_reset_row = gameplay_vbox.get_node_or_null("AutoBallReset") as HBoxContainer
 	var camera_follow_row = camera_vbox.get_node_or_null("CameraFollow") as HBoxContainer
+	var shot_replay_follow_row = camera_vbox.get_node_or_null("ShotReplayFollow") as HBoxContainer
 	var shot_injector_row = lm_vbox.get_node_or_null("ShotInjector") as HBoxContainer
 
 	# Initialize toggle button states
@@ -260,6 +282,9 @@ func _ready() -> void:
 	var camera_follow_check = _find_check_button(camera_follow_row)
 	if camera_follow_check != null:
 		camera_follow_check.set_pressed_no_signal(GlobalSettings.range_settings.camera_follow_mode.value)
+	var shot_replay_follow_check = _find_check_button(shot_replay_follow_row)
+	if shot_replay_follow_check != null:
+		shot_replay_follow_check.set_pressed_no_signal(GlobalSettings.range_settings.shot_replay_follow.value)
 	var auto_reset_check = _find_check_button(auto_reset_row)
 	if auto_reset_check != null:
 		auto_reset_check.set_pressed_no_signal(GlobalSettings.range_settings.auto_ball_reset.value)
@@ -271,11 +296,18 @@ func _ready() -> void:
 	_units_label = units_row.get_node_or_null("Label") if units_row != null else null
 	_format_static_toggle_row(auto_reset_row, "Auto Ball Reset")
 	_format_static_toggle_row(camera_follow_row, "Camera Follow Mode")
+	_format_static_toggle_row(shot_replay_follow_row, "Shot Replay Follow")
 	_format_static_toggle_row(shot_injector_row, "Shot Injector")
 
+	var cam_toggles = []
 	if camera_follow_row != null:
 		camera_follow_row.get_parent().remove_child(camera_follow_row)
-		var cam_top_grid = _create_toggle_grid([camera_follow_row], 3)
+		cam_toggles.append(camera_follow_row)
+	if shot_replay_follow_row != null:
+		shot_replay_follow_row.get_parent().remove_child(shot_replay_follow_row)
+		cam_toggles.append(shot_replay_follow_row)
+	if not cam_toggles.is_empty():
+		var cam_top_grid = _create_toggle_grid(cam_toggles, 3)
 		camera_vbox.add_child(cam_top_grid)
 		camera_vbox.move_child(cam_top_grid, 0)
 
@@ -660,7 +692,7 @@ func _ready() -> void:
 	var gs_sep = HSeparator.new()
 	gameplay_vbox.add_child(gs_sep)
 	
-	var green_speed_row = _create_slider_setting_row("Green Speed", "green_speed", 6.0, 16.0, 0.5)
+	var green_speed_row = _create_slider_setting_row("Green Speed", "green_speed", 5.0, 16.0, 0.5)
 	var green_speed_grid = _create_range_grid([green_speed_row], 2)
 	gameplay_vbox.add_child(green_speed_grid)
 
@@ -753,6 +785,12 @@ func _ready() -> void:
 		ThemeManager.apply_primary_button_style(close_btn, 8)
 		close_btn.pressed.connect(func(): request_close())
 		buttons_hbox.add_child(close_btn)
+
+	# Ensure all tabs (including dynamically added Keybindings and Developer tabs) have styled scrollbars and non-overlapping margins
+	if tab_container != null:
+		for child in tab_container.get_children():
+			if child is ScrollContainer:
+				_apply_tab_scroll_style(child)
 
 
 func request_close() -> void:
@@ -883,6 +921,10 @@ func _on_camer_check_button_toggled(toggled_on: bool) -> void:
 	GlobalSettings.range_settings.camera_follow_mode.set_value(toggled_on)
 
 
+func _on_shot_replay_follow_check_button_toggled(toggled_on: bool) -> void:
+	GlobalSettings.range_settings.shot_replay_follow.set_value(toggled_on)
+
+
 func _on_auto_reset_check_button_toggled(toggled_on: bool) -> void:
 	GlobalSettings.range_settings.auto_ball_reset.set_value(toggled_on)
 
@@ -943,7 +985,15 @@ func _setup_square_monitor_section() -> void:
 	square_enabled_button.set_pressed_no_signal(bool(launch_monitor.settings.get("enabled", false)))
 	square_enabled_button.toggled.connect(_on_square_enabled_toggled)
 	var enabled_row := _create_toggle_widget("Enabled", square_enabled_button)
-	section.add_child(_create_toggle_grid([enabled_row], 3))
+
+	var square_remember_button := CheckButton.new()
+	square_remember_button.custom_minimum_size = Vector2(72, 48)
+	square_remember_button.set_pressed_no_signal(bool(launch_monitor.settings.get("remember_device", false)))
+	square_remember_button.toggled.connect(func(toggled_on: bool):
+		launch_monitor.set_remember_device(toggled_on)
+	)
+	var remember_row := _create_toggle_widget("Remember Device (Auto-Connect on Startup)", square_remember_button)
+	section.add_child(_create_toggle_grid([enabled_row, remember_row], 2))
 
 	var type_row := HBoxContainer.new()
 	type_row.custom_minimum_size = Vector2(0, 52)
@@ -2692,6 +2742,8 @@ func _setup_keybindings_section() -> void:
 	for c in scroll.get_children():
 		c.queue_free()
 
+	ThemeManager.apply_scroll_container_style(scroll, 28)
+
 	_key_buttons_by_action.clear()
 	_joy_buttons_by_action.clear()
 
@@ -2700,7 +2752,7 @@ func _setup_keybindings_section() -> void:
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_right", 36)
+	margin.add_theme_constant_override("margin_right", _get_tab_scroll_margin_right(scroll))
 	margin.add_theme_constant_override("margin_bottom", 16)
 	scroll.add_child(margin)
 
@@ -3228,7 +3280,7 @@ func _setup_developer_debugging_section() -> void:
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_right", 36)
+	margin.add_theme_constant_override("margin_right", _get_tab_scroll_margin_right(scroll))
 	margin.add_theme_constant_override("margin_bottom", 16)
 	scroll.add_child(margin)
 

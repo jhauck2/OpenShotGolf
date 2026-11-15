@@ -313,7 +313,7 @@ func get_vision_cone_half_angle(dist_to_hole: float, is_putt: bool, is_airborne:
 		return base_roll_angle
 
 func get_effective_rolling_deceleration() -> float:
-	var gs = get_node_or_null("/root/GlobalSettings")
+	var gs = get_node_or_null("/root/GlobalSettings") if is_inside_tree() else (Engine.get_main_loop().root.get_node_or_null("GlobalSettings") if Engine.get_main_loop() != null and Engine.get_main_loop() is SceneTree else null)
 	var green_speed: float = 10.0
 	if gs != null and gs.has_method("get_effective_green_speed"):
 		green_speed = float(gs.get_effective_green_speed())
@@ -377,7 +377,7 @@ func predict_shot_outcome(start_pos: Vector3, launch_vel: Vector3, is_putt: bool
 	var mode := "putt" if is_putt else "chip"
 
 	# Get environmental parameters
-	var gs = get_node_or_null("/root/GlobalSettings")
+	var gs = get_node_or_null("/root/GlobalSettings") if is_inside_tree() else (Engine.get_main_loop().root.get_node_or_null("GlobalSettings") if Engine.get_main_loop() != null and Engine.get_main_loop() is SceneTree else null)
 	var green_speed: float = 10.0
 	if gs != null and gs.has_method("get_effective_green_speed"):
 		green_speed = float(gs.get_effective_green_speed())

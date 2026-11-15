@@ -321,13 +321,15 @@ func _check_startup_launch_monitor() -> void:
 	_startup_lm_checked = true
 
 	var is_connected := false
+	var should_auto_connect := false
 	if has_node("/root/LaunchMonitorManager"):
 		var lm = get_node("/root/LaunchMonitorManager")
 		var status = str(lm.status)
 		if status == "Connected" or status == "Ready" or lm.is_ready:
 			is_connected = true
+		should_auto_connect = bool(lm.settings.get("remember_device", false)) and bool(lm.settings.get("enabled", true)) and str(lm.settings.get("device_id", "")).strip_edges() != ""
 
-	if not is_connected:
+	if not is_connected and not should_auto_connect:
 		call_deferred("_show_launch_monitor_connect_modal")
 
 

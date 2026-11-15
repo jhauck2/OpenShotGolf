@@ -65,9 +65,12 @@ func _run_tests() -> void:
 
 	# Setup a 5-player match with a pin at Vector3(0, 0, 350)
 	var pin_pos = Vector3(0.0, 0.0, 350.0)
-	mp_mgr.hole_ids = ["hole_1"]
-	mp_mgr.hole_info = {"hole_1": {"Par": 4, "Name": "Hole 1", "Hole Location": [0.0, 350.0]}}
-	mp_mgr.current_hole_index = 0
+	mp_mgr.hole_ids = ["hole_0", "hole_1"]
+	mp_mgr.hole_info = {
+		"hole_0": {"Par": 4, "Name": "Hole 0"},
+		"hole_1": {"Par": 4, "Name": "Hole 1", "Hole Location": [0.0, 350.0]}
+	}
+	mp_mgr.current_hole_index = 1
 	mp_mgr.game_mode = "Standard"
 
 	var test_players: Array[Dictionary] = [
@@ -86,7 +89,7 @@ func _run_tests() -> void:
 			"position": Vector3(0, 0, 100), # 250m to pin = ~273 yds
 			"strokes": 1,
 			"total_strokes": 1,
-			"hole_scores": {"hole_1": 5}, # +1 relative to par 4
+			"hole_scores": {"hole_0": 5}, # +1 relative to par 4
 			"lie_type": "fairway",
 			"active": true,
 			"paused": false,
@@ -97,7 +100,7 @@ func _run_tests() -> void:
 			"position": Vector3(0, 0, 180), # 170m to pin = ~186 yds
 			"strokes": 1,
 			"total_strokes": 1,
-			"hole_scores": {"hole_1": 4}, # E
+			"hole_scores": {"hole_0": 4}, # E
 			"lie_type": "fairway",
 			"active": true,
 			"paused": false,
@@ -108,7 +111,7 @@ func _run_tests() -> void:
 			"position": Vector3(0, 0, 250), # 100m to pin = ~109 yds
 			"strokes": 1,
 			"total_strokes": 1,
-			"hole_scores": {"hole_1": 3}, # -1
+			"hole_scores": {"hole_0": 3}, # -1
 			"lie_type": "fairway",
 			"active": true,
 			"paused": false,
@@ -119,7 +122,7 @@ func _run_tests() -> void:
 			"position": Vector3(0, 0, 300), # 50m to pin = ~55 yds (closest, should be excluded by 3-player slice)
 			"strokes": 1,
 			"total_strokes": 1,
-			"hole_scores": {"hole_1": 4},
+			"hole_scores": {"hole_0": 4},
 			"lie_type": "fairway",
 			"active": true,
 			"paused": false,
@@ -158,7 +161,30 @@ func _run_tests() -> void:
 	# Check club suggestion populated
 	for item in queue:
 		assert(not item["suggested_club"].is_empty(), "Suggested club must not be empty for %s" % item["name"])
-	print("  PASS: Distance queue filtering, descending sorting, 3-player slice, and formatting verified.")
+	
+	# Test holed-out player remains in queue with 0 distance and "-" club
+	test_players[1]["holed_out"] = true
+	var queue_with_holed = mp_mgr.get_distance_queue(pin_pos)
+	assert(queue_with_holed.size() == 3, "Queue must still retain 3 players with holed-out player, got: %d" % queue_with_holed.size())
+	assert(queue_with_holed[0]["name"] == "Tyler Johnson", "Active players must sort before holed out players")
+	assert(queue_with_holed[1]["name"] == "Alex Kim", "Active players must sort before holed out players")
+	assert(queue_with_holed[2]["name"] == "David Miller", "Active David Miller (55 yds) takes priority over holed-out Marcus")
+
+	# When another player holes out so fewer than 3 active remain, holed-out players appear
+	test_players[4]["holed_out"] = true
+	var queue_with_two_holed = mp_mgr.get_distance_queue(pin_pos)
+	assert(queue_with_two_holed.size() == 3, "Queue must still retain 3 players")
+	assert(queue_with_two_holed[0]["name"] == "Tyler Johnson", "Active player 1")
+	assert(queue_with_two_holed[1]["name"] == "Alex Kim", "Active player 2")
+	assert(queue_with_two_holed[2]["name"] == "Marcus Vance", "Holed-out player must remain in queue after active players")
+	assert(queue_with_two_holed[2]["distance_yards"] == 0, "Holed-out player must have 0 distance yards")
+	assert(queue_with_two_holed[2]["distance_str"] == "0 Yds", "Holed-out player must display '0 Yds', got: %s" % queue_with_two_holed[2]["distance_str"])
+	assert(queue_with_two_holed[2]["suggested_club"] == "-", "Holed-out player suggested club must be '-'")
+	assert(queue_with_two_holed[2]["holed_out"] == true, "holed_out flag must be true")
+	test_players[1]["holed_out"] = false
+	test_players[4]["holed_out"] = false
+	
+	print("  PASS: Distance queue filtering, descending sorting, 3-player slice, and holed-out retention verified.")
 
 	# ---------------------------------------------------------
 	# PART 3: TOP-LEFT HUD WIDGET IN COURSE PLAY & TURN TRANSITION
@@ -267,12 +293,14 @@ func _run_tests() -> void:
 		}
 	]
 	mp_mgr.players = four_players
+	mp_mgr.turn_order_mode = "Classic"
 	mp_mgr.active_player_index = 0
 	cp._update_top_hud(mp_mgr.players[0])
 	await process_frame
 
 	# Simulate active player finishes stroke: hits to 200m (position 0, 0, 200 -> 150m from pin)
 	mp_mgr.players[0]["position"] = Vector3(0, 0, 200)
+	mp_mgr.players[0]["strokes"] = 1
 	# Now distances to pin (0, 0, 350):
 	# - Marcus Vance: at 100 -> 250m (furthest!)
 	# - Practice Player: at 200 -> 150m

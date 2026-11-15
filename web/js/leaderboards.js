@@ -157,7 +157,13 @@ async function loadCategory(categoryId, forceRefresh = false) {
 
   try {
     let q;
-    const filterPositive = (category.id === "longest_drive" || category.id === "longest_putt");
+    const filterPositive = (
+      category.id === "longest_drive" ||
+      category.id === "longest_putt" ||
+      category.id === "most_achievements" ||
+      category.id === "most_games" ||
+      category.id === "most_wins"
+    );
     if (filterPositive) {
       q = query(
         collection(db, "public_profiles"),
@@ -247,10 +253,17 @@ function renderError(container, message) {
 }
 
 function renderTable(container, category, rows) {
+  const filterPositive = (
+    category.id === "longest_drive" ||
+    category.id === "longest_putt" ||
+    category.id === "most_achievements" ||
+    category.id === "most_games" ||
+    category.id === "most_wins"
+  );
   const filteredRows = (rows || []).filter((r) => {
     const val = r[category.field];
     if (val == null) return false;
-    if ((category.id === "longest_drive" || category.id === "longest_putt") && Number(val) <= 0) {
+    if (filterPositive && Number(val) <= 0) {
       return false;
     }
     return true;

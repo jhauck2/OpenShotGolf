@@ -42,6 +42,7 @@
     }
   ],
   "emulators": {
+    "singleProjectMode": false,
     "auth": { "port": 9099 },
     "firestore": { "port": 8080 },
     "database": { "port": 9000 },

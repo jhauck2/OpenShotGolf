@@ -566,3 +566,45 @@ static func _on_dialog_about_to_popup(dialog: AcceptDialog, min_button_size: Vec
 	if label != null:
 		label.add_theme_font_size_override("font_size", 18)
 
+static var _checkbox_unchecked_icon: Texture2D = null
+static var _checkbox_checked_icon: Texture2D = null
+static var _checkbox_unchecked_disabled_icon: Texture2D = null
+static var _checkbox_checked_disabled_icon: Texture2D = null
+
+const SVG_CHECKBOX_UNCHECKED = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#142132" stroke="#6098cc" stroke-width="2.2"/></svg>'
+const SVG_CHECKBOX_CHECKED = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#156e34" stroke="#4ade80" stroke-width="2.2"/><path d="M6 12.5 L10 16.5 L18 8.5" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const SVG_CHECKBOX_UNCHECKED_DISABLED = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#0f1722" stroke="#334d66" stroke-width="1.8"/></svg>'
+const SVG_CHECKBOX_CHECKED_DISABLED = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#1a3b25" stroke="#2e6d42" stroke-width="1.8"/><path d="M6 12.5 L10 16.5 L18 8.5" fill="none" stroke="#8fa896" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+static func _init_checkbox_icons() -> void:
+	_checkbox_unchecked_icon = _svg_to_texture(SVG_CHECKBOX_UNCHECKED)
+	_checkbox_checked_icon = _svg_to_texture(SVG_CHECKBOX_CHECKED)
+	_checkbox_unchecked_disabled_icon = _svg_to_texture(SVG_CHECKBOX_UNCHECKED_DISABLED)
+	_checkbox_checked_disabled_icon = _svg_to_texture(SVG_CHECKBOX_CHECKED_DISABLED)
+
+static func _svg_to_texture(svg_code: String) -> Texture2D:
+	var img = Image.new()
+	if img.load_svg_from_string(svg_code, 1.0) == OK:
+		return ImageTexture.create_from_image(img)
+	return null
+
+static func apply_checkbox_style(cb: CheckBox) -> void:
+	if cb == null:
+		return
+	if _checkbox_unchecked_icon == null:
+		_init_checkbox_icons()
+	if _checkbox_unchecked_icon != null:
+		cb.add_theme_icon_override("unchecked", _checkbox_unchecked_icon)
+	if _checkbox_checked_icon != null:
+		cb.add_theme_icon_override("checked", _checkbox_checked_icon)
+	if _checkbox_unchecked_disabled_icon != null:
+		cb.add_theme_icon_override("unchecked_disabled", _checkbox_unchecked_disabled_icon)
+	if _checkbox_checked_disabled_icon != null:
+		cb.add_theme_icon_override("checked_disabled", _checkbox_checked_disabled_icon)
+	cb.add_theme_constant_override("h_separation", 10)
+	cb.add_theme_constant_override("check_v_offset", 0)
+	cb.add_theme_color_override("font_color", COLOR_TEXT_WHITE)
+	cb.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
+	cb.add_theme_color_override("font_pressed_color", Color(0.4, 0.85, 0.55))
+	cb.add_theme_color_override("font_hover_pressed_color", Color(0.5, 0.95, 0.65))
+

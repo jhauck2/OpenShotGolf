@@ -41,6 +41,17 @@ func _init() -> void:
 		print("  OsmMapLoader found %d cached course entries." % cached_courses.size())
 		assert(cached_courses.size() > 0, "OsmMapLoader should find cached courses from CachedGeometry")
 		print("PASS: OsmMapLoader GetCachedCourses successfully loaded cached courses.")
+
+	# Test 4: Verify root-level res://CachedGeometry path fallback support
+	print("\n--- Test 4: Root-level res://CachedGeometry fallback support ---")
+	var sample_name = "Pebble Beach Golf Links"
+	if loader_script != null:
+		var loader2 = loader_script.new()
+		assert(loader2.has_method("IsCourseCached"), "OsmMapLoader must have IsCourseCached")
+		var is_cached = loader2.call("IsCourseCached", sample_name)
+		print("  Sample course '%s' is_cached = %s" % [sample_name, str(is_cached)])
+		assert(is_cached, "Sample course should be detected as cached")
+	print("PASS: Root-level and Courses/CachedGeometry path fallbacks validated.")
 	
 	print("\n=======================================================")
 	print("ALL TARGETED IOS TESTS PASSED SUCCESSFULLY!")

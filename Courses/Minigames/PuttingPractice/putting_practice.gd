@@ -2302,7 +2302,7 @@ func _toggle_green_speed_popup() -> void:
 	vbox.add_child(slider_hbox)
 	
 	green_speed_slider = HSlider.new()
-	green_speed_slider.min_value = 6.0
+	green_speed_slider.min_value = 5.0
 	green_speed_slider.max_value = 16.0
 	green_speed_slider.step = 0.5
 	green_speed_slider.value = cur_val
@@ -2333,10 +2333,10 @@ func _toggle_green_speed_popup() -> void:
 	vbox.add_child(presets_hbox)
 	
 	var presets = [
-		{"label": "8.0 Slow", "val": 8.0},
+		{"label": "5.0 Slow", "val": 5.0},
 		{"label": "10.0 Std", "val": 10.0},
 		{"label": "12.0 Fast", "val": 12.0},
-		{"label": "14.0 Tour", "val": 14.0},
+		{"label": "15.0 Tour", "val": 15.0},
 	]
 	for p in presets:
 		var p_btn = Button.new()

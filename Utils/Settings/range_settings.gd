@@ -3,6 +3,7 @@ extends SettingCollector
 
 var range_units := Setting.new(PhysicsEnums.Units.IMPERIAL)
 var camera_follow_mode := Setting.new(true)
+var shot_replay_follow := Setting.new(false)
 var shot_injector_enabled := Setting.new(false)
 var auto_ball_reset := Setting.new(false)
 var ball_reset_timer := Setting.new(1.5, 0.0, 15.0)
@@ -32,7 +33,7 @@ var golf_clap_enabled := Setting.new(true)
 var ambient_sound_enabled := Setting.new(true)
 var menu_music_enabled := Setting.new(true)
 var minigame_music_enabled := Setting.new(true)
-var green_speed := Setting.new(10.0, 6.0, 16.0)
+var green_speed := Setting.new(10.0, 5.0, 16.0)
 var random_pin_enabled := Setting.new(true)
 var phone_cam_url := Setting.new("")
 var use_phone_stream := Setting.new(false)
@@ -44,7 +45,9 @@ var foam_ball_boost_enabled := Setting.new(false)
 var foam_ball_boost_percent := Setting.new(20.0, 0.0, 100.0)
 var tcp_server_ip := Setting.new("0.0.0.0")
 var tcp_server_port := Setting.new(49152, 1, 65535)
-var launch_monitor_tab := Setting.new(0, 0, 1)
+var launch_monitor_tab := Setting.new(0, 0, 3)
+var fsx_csv_path := Setting.new("")
+var fsx_poll_interval := Setting.new(0.25, 0.05, 2.0)
 var gspro_selected_device := Setting.new("mlm2pro")
 var graphics_quality := Setting.new(MobilePerformance.get_default_graphics_quality())
 var wind_enabled := Setting.new(false)
@@ -82,6 +85,7 @@ func _init():
 	init({
 		"range_units": range_units,
 		"camera_follow_mode": camera_follow_mode,
+		"shot_replay_follow": shot_replay_follow,
 		"shot_injector_enabled": shot_injector_enabled,
 		"auto_ball_reset": auto_ball_reset,
 		"ball_reset_timer": ball_reset_timer,
@@ -124,6 +128,8 @@ func _init():
 		"tcp_server_ip": tcp_server_ip,
 		"tcp_server_port": tcp_server_port,
 		"launch_monitor_tab": launch_monitor_tab,
+		"fsx_csv_path": fsx_csv_path,
+		"fsx_poll_interval": fsx_poll_interval,
 		"gspro_selected_device": gspro_selected_device,
 		"graphics_quality": graphics_quality,
 		"wind_enabled": wind_enabled,

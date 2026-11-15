@@ -26,6 +26,16 @@ import {
   writeBatch
 } from "./firebase-init.js";
 import { checkBudgetStatus, handleWriteError } from "./budget.js";
+import {
+  normalizeShot,
+  aggregateAllClubsShots,
+  getClubShots,
+  computeImprovementAnalytics,
+  generateOfflineTrendChartSvg,
+  generateDeliveryTrendChartSvg,
+  generateStrikeTrendChartSvg,
+  generateCoachingInsights
+} from "./analytics-engine.js";
 
 const STANDARD_CLUBS = [
   "Dr", "3w", "5w", "2H", "3H", "4H", "1i", "2i", "3i", "4i",
@@ -85,8 +95,11 @@ const ACHIEVEMENT_LABELS = {
 
 let currentUser = null;
 let currentProfile = null;
+let currentStats = null;
 let currentTab = "overview";
-let loadedTabs = { overview: false, "shot-analysis": false, matches: false, achievements: false, settings: false };
+let loadedTabs = { overview: false, "shot-analysis": false, analytics: false, matches: false, swing: false, achievements: false, settings: false };
+let currentAnalyticsClub = "all";
+let currentAnalyticsWindow = "last10";
 let pendingDeviceCode = "";
 let pendingLoopbackPort = "";
 let deviceHandoffCompleted = false;
@@ -519,7 +532,7 @@ function showAuthView() {
   if (signinInfo) signinInfo.style.display = "";
 
   setAuthMode("signin");
-  loadedTabs = { overview: false, "shot-analysis": false, matches: false, achievements: false, settings: false };
+  loadedTabs = { overview: false, "shot-analysis": false, analytics: false, matches: false, swing: false, achievements: false, settings: false };
   selectedShotAnalysis = null;
 }
 
@@ -562,9 +575,11 @@ function switchPortalTab(tabName) {
 
   // Lazy load tab data
   if (!loadedTabs[tabName] && currentUser) {
-    if (tabName === "matches") loadRecentMatches(currentUser);
+    if (tabName === "analytics") loadAnalyticsAndTrends(currentUser);
     else if (tabName === "shot-analysis") loadShotAnalysisSessions(currentUser);
-    else if (tabName === "achievements") loadAchievementsAndSwing(currentUser);
+    else if (tabName === "matches") loadRecentMatches(currentUser);
+    else if (tabName === "swing") loadSwingAnalysis(currentUser);
+    else if (tabName === "achievements") loadAchievements(currentUser);
     else if (tabName === "settings") loadSharedAccessAndSettings(currentUser);
   }
 }
@@ -1032,7 +1047,8 @@ export async function ensurePublicProfileSynced(user, profile) {
     let achCount = 0;
     if (ach.unlocked && typeof ach.unlocked === "object") {
       achCount = Object.keys(ach.unlocked).length;
-    } else if (typeof lt.achievements_count === "number") {
+    }
+    if (typeof lt.achievements_count === "number" && lt.achievements_count > achCount) {
       achCount = lt.achievements_count;
     }
 
@@ -1110,6 +1126,7 @@ async function loadUserData(user) {
       const statsSnap = await getDoc(doc(db, "profiles", user.uid, "sync", "stats"));
       if (statsSnap.exists()) {
         const syncStats = statsSnap.data();
+        currentStats = syncStats;
         if (!currentProfile.lifetime) currentProfile.lifetime = {};
         const lt = currentProfile.lifetime;
         const rec = syncStats.records || {};
@@ -1120,6 +1137,17 @@ async function loadUserData(user) {
         const recPt = Number(rec.longest_putt_ft ?? rec.longest_putt ?? 0);
         if (recPt > Number(lt.longest_putt_ft ?? 0)) {
           lt.longest_putt_ft = recPt;
+        }
+
+        if (syncStats.achievements && typeof syncStats.achievements === "object") {
+          currentProfile.achievements = syncStats.achievements;
+          const unl = syncStats.achievements.unlocked;
+          if (unl && typeof unl === "object") {
+            const achCount = Object.keys(unl).length;
+            if (achCount > (lt.achievements_count || 0)) {
+              lt.achievements_count = achCount;
+            }
+          }
         }
 
         if (syncStats.clubs && typeof syncStats.clubs === "object") {
@@ -1300,6 +1328,12 @@ async function loadUserData(user) {
             };
           }
         }
+        if (syncStats.best_courses && typeof syncStats.best_courses === "object") {
+          currentProfile.best_courses = {
+            ...(syncStats.best_courses || {}),
+            ...(currentProfile.best_courses || {})
+          };
+        }
       }
     } catch (e) {
       console.warn("[Portal] Could not load sync/stats:", e);
@@ -1309,7 +1343,7 @@ async function loadUserData(user) {
     renderOverviewCards(currentProfile);
     renderProfilePreferencesSummary(currentProfile);
     renderClubSummary(currentProfile);
-    renderBestCourses(currentProfile);
+    await renderBestCourses(currentProfile);
     loadedTabs.overview = true;
 
     // Ensure public leaderboard projection has latest lifetime records
@@ -2423,7 +2457,14 @@ async function clearClubShotData(clubKey) {
       currentProfile = { ...profData, club_summary: clubSummary, rev: profRev };
     }
 
+    if (currentStats) {
+      currentStats.clubs = clubs;
+    }
     renderClubSummary(currentProfile);
+    if (loadedTabs.analytics) {
+      populateAnalyticsClubSelector();
+      renderAnalytics();
+    }
     showToast(`✓ Shot data for ${CLUB_LABELS[clubKey] || clubKey} cleared.`);
   } catch (err) {
     console.error("Failed to clear club data:", err);
@@ -2474,8 +2515,15 @@ async function clearAllBallHistory() {
       currentProfile = { ...profData, club_summary: {}, lifetime, rev: profRev };
     }
 
+    if (currentStats) {
+      currentStats.clubs = {};
+    }
     renderOverviewCards(currentProfile);
     renderClubSummary(currentProfile);
+    if (loadedTabs.analytics) {
+      populateAnalyticsClubSelector();
+      renderAnalytics();
+    }
     showToast("✓ All ball history across all clubs has been cleared.");
   } catch (err) {
     console.error("Failed to clear ball history:", err);
@@ -2506,12 +2554,21 @@ async function clearSwingHistory() {
       updated_at: nowSec
     });
 
-    const swingContainer = document.getElementById("swing-analysis-container");
+    if (currentStats) {
+      currentStats.swing_issues = {};
+      if (!currentStats.tombstones) currentStats.tombstones = {};
+      currentStats.tombstones.cleared_swing_issues_at = nowSec;
+      currentStats.rev = statsRev;
+      currentStats.updated_at = nowSec;
+    }
+    loadedTabs.swing = false;
+
+    const swingContainer = document.getElementById("swing-analysis-container") || document.getElementById("swing-issues-container");
     if (swingContainer) {
       swingContainer.innerHTML = `
         <div class="empty-state">
-          <span class="empty-icon">📊</span>
-          <p>No swing issues logged yet. Enable swing analysis on your launch monitor to track swing tendencies over time!</p>
+          <span class="empty-icon">🎯</span>
+          <p>No swing recommendations recorded yet.<br>Turn on Shot Analysis and/or Golfer Camera during Driving Range, Course Play, or Practice to track swing fixes!</p>
         </div>
       `;
     }
@@ -2718,6 +2775,11 @@ function bindPlayerManagement() {
     });
   });
 
+  // View Analytics shortcut from Club Summary
+  document.getElementById("btn-view-analytics-shortcut")?.addEventListener("click", () => {
+    switchPortalTab("analytics");
+  });
+
   // Close modals on overlay backdrop click
   ["confirm-modal-overlay", "edit-profile-modal-overlay"].forEach((id) => {
     const el = document.getElementById(id);
@@ -2740,12 +2802,60 @@ function bindPlayerManagement() {
   });
 }
 
-function renderBestCourses(profile) {
+async function renderBestCourses(profile) {
   const container = document.getElementById("best-courses-container");
   if (!container) return;
 
-  const bestCourses = profile?.lifetime?.best_courses || {};
-  const courseNames = Object.keys(bestCourses);
+  let bestCourses = {
+    ...(currentStats?.best_courses || {}),
+    ...(profile?.lifetime?.best_courses || {}),
+    ...(profile?.best_courses || {})
+  };
+  let courseNames = Object.keys(bestCourses);
+
+  // If no courses found in profile or stats, query recent completed matches as a seamless fallback
+  if (courseNames.length === 0 && currentUser) {
+    try {
+      const snap = await getDocs(
+        query(
+          collection(db, "profiles", currentUser.uid, "matches"),
+          limit(50)
+        )
+      );
+      if (!snap.empty) {
+        const derived = {};
+        snap.forEach((docSnap) => {
+          const m = docSnap.data();
+          const cName = m.course_name;
+          if (!cName || m.is_finished === false) return;
+          const strokes = m.strokes != null ? Number(m.strokes) : null;
+          const par = m.par != null ? Number(m.par) : null;
+          let diff = m.to_par != null ? Number(m.to_par) : (strokes != null && par != null ? strokes - par : null);
+          if (diff == null || isNaN(diff)) return;
+          const holes = m.holes_count ? Number(m.holes_count) : (Array.isArray(m.holes) && m.holes.length > 0 ? m.holes.length : 18);
+
+          if (!derived[cName] || diff < derived[cName].diff || (diff === derived[cName].diff && holes > (derived[cName].holes || 0))) {
+            const diffSign = diff > 0 ? `+${diff}` : (diff === 0 ? "E" : `${diff}`);
+            derived[cName] = {
+              diff: diff,
+              str: `${diffSign} (${holes} holes)`,
+              strokes: strokes,
+              holes: holes
+            };
+          }
+        });
+        if (Object.keys(derived).length > 0) {
+          bestCourses = derived;
+          courseNames = Object.keys(bestCourses);
+          if (currentProfile) {
+            currentProfile.best_courses = bestCourses;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[Portal] Error fetching matches for best courses fallback:", e);
+    }
+  }
 
   if (courseNames.length === 0) {
     container.innerHTML = `
@@ -2757,12 +2867,18 @@ function renderBestCourses(profile) {
     return;
   }
 
+  // Sort courses alphabetically for clean display
+  courseNames.sort((a, b) => a.localeCompare(b));
+
   let cardsHtml = "";
   courseNames.forEach((name) => {
     const c = bestCourses[name];
-    const diff = c.diff != null ? (c.diff === 0 ? "E" : c.diff > 0 ? `+${c.diff}` : `${c.diff}`) : "";
+    if (!c || typeof c !== "object") return;
+    const diffVal = c.diff != null ? Number(c.diff) : null;
+    const diff = diffVal != null ? (diffVal === 0 ? "E" : diffVal > 0 ? `+${diffVal}` : `${diffVal}`) : "";
     const strokes = c.strokes != null ? `(${c.strokes} strokes)` : "";
-    const holes = c.holes ? `${c.holes} Holes` : "18 Holes";
+    const holeMatch = typeof c.str === "string" ? c.str.match(/(\d+)\s*holes?/i) : null;
+    const holes = c.holes ? `${c.holes} Holes` : (holeMatch ? `${holeMatch[1]} Holes` : "18 Holes");
 
     cardsHtml += `
       <div class="best-course-item">
@@ -2780,7 +2896,438 @@ function renderBestCourses(profile) {
   container.innerHTML = `<div class="best-courses-grid">${cardsHtml}</div>`;
 }
 
-// ─── TAB 3: RECENT MATCHES (LAZY-LOADED) ───
+// ─── TAB: IMPROVEMENT ANALYTICS & TRENDS (LAZY-LOADED) ───
+let analyticsControlsBound = false;
+
+async function loadAnalyticsAndTrends(user) {
+  const container = document.getElementById("analytics-content-container");
+  if (!container) return;
+
+  if (!currentStats) {
+    container.innerHTML = `
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading swing delivery &amp; offline analytics…</p>
+      </div>
+    `;
+    try {
+      const statsSnap = await getDoc(doc(db, "profiles", user.uid, "sync", "stats"));
+      if (statsSnap.exists()) {
+        currentStats = statsSnap.data();
+      } else {
+        currentStats = { schema_version: 1, clubs: {} };
+      }
+    } catch (e) {
+      console.warn("[Portal] Error loading stats for analytics:", e);
+      currentStats = { schema_version: 1, clubs: {} };
+    }
+  }
+
+  loadedTabs.analytics = true;
+  populateAnalyticsClubSelector();
+  bindAnalyticsControls();
+  renderAnalytics();
+}
+
+function populateAnalyticsClubSelector() {
+  const clubSelect = document.getElementById("analytics-club-select");
+  if (!clubSelect) return;
+
+  const clubs = currentStats?.clubs || {};
+  const availableClubKeys = Object.keys(clubs).filter(k => Array.isArray(clubs[k]) && clubs[k].length > 0);
+
+  const prevVal = clubSelect.value || currentAnalyticsClub || "all";
+
+  let totalAllShots = 0;
+  availableClubKeys.forEach(k => { totalAllShots += clubs[k].length; });
+
+  let optionsHtml = `<option value="all">All Recorded Clubs (${totalAllShots} shots)</option>`;
+
+  const sortedKeys = [];
+  STANDARD_BAG_ORDER.forEach(k => {
+    const match = availableClubKeys.find(c => c.toLowerCase() === k.toLowerCase());
+    if (match && !sortedKeys.includes(match)) sortedKeys.push(match);
+  });
+  availableClubKeys.forEach(k => {
+    if (!sortedKeys.includes(k)) sortedKeys.push(k);
+  });
+
+  sortedKeys.forEach(k => {
+    const count = clubs[k].length;
+    const label = CLUB_LABELS[k] || CLUB_LABELS[k.toLowerCase()] || k;
+    optionsHtml += `<option value="${escapeHtml(k)}">${escapeHtml(label)} (${count} shots)</option>`;
+  });
+
+  clubSelect.innerHTML = optionsHtml;
+  if (sortedKeys.some(k => k.toLowerCase() === prevVal.toLowerCase()) || prevVal === "all") {
+    clubSelect.value = prevVal;
+    currentAnalyticsClub = prevVal;
+  } else {
+    clubSelect.value = "all";
+    currentAnalyticsClub = "all";
+  }
+}
+
+function bindAnalyticsControls() {
+  if (analyticsControlsBound) return;
+  analyticsControlsBound = true;
+
+  const clubSelect = document.getElementById("analytics-club-select");
+  const windowSelect = document.getElementById("analytics-window-select");
+  const refreshBtn = document.getElementById("btn-refresh-analytics");
+
+  clubSelect?.addEventListener("change", () => {
+    currentAnalyticsClub = clubSelect.value;
+    renderAnalytics();
+  });
+
+  windowSelect?.addEventListener("change", () => {
+    currentAnalyticsWindow = windowSelect.value;
+    renderAnalytics();
+  });
+
+  refreshBtn?.addEventListener("click", async () => {
+    if (currentUser) {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = "Refreshing…";
+      try {
+        const statsSnap = await getDoc(doc(db, "profiles", currentUser.uid, "sync", "stats"));
+        if (statsSnap.exists()) {
+          currentStats = statsSnap.data();
+        }
+        populateAnalyticsClubSelector();
+        renderAnalytics();
+        showToast("✓ Improvement analytics refreshed");
+      } catch (err) {
+        console.warn("Could not refresh analytics:", err);
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "🔄 Refresh";
+      }
+    }
+  });
+}
+
+function renderAnalytics() {
+  const container = document.getElementById("analytics-content-container");
+  if (!container) return;
+
+  const clubs = currentStats?.clubs || {};
+  let shots = [];
+
+  if (currentAnalyticsClub === "all") {
+    shots = aggregateAllClubsShots(clubs);
+  } else {
+    shots = getClubShots(clubs, currentAnalyticsClub);
+  }
+
+  if (shots.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding: 3rem 1.5rem;">
+        <span class="empty-icon">📈</span>
+        <h4 style="font-size: 1.15rem; color: var(--text); margin-bottom: 0.5rem;">No Shot Telemetry Recorded Yet</h4>
+        <p style="max-width: 550px; margin: 0 auto; line-height: 1.5; color: var(--muted);">
+          Take swings on the driving range or during course play in Heckle Golf with your launch monitor connected. As your shots record, this section will track whether your offline dispersion is nearing zero, if your club face and path are squaring up to straight, and calculate data-driven trends to measure your improvement!
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  const analytics = computeImprovementAnalytics(shots, currentAnalyticsWindow);
+  const { recent, baseline, offline, face, path, faceToPath, smash, impact, distance } = analytics;
+
+  // Format Helper Labels
+  const formatFace = (deg) => {
+    if (deg == null) return "–";
+    if (Math.abs(deg) < 0.1) return "0.0° Square";
+    return deg > 0 ? `${deg.toFixed(1)}° Open` : `${Math.abs(deg).toFixed(1)}° Closed`;
+  };
+
+  const formatPath = (deg) => {
+    if (deg == null) return "–";
+    if (Math.abs(deg) < 0.1) return "0.0° Straight";
+    return deg > 0 ? `${deg.toFixed(1)}° In-Out` : `${Math.abs(deg).toFixed(1)}° Out-In`;
+  };
+
+  const formatOffline = (val) => {
+    if (val == null) return "–";
+    return `±${val.toFixed(1)} yds`;
+  };
+
+  const formatDeltaClass = (status) => {
+    if (status === "improving") return "delta-improving";
+    if (status === "expanding" || status === "declining") return "delta-expanding";
+    return "delta-neutral";
+  };
+
+  // 1. Executive KPI Summary Cards
+  const kpiGridHtml = `
+    <div class="analytics-kpi-grid">
+      <!-- 1. Offline Dispersion Card -->
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">🎯 Offline Dispersion</span>
+          <span class="analytics-trend-badge trend-${offline.status}">${escapeHtml(offline.badge)}</span>
+        </div>
+        <div class="analytics-kpi-val highlight">${formatOffline(recent.avgAbsOffline)}</div>
+        <div class="analytics-kpi-sub">
+          Target Corridor: <strong>${recent.pctInFairway}%</strong> (${recent.pctLeft}% Left / ${recent.pctRight}% Right)
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
+          ${escapeHtml(offline.text)}
+        </div>
+      </div>
+
+      <!-- 2. Club Face Squaring Card -->
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">🏌️ Club Face Alignment</span>
+          <span class="analytics-trend-badge trend-${face.status}">${escapeHtml(face.badge)}</span>
+        </div>
+        <div class="analytics-kpi-val">${recent.avgAbsFace != null ? `±${recent.avgAbsFace.toFixed(1)}°` : "–"}</div>
+        <div class="analytics-kpi-sub">
+          Tendency: <strong>${formatFace(recent.avgSignedFace)}</strong>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
+          ${escapeHtml(face.text)}
+        </div>
+      </div>
+
+      <!-- 3. Club Swing Path Card -->
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">📐 Club Swing Path</span>
+          <span class="analytics-trend-badge trend-${path.status}">${escapeHtml(path.badge)}</span>
+        </div>
+        <div class="analytics-kpi-val">${recent.avgAbsPath != null ? `±${recent.avgAbsPath.toFixed(1)}°` : "–"}</div>
+        <div class="analytics-kpi-sub">
+          Delivery: <strong>${formatPath(recent.avgSignedPath)}</strong>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
+          ${escapeHtml(path.text)}
+        </div>
+      </div>
+
+      <!-- 4. Strike & Energy Efficiency Card -->
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">⚡ Strike &amp; Efficiency</span>
+          <span class="analytics-trend-badge trend-${smash.status}">${smash.status === 'improving' ? 'Higher Compression' : (smash.status === 'declining' ? 'Reduced Compression' : 'Solid Strike')}</span>
+        </div>
+        <div class="analytics-kpi-val highlight">${recent.avgSmash != null ? recent.avgSmash.toFixed(2) : (recent.avgCarry > 0 ? `${recent.avgCarry.toFixed(0)} yds` : "–")}</div>
+        <div class="analytics-kpi-sub">
+          ${recent.avgImpactOffsetMm != null ? `Sweet spot offset: <strong>${recent.avgImpactOffsetMm.toFixed(1)} mm</strong>` : `Avg Carry: <strong>${recent.avgCarry.toFixed(1)} yds</strong> (±${recent.stdDevCarry.toFixed(1)})`}
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
+          ${escapeHtml(smash.text || `Face-to-Path: ${recent.avgAbsFtp != null ? recent.avgAbsFtp.toFixed(1) + '°' : '–'}`)}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 2. Interactive SVG Charts Grid
+  const offlineSvg = generateOfflineTrendChartSvg(shots);
+  const deliverySvg = generateDeliveryTrendChartSvg(shots);
+  const strikeSvg = generateStrikeTrendChartSvg(shots);
+
+  const chartsHtml = `
+    <div class="analytics-charts-grid">
+      <!-- Chart 1: Offline Dispersion -->
+      <div class="analytics-chart-box">
+        <div class="analytics-chart-header">
+          <span class="analytics-chart-title">🎯 Directional Offline Dispersion Trend</span>
+          <div class="analytics-chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> In Corridor (±10 yds)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Off-Target</span>
+            <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Rolling Trend</span>
+          </div>
+        </div>
+        ${offlineSvg}
+      </div>
+
+      <!-- Chart 2: Delivery Alignment (Face & Path) -->
+      <div class="analytics-chart-box">
+        <div class="analytics-chart-header">
+          <span class="analytics-chart-title">📐 Club Face &amp; Path Convergence to Straight (0.0°)</span>
+          <div class="analytics-chart-legend">
+            <span class="legend-item"><span class="legend-line" style="background:#f59e0b;"></span> Face Angle</span>
+            <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Club Path</span>
+            <span class="legend-item"><span class="legend-line" style="background:#22c55e; border-top: 2px dashed #22c55e;"></span> Straight (0°)</span>
+          </div>
+        </div>
+        ${deliverySvg}
+      </div>
+
+      <!-- Chart 3: Strike & Smash Factor -->
+      <div class="analytics-chart-box" style="grid-column: 1 / -1;">
+        <div class="analytics-chart-header">
+          <span class="analytics-chart-title">⚡ Energy Transfer &amp; Smash Factor Progression</span>
+          <div class="analytics-chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> Shot Smash Factor</span>
+            <span class="legend-item"><span class="legend-line" style="background:#22c55e;"></span> Moving Average</span>
+            <span class="legend-item"><span class="legend-dot" style="background:rgba(34,197,94,0.3); border-radius:3px;"></span> Optimal Range (1.45–1.50)</span>
+          </div>
+        </div>
+        ${strikeSvg}
+      </div>
+    </div>
+  `;
+
+  // 3. Detailed Comparison Table
+  const tableRows = [
+    {
+      metric: "Lateral Offline Deviation (Distance from Centerline)",
+      base: formatOffline(baseline.avgAbsOffline),
+      rec: formatOffline(recent.avgAbsOffline),
+      delta: `${offline.delta > 0 ? '+' : ''}${offline.delta.toFixed(1)} yds`,
+      statusClass: formatDeltaClass(offline.status),
+      verdict: offline.status === "improving" ? "🟢 Nearing Target Centerline" : (offline.status === "expanding" ? "🔴 Drifting Further Offline" : "🟡 Consistent Accuracy")
+    },
+    {
+      metric: "Fairway / Target Corridor Accuracy (±10 yds)",
+      base: `${baseline.pctInFairway}%`,
+      rec: `${recent.pctInFairway}%`,
+      delta: `${recent.pctInFairway >= baseline.pctInFairway ? '+' : ''}${(recent.pctInFairway - baseline.pctInFairway)}%`,
+      statusClass: recent.pctInFairway >= baseline.pctInFairway ? "delta-improving" : "delta-expanding",
+      verdict: recent.pctInFairway >= baseline.pctInFairway ? "🟢 Higher Target Rate" : "🔴 Wider Dispersion"
+    },
+    {
+      metric: "Miss Bias Direction (Signed Centerline)",
+      base: baseline.avgSignedOffline < 0 ? `${Math.abs(baseline.avgSignedOffline).toFixed(1)} yds Left` : `${baseline.avgSignedOffline.toFixed(1)} yds Right`,
+      rec: recent.avgSignedOffline < 0 ? `${Math.abs(recent.avgSignedOffline).toFixed(1)} yds Left` : `${recent.avgSignedOffline.toFixed(1)} yds Right`,
+      delta: `${Math.abs(recent.avgSignedOffline) < Math.abs(baseline.avgSignedOffline) ? '↓ Centering' : '↑ Biasing'}`,
+      statusClass: Math.abs(recent.avgSignedOffline) <= Math.abs(baseline.avgSignedOffline) ? "delta-improving" : "delta-expanding",
+      verdict: Math.abs(recent.avgSignedOffline) <= Math.abs(baseline.avgSignedOffline) ? "🟢 Less Bias" : "🟡 Tendency Noticeable"
+    },
+    {
+      metric: "Club Face Angle Deviation (Degrees off Square)",
+      base: baseline.avgAbsFace != null ? `±${baseline.avgAbsFace.toFixed(1)}°` : "–",
+      rec: recent.avgAbsFace != null ? `±${recent.avgAbsFace.toFixed(1)}°` : "–",
+      delta: face.delta != null ? `${face.delta > 0 ? '+' : ''}${face.delta.toFixed(1)}°` : "–",
+      statusClass: formatDeltaClass(face.status),
+      verdict: face.status === "improving" ? "🟢 Squaring Up to Target" : (face.status === "expanding" ? "🔴 Drifting Off Square" : "🟡 Stable Face Angle")
+    },
+    {
+      metric: "Club Swing Path Deviation (Degrees off Straight)",
+      base: baseline.avgAbsPath != null ? `±${baseline.avgAbsPath.toFixed(1)}°` : "–",
+      rec: recent.avgAbsPath != null ? `±${recent.avgAbsPath.toFixed(1)}°` : "–",
+      delta: path.delta != null ? `${path.delta > 0 ? '+' : ''}${path.delta.toFixed(1)}°` : "–",
+      statusClass: formatDeltaClass(path.status),
+      verdict: path.status === "improving" ? "🟢 Straightening Path" : (path.status === "expanding" ? "🔴 Steeper Deviation" : "🟡 Stable Path")
+    },
+    {
+      metric: "Face-to-Path Differential (Curvature / Side Spin)",
+      base: baseline.avgAbsFtp != null ? `${baseline.avgAbsFtp.toFixed(1)}°` : "–",
+      rec: recent.avgAbsFtp != null ? `${recent.avgAbsFtp.toFixed(1)}°` : "–",
+      delta: faceToPath.delta != null ? `${faceToPath.delta > 0 ? '+' : ''}${faceToPath.delta.toFixed(1)}°` : "–",
+      statusClass: formatDeltaClass(faceToPath.status),
+      verdict: faceToPath.status === "improving" ? "🟢 Straighter Ball Flight" : (faceToPath.status === "expanding" ? "🔴 Higher Curvature" : "🟡 Controlled Curve")
+    },
+    {
+      metric: "Smash Factor (Ball Speed / Club Speed Compression)",
+      base: baseline.avgSmash != null ? baseline.avgSmash.toFixed(2) : "–",
+      rec: recent.avgSmash != null ? recent.avgSmash.toFixed(2) : "–",
+      delta: smash.delta != null ? `${smash.delta > 0 ? '+' : ''}${smash.delta.toFixed(2)}` : "–",
+      statusClass: formatDeltaClass(smash.status),
+      verdict: smash.status === "improving" ? "🟢 More Efficient Compression" : (smash.status === "declining" ? "🔴 Lower Energy Transfer" : "🟡 Consistent Strike")
+    },
+    {
+      metric: "Impact Distance from Sweet Spot (mm from Center Face)",
+      base: baseline.avgImpactOffsetMm != null ? `${baseline.avgImpactOffsetMm.toFixed(1)} mm` : "–",
+      rec: recent.avgImpactOffsetMm != null ? `${recent.avgImpactOffsetMm.toFixed(1)} mm` : "–",
+      delta: impact.delta != null ? `${impact.delta > 0 ? '+' : ''}${impact.delta.toFixed(1)} mm` : "–",
+      statusClass: formatDeltaClass(impact.status),
+      verdict: impact.status === "improving" ? "🟢 Centering on Sweet Spot" : (impact.status === "expanding" ? "🔴 Off-Center Contact" : "🟡 Consistent Strike Point")
+    },
+    {
+      metric: "Average Carry Distance (Yards)",
+      base: `${baseline.avgCarry.toFixed(1)} yds`,
+      rec: `${recent.avgCarry.toFixed(1)} yds`,
+      delta: `${distance.carryDelta > 0 ? '+' : ''}${distance.carryDelta.toFixed(1)} yds`,
+      statusClass: distance.carryDelta >= 0 ? "delta-improving" : "delta-neutral",
+      verdict: distance.carryDelta >= 2 ? "🟢 Distance Gained" : "🟡 Maintained Distance"
+    },
+    {
+      metric: "Carry Distance Consistency (Standard Deviation)",
+      base: `±${baseline.stdDevCarry.toFixed(1)} yds`,
+      rec: `±${recent.stdDevCarry.toFixed(1)} yds`,
+      delta: `${distance.carryDispersionDelta > 0 ? '+' : ''}${distance.carryDispersionDelta.toFixed(1)} yds`,
+      statusClass: distance.carryDispersionDelta <= 0 ? "delta-improving" : "delta-expanding",
+      verdict: distance.carryDispersionDelta < -0.5 ? "🟢 Tighter Distance Grouping" : "🟡 Consistent Range"
+    }
+  ];
+
+  let tableRowsHtml = "";
+  tableRows.forEach(row => {
+    tableRowsHtml += `
+      <tr>
+        <td style="font-weight: 600;">${escapeHtml(row.metric)}</td>
+        <td style="color: var(--muted);">${escapeHtml(row.base)}</td>
+        <td style="font-weight: 700; color: var(--text);">${escapeHtml(row.rec)}</td>
+        <td class="${row.statusClass}">${escapeHtml(row.delta)}</td>
+        <td>${escapeHtml(row.verdict)}</td>
+      </tr>
+    `;
+  });
+
+  const tableHtml = `
+    <div class="analytics-table-card">
+      <div class="analytics-table-header">
+        <h4 class="analytics-table-title">📊 Baseline vs. Recent Performance Breakdown</h4>
+        <p style="font-size:0.82rem; color:var(--muted); margin-top:0.25rem;">
+          Comparing earlier recorded baseline shots against your most recent swings to evaluate game progress.
+        </p>
+      </div>
+      <div class="table-responsive">
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Earlier Baseline</th>
+              <th>Recent Shots</th>
+              <th>Net Change</th>
+              <th>Improvement Assessment</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // 4. AI Coaching Recommendations
+  const insights = generateCoachingInsights(analytics);
+  let coachingItemsHtml = "";
+  insights.forEach(item => {
+    coachingItemsHtml += `
+      <div class="coaching-item">
+        <span class="coaching-icon">${item.icon}</span>
+        <div class="coaching-body">
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.desc)}</p>
+        </div>
+      </div>
+    `;
+  });
+
+  const coachingHtml = `
+    <div class="analytics-coaching-box">
+      <div class="analytics-coaching-title">
+        <span>💡 AI Swing Coach Observations &amp; Insights</span>
+      </div>
+      <div class="coaching-list">
+        ${coachingItemsHtml}
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = kpiGridHtml + chartsHtml + tableHtml + coachingHtml;
+}
+
+// ─── TAB: RECENT MATCHES (LAZY-LOADED) ───
 async function loadRecentMatches(user) {
   const container = document.getElementById("recent-matches-container");
   if (!container) return;
@@ -2914,91 +3461,120 @@ async function loadRecentMatches(user) {
   }
 }
 
-// ─── TAB 4: ACHIEVEMENTS & SWING ANALYSIS (LAZY-LOADED) ───
-async function loadAchievementsAndSwing(user) {
-  const achContainer = document.getElementById("achievements-grid-container");
-  const swingContainer = document.getElementById("swing-issues-container");
+// ─── TAB 4: SWING ANALYSIS & RECOMMENDATIONS (LAZY-LOADED) ───
+async function loadSwingAnalysis(user) {
+  const swingContainer = document.getElementById("swing-analysis-container") || document.getElementById("swing-issues-container");
+  if (!swingContainer) return;
 
-  if (achContainer) {
-    achContainer.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading achievements…</p>
-      </div>
-    `;
-  }
-  if (swingContainer) {
-    swingContainer.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading swing trends…</p>
-      </div>
-    `;
-  }
+  swingContainer.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading swing recommendations &amp; tendencies…</p>
+    </div>
+  `;
 
   try {
-    const statsSnap = await getDoc(doc(db, "profiles", user.uid, "sync", "stats"));
-    const statsData = statsSnap.exists() ? statsSnap.data() : {};
-    loadedTabs.achievements = true;
-
-    // 1. Achievements
-    const unlockedMap = statsData.achievements?.unlocked || {};
-    const unlockedKeys = Object.keys(unlockedMap);
-
-    if (unlockedKeys.length === 0) {
-      if (achContainer) {
-        achContainer.innerHTML = `
-          <div class="empty-state">
-            <span class="empty-icon">🏆</span>
-            <p>No achievements unlocked yet. Play rounds and minigames to unlock achievements!</p>
-          </div>
-        `;
-      }
-    } else {
-      let achHtml = "";
-      unlockedKeys.forEach((key) => {
-        const meta = ACHIEVEMENT_LABELS[key] || { title: key.replace(/_/g, " "), desc: "Unlocked in-game challenge" };
-        const ts = unlockedMap[key];
-        const dateStr = ts ? new Date(ts * 1000).toLocaleDateString() : "";
-
-        achHtml += `
-          <div class="achievement-badge-card unlocked">
-            <span class="achievement-icon">⭐</span>
-            <div class="achievement-info">
-              <h4>${escapeHtml(meta.title)}</h4>
-              <p>${escapeHtml(meta.desc)}</p>
-              ${dateStr ? `<p style="color: var(--green); font-size: 0.75rem;">Unlocked: ${dateStr}</p>` : ""}
-            </div>
-          </div>
-        `;
-      });
-      if (achContainer) {
-        achContainer.innerHTML = `<div class="achievements-grid">${achHtml}</div>`;
-      }
+    let statsData = currentStats;
+    if (!statsData) {
+      const statsSnap = await getDoc(doc(db, "profiles", user.uid, "sync", "stats"));
+      statsData = statsSnap.exists() ? statsSnap.data() : {};
+      currentStats = statsData;
     }
+    loadedTabs.swing = true;
 
-    // 2. Swing Issues / Tendencies
     const swingIssues = statsData.swing_issues || {};
     const months = Object.keys(swingIssues).sort().reverse();
 
-    if (months.length === 0) {
-      if (swingContainer) {
-        swingContainer.innerHTML = `
-          <div class="empty-state">
-            <span class="empty-icon">📊</span>
-            <p>No swing issues logged yet. Enable swing analysis on your launch monitor to track swing tendencies over time!</p>
+    // Calculate all-time running totals across all months
+    const allTimeTotals = {};
+    for (const m of months) {
+      const mData = swingIssues[m] || {};
+      for (const [iss, cnt] of Object.entries(mData)) {
+        allTimeTotals[iss] = (allTimeTotals[iss] || 0) + Number(cnt || 0);
+      }
+    }
+
+    const allTimeKeys = Object.keys(allTimeTotals).sort((a, b) => allTimeTotals[b] - allTimeTotals[a]);
+
+    if (allTimeKeys.length === 0) {
+      swingContainer.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">🎯</span>
+          <p>No swing recommendations recorded yet.<br>Turn on Shot Analysis and/or Golfer Camera during Driving Range, Course Play, or Practice to track swing fixes!</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Determine current month key and name
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentMonthName = now.toLocaleString("default", { month: "long", year: "numeric" });
+    const curMonthData = swingIssues[currentMonthKey] || {};
+    const curMonthIssues = Object.keys(curMonthData).sort((a, b) => curMonthData[b] - curMonthData[a]);
+
+    let html = `<div class="swing-recommendations-wrapper">`;
+
+    // 1. Current Month Running Totals
+    html += `
+      <div class="swing-section-block">
+        <h4 class="swing-section-title">📅 Current Month Running Totals (${escapeHtml(currentMonthName)})</h4>
+    `;
+
+    if (curMonthIssues.length === 0) {
+      html += `<p class="swing-section-empty">No swing recommendations recorded for ${escapeHtml(currentMonthName)}.</p>`;
+    } else {
+      html += `<div class="swing-cards-grid">`;
+      curMonthIssues.forEach((issue) => {
+        const count = curMonthData[issue];
+        html += `
+          <div class="swing-flaw-card">
+            <div class="swing-flaw-info">
+              <div class="swing-flaw-name">${escapeHtml(issue)}</div>
+              <div class="swing-flaw-sub">This Month • Drill &amp; Fix Target</div>
+            </div>
+            <div class="swing-flaw-count">${count}</div>
           </div>
         `;
-      }
-    } else {
-      let swingHtml = "";
-      months.forEach((month) => {
-        const tendencies = swingIssues[month] || {};
-        const issueNames = Object.keys(tendencies);
+      });
+      html += `</div>`;
+    }
+    html += `</div>`;
 
+    // 2. All-Time Running Totals
+    html += `
+      <div class="swing-section-block" style="margin-top: 1.75rem;">
+        <h4 class="swing-section-title" style="color: #fde047;">🏆 All-Time Running Totals</h4>
+        <div class="swing-cards-grid">
+    `;
+    allTimeKeys.forEach((issue) => {
+      const count = allTimeTotals[issue];
+      html += `
+        <div class="swing-flaw-card">
+          <div class="swing-flaw-info">
+            <div class="swing-flaw-name">${escapeHtml(issue)}</div>
+            <div class="swing-flaw-sub">All Time • Total Flaw Count</div>
+          </div>
+          <div class="swing-flaw-count" style="color: #fde047;">${count}</div>
+        </div>
+      `;
+    });
+    html += `</div></div>`;
+
+    // 3. Historical Monthly Breakdown (if more than 1 month exists or earlier months exist)
+    const priorMonths = months.filter((m) => m !== currentMonthKey);
+    if (priorMonths.length > 0) {
+      html += `
+        <div class="swing-section-block" style="margin-top: 1.75rem;">
+          <h4 class="swing-section-title" style="color: var(--muted); font-size: 0.95rem;">📜 Prior Months History</h4>
+          <div class="swing-issues-list" style="margin-top: 0.75rem;">
+      `;
+      priorMonths.forEach((month) => {
+        const mData = swingIssues[month] || {};
+        const mIssues = Object.keys(mData);
         let pillsHtml = "";
-        issueNames.forEach((name) => {
-          const count = tendencies[name];
+        mIssues.forEach((name) => {
+          const count = mData[name];
           pillsHtml += `
             <div class="swing-pill">
               <strong>${escapeHtml(name)}</strong>
@@ -3006,23 +3582,85 @@ async function loadAchievementsAndSwing(user) {
             </div>
           `;
         });
-
-        swingHtml += `
+        html += `
           <div class="swing-month-card">
-            <div class="swing-month-title">📅 Month: ${escapeHtml(month)}</div>
+            <div class="swing-month-title">📅 ${escapeHtml(month)}</div>
             <div class="swing-tendencies">${pillsHtml}</div>
           </div>
         `;
       });
-      if (swingContainer) {
-        swingContainer.innerHTML = `<div class="swing-issues-list">${swingHtml}</div>`;
-      }
+      html += `</div></div>`;
     }
+
+    html += `</div>`;
+    swingContainer.innerHTML = html;
   } catch (err) {
-    console.error("Achievements & swing analysis error:", err);
-    if (achContainer) achContainer.innerHTML = `<p class="empty-state">Could not load achievements.</p>`;
-    if (swingContainer) swingContainer.innerHTML = `<p class="empty-state">Could not load swing trends.</p>`;
+    console.error("Swing analysis error:", err);
+    swingContainer.innerHTML = `<p class="empty-state">Could not load swing trends.</p>`;
   }
+}
+
+// ─── TAB 5: ACHIEVEMENTS (LAZY-LOADED) ───
+async function loadAchievements(user) {
+  const achContainer = document.getElementById("achievements-container") || document.getElementById("achievements-grid-container");
+  if (!achContainer) return;
+
+  achContainer.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading achievements…</p>
+    </div>
+  `;
+
+  try {
+    let statsData = currentStats;
+    if (!statsData) {
+      const statsSnap = await getDoc(doc(db, "profiles", user.uid, "sync", "stats"));
+      statsData = statsSnap.exists() ? statsSnap.data() : {};
+      currentStats = statsData;
+    }
+    loadedTabs.achievements = true;
+
+    const unlockedMap = statsData.achievements?.unlocked || {};
+    const unlockedKeys = Object.keys(unlockedMap);
+
+    if (unlockedKeys.length === 0) {
+      achContainer.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">🏆</span>
+          <p>No achievements unlocked yet. Play rounds and minigames to unlock achievements!</p>
+        </div>
+      `;
+      return;
+    }
+
+    let achHtml = "";
+    unlockedKeys.forEach((key) => {
+      const meta = ACHIEVEMENT_LABELS[key] || { title: key.replace(/_/g, " "), desc: "Unlocked in-game challenge" };
+      const ts = unlockedMap[key];
+      const dateStr = ts ? new Date(ts * 1000).toLocaleDateString() : "";
+
+      achHtml += `
+        <div class="achievement-badge-card unlocked">
+          <span class="achievement-icon">⭐</span>
+          <div class="achievement-info">
+            <h4>${escapeHtml(meta.title)}</h4>
+            <p>${escapeHtml(meta.desc)}</p>
+            ${dateStr ? `<p style="color: var(--green); font-size: 0.75rem;">Unlocked: ${dateStr}</p>` : ""}
+          </div>
+        </div>
+      `;
+    });
+    achContainer.innerHTML = `<div class="achievements-grid">${achHtml}</div>`;
+  } catch (err) {
+    console.error("Achievements loading error:", err);
+    achContainer.innerHTML = `<p class="empty-state">Could not load achievements.</p>`;
+  }
+}
+
+// Backward compatibility helper
+async function loadAchievementsAndSwing(user) {
+  await Promise.all([loadSwingAnalysis(user), loadAchievements(user)]);
 }
 
 // ─── TAB 4: SHARED ACCESS & SETTINGS (REQUIREMENTS 3 & 4) ───
@@ -3168,7 +3806,12 @@ async function loadLeaderboardOptInStatus(user) {
           if (typeof lt.best_to_par_18 === "number" && lt.best_to_par_18 >= -36 && lt.best_to_par_18 <= 180) pubData.best_to_par_18 = lt.best_to_par_18;
           if (typeof lt.best_gross_9 === "number" && lt.best_gross_9 >= 9 && lt.best_gross_9 <= 130) pubData.best_gross_9 = lt.best_gross_9;
           if (typeof lt.best_to_par_9 === "number" && lt.best_to_par_9 >= -18 && lt.best_to_par_9 <= 90) pubData.best_to_par_9 = lt.best_to_par_9;
-          if (typeof lt.achievements_count === "number" && lt.achievements_count >= 0 && lt.achievements_count <= 100) pubData.achievements_count = lt.achievements_count;
+          const pAch = p.achievements?.unlocked || {};
+          const achTotal = Math.max(
+            typeof lt.achievements_count === "number" ? lt.achievements_count : 0,
+            typeof pAch === "object" ? Object.keys(pAch).length : 0
+          );
+          if (achTotal >= 0 && achTotal <= 100) pubData.achievements_count = achTotal;
           if (typeof lt.matches_played === "number" && lt.matches_played >= 0 && lt.matches_played <= 100000) pubData.matches_played = lt.matches_played;
           if (typeof lt.wins === "number" && lt.wins >= 0 && lt.wins <= 100000) pubData.wins = lt.wins;
           if (typeof lt.hole_in_ones === "number" && lt.hole_in_ones >= 0 && lt.hole_in_ones <= 1000) pubData.hole_in_ones = lt.hole_in_ones;

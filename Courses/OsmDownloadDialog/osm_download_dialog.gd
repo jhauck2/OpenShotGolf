@@ -441,7 +441,7 @@ func _get_slug_candidates(course_name: String) -> Array:
 
 func _refresh_available_cache_slugs() -> void:
 	_available_cache_slugs.clear()
-	var cache_dirs = ["res://Courses/CachedGeometry", "user://cached_geometry"]
+	var cache_dirs = ["res://Courses/CachedGeometry", "res://CachedGeometry", "user://cached_geometry"]
 	for c_dir in cache_dirs:
 		if not DirAccess.dir_exists_absolute(c_dir):
 			continue
@@ -543,7 +543,7 @@ func _load_cached_courses() -> void:
 
 
 func _scan_loose_cached_geometries() -> void:
-	var cache_dirs = ["res://Courses/CachedGeometry", "user://cached_geometry"]
+	var cache_dirs = ["res://Courses/CachedGeometry", "res://CachedGeometry", "user://cached_geometry"]
 	for c_dir in cache_dirs:
 		if not DirAccess.dir_exists_absolute(c_dir):
 			continue

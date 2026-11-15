@@ -534,15 +534,25 @@ func _get_local_player_stat(player: Dictionary, category_id: String) -> String:
 		var mp = get_node("/root/MultiplayerManager")
 		if mp.has_method("get_player_longest_putt"):
 			stat_val = mp.get_player_longest_putt(player_name)
+	elif category_id == "most_achievements":
+		if has_node("/root/AchievementManager"):
+			var ach_mgr = get_node("/root/AchievementManager")
+			if ach_mgr.has_method("get_unlocked_achievements"):
+				var unl = ach_mgr.get_unlocked_achievements(player_name)
+				if unl is Dictionary and unl.size() > 0:
+					stat_val = unl.size()
 
 	if stat_val == null or float(stat_val) <= 0.0:
 		var lifetime = player.get("lifetime", {})
+		if lifetime.is_empty():
+			lifetime = player.get("cloud_lifetime_cache", {})
 		stat_val = lifetime.get(cat_def.get("field", ""), null)
 
 	if stat_val != null:
 		var dummy_doc := {cat_def.get("field", ""): stat_val}
 		if cat_def.has("secondary_field"):
-			dummy_doc[cat_def["secondary_field"]] = player.get("lifetime", {}).get(cat_def["secondary_field"], 0)
+			var lt_dict = player.get("lifetime", player.get("cloud_lifetime_cache", {}))
+			dummy_doc[cat_def["secondary_field"]] = lt_dict.get(cat_def["secondary_field"], 0)
 		return LeaderboardService.format_metric_value(cat_def, dummy_doc)
 
 	return "--"

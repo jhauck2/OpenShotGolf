@@ -58,6 +58,25 @@ func _run_tests() -> void:
 	assert(cp.find_child("TrackAveragesButton", true, false).get_parent() == cp_train_container, "TrackAveragesButton must be in TrainingMenuContainer")
 	assert(cp.find_child("RolloutToggleButton", true, false).get_parent() == cp_train_container, "RolloutToggleButton must be in TrainingMenuContainer")
 
+	# Visuals menu check
+	var cp_vis_btn = cp.find_child("VisualsMenuButton", true, false) as Button
+	assert(cp_vis_btn != null, "VisualsMenuButton must exist in CoursePlay")
+	assert(cp_vis_btn.text == "👁️ Visuals Menu", "Visuals button text must be '👁️ Visuals Menu'")
+
+	var cp_vis_container = cp.find_child("VisualsMenuContainer", true, false) as VBoxContainer
+	assert(cp_vis_container != null, "VisualsMenuContainer must exist in CoursePlay")
+	assert(cp_vis_container.visible == false, "VisualsMenuContainer must be hidden by default")
+
+	# Visuals contents check
+	var cp_free_cam_btn = cp.find_child("FreeCameraButton", true, false) as Button
+	assert(cp_free_cam_btn != null, "FreeCameraButton must exist in CoursePlay")
+	assert(cp_free_cam_btn.get_parent() == cp_vis_container, "FreeCameraButton must be in VisualsMenuContainer")
+
+	var cp_graphics_btn = cp.find_child("GraphicsToggleButton", true, false) as Button
+	assert(cp_graphics_btn != null, "GraphicsToggleButton must exist in CoursePlay")
+	assert(cp_graphics_btn.get_parent() == cp_vis_container, "GraphicsToggleButton must be in VisualsMenuContainer")
+	assert(cp_graphics_btn.text.begins_with("🎨 Graphics:"), "Graphics toggle button text must start with '🎨 Graphics:'")
+
 	# Root helper menu checks (Stuck Ball Relief)
 	var cp_stuck_btn = cp.find_child("StuckBallButton", true, false) as Button
 	assert(cp_stuck_btn != null, "StuckBallButton must exist in CoursePlay")
@@ -82,6 +101,16 @@ func _run_tests() -> void:
 	await process_frame
 	assert(cp_train_container.visible == false, "TrainingMenuContainer must collapse on click")
 	assert(cp_train_btn.text == "🎯 Training Menu", "Training button text must restore to default")
+
+	# Test toggling Visuals Menu
+	cp_vis_btn.emit_signal("pressed")
+	await process_frame
+	assert(cp_vis_container.visible == true, "VisualsMenuContainer must expand on click")
+	assert(cp_vis_btn.text == "👁️ Visuals Menu: OPEN", "Visuals button text must indicate OPEN")
+	cp_vis_btn.emit_signal("pressed")
+	await process_frame
+	assert(cp_vis_container.visible == false, "VisualsMenuContainer must collapse on click")
+	assert(cp_vis_btn.text == "👁️ Visuals Menu", "Visuals button text must restore to default")
 
 	print("  PASS: CoursePlay submenus and buttons verified.")
 
@@ -120,6 +149,18 @@ func _run_tests() -> void:
 	assert(rui.find_child("TrackAveragesButton", true, false).get_parent() == rui_train_container, "RangeUI TrackAveragesButton must be in TrainingMenuContainer")
 	assert(rui.find_child("RolloutToggleButton", true, false).get_parent() == rui_train_container, "RangeUI RolloutToggleButton must be in TrainingMenuContainer")
 
+	var rui_vis_btn = rui.find_child("VisualsMenuButton", true, false) as Button
+	assert(rui_vis_btn != null, "VisualsMenuButton must exist in RangeUI")
+	var rui_vis_container = rui.find_child("VisualsMenuContainer", true, false) as VBoxContainer
+	assert(rui_vis_container != null, "VisualsMenuContainer must exist in RangeUI")
+
+	assert(rui.find_child("FreeCameraButton", true, false).get_parent() == rui_vis_container, "RangeUI FreeCameraButton must be in VisualsMenuContainer")
+
+	var rui_graphics_btn = rui.find_child("GraphicsToggleButton", true, false) as Button
+	assert(rui_graphics_btn != null, "GraphicsToggleButton must exist in RangeUI")
+	assert(rui_graphics_btn.get_parent() == rui_vis_container, "GraphicsToggleButton must be in VisualsMenuContainer")
+	assert(rui_graphics_btn.text.begins_with("🎨 Graphics:"), "RangeUI Graphics toggle button text must start with '🎨 Graphics:'")
+
 	# RangeUI toggle expansion
 	rui_imm_btn.emit_signal("pressed")
 	await process_frame
@@ -134,6 +175,13 @@ func _run_tests() -> void:
 	rui_train_btn.emit_signal("pressed")
 	await process_frame
 	assert(rui_train_container.visible == false, "RangeUI TrainingMenuContainer must collapse")
+
+	rui_vis_btn.emit_signal("pressed")
+	await process_frame
+	assert(rui_vis_container.visible == true, "RangeUI VisualsMenuContainer must expand")
+	rui_vis_btn.emit_signal("pressed")
+	await process_frame
+	assert(rui_vis_container.visible == false, "RangeUI VisualsMenuContainer must collapse")
 
 	print("  PASS: RangeUI submenus and buttons verified.")
 

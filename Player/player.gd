@@ -194,13 +194,13 @@ func _is_putting_on_green() -> bool:
 		if scene_name.contains("putting"):
 			is_putting = true
 		else:
-			var selected_club = _get_selected_club()
-			if selected_club == "Pt" or selected_club.to_lower().contains("putt"):
+			var selected_club = _get_selected_club().strip_edges().to_lower()
+			var is_putter = (selected_club in ["pt", "putt", "putter"] or selected_club.begins_with("putt"))
+			if is_putter:
 				is_putting = true
 			elif shot_data != null:
-				var shot_type := str(shot_data.get("ShotType", ""))
-				var club_val := str(shot_data.get("club", ""))
-				if shot_type.to_lower() == "putt" or club_val == "Pt" or club_val.to_lower().contains("putt"):
+				var club_val := str(shot_data.get("club", shot_data.get("Club", ""))).strip_edges().to_lower()
+				if club_val in ["pt", "putt", "putter"] or club_val.begins_with("putt"):
 					is_putting = true
 	return is_on_green and is_putting
 

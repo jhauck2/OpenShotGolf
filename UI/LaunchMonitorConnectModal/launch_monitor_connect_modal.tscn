@@ -78,7 +78,7 @@ grow_vertical = 2
 
 [node name="ModalPanel" type="PanelContainer" parent="CenterContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(560, 480)
+custom_minimum_size = Vector2(620, 480)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_modal_bg")
 
@@ -112,7 +112,7 @@ text = "📡 Connect Launch Monitor"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.72, 0.82, 1)
 theme_override_font_sizes/font_size = 14
-text = "Pair via Bluetooth or configure your GSPro network bridge."
+text = "Pair via Bluetooth or configure your GSPro network bridge. [Q / E or LB / RB to switch tabs]"
 
 [node name="CloseHeaderButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/HeaderHBox"]
 unique_name_in_owner = true
@@ -130,7 +130,8 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 15
+clip_tabs = false
 
 [node name="BluetoothTab" type="ScrollContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer"]
 unique_name_in_owner = true
@@ -446,8 +447,319 @@ bbcode_enabled = true
 text = "Select a device above to view connection instructions."
 fit_content = true
 
+[node name="EncryptedBtTab" type="ScrollContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EncryptedBtVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="EncryptedSelectCard" type="PanelContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="EncryptedSelectVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedSelectCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EncryptedModelLabel" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedSelectCard/EncryptedSelectVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "Launch Monitor Model:"
+
+[node name="EncryptedModelOption" type="OptionButton" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedSelectCard/EncryptedSelectVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EncryptedDeviceLabel" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedSelectCard/EncryptedSelectVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "Discovered Device:"
+
+[node name="EncryptedDeviceOption" type="OptionButton" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedSelectCard/EncryptedSelectVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EncryptedFormCard" type="PanelContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="EncryptedFormVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedFormCard"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EncryptedFormTitle" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedFormCard/EncryptedFormVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 0.55, 1)
+theme_override_font_sizes/font_size = 17
+text = "🔐 Connection & Pairing Details"
+
+[node name="EncryptedCodeHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedFormCard/EncryptedFormVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EncryptedCodeLabel" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedFormCard/EncryptedFormVBox/EncryptedCodeHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "Pairing PIN / Code:"
+vertical_alignment = 1
+
+[node name="EncryptedCodeInput" type="LineEdit" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedFormCard/EncryptedFormVBox/EncryptedCodeHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+placeholder_text = "Enter PIN shown on device display"
+
+[node name="EncryptedInstructionsText" type="RichTextLabel" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedFormCard/EncryptedFormVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/default_color = Color(0.85, 0.9, 0.95, 1)
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
+text = "Instructions"
+fit_content = true
+
+[node name="EncryptedActionsHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EncryptedScanButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedActionsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "🔍 Scan"
+
+[node name="EncryptedConnectButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedActionsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "🔗 Connect"
+
+[node name="EncryptedDisconnectButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/EncryptedBtTab/EncryptedBtVBox/EncryptedActionsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Disconnect"
+
+[node name="BushnellTab" type="ScrollContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="BushnellVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BushnellConfigCard" type="PanelContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="BushnellConfigVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BushnellTitle" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "⛳ Bushnell GC3 / FSX Play Integration"
+
+[node name="BushnellDesc" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = "Read live shot telemetry from FSX Play or FSX 2020 via CSV export. Enables real-time ball flight for Bushnell Launch Pro & GC3 without extra subscriptions or third-party bridge tools."
+autowrap_mode = 3
+
+[node name="BushnellPathLabel" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "FSX CSV Export File Path (shots.csv / LastShot.csv):"
+
+[node name="BushnellPathHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BushnellCsvPathInput" type="LineEdit" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox/BushnellPathHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+placeholder_text = "e.g. C:/Program Files (x86)/Foresight Sports Experience/FSX Play/shots.csv"
+
+[node name="BushnellBrowseButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox/BushnellPathHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "📂 Browse..."
+
+[node name="BushnellAutoDetectButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox/BushnellPathHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "🔍 Auto-Detect"
+
+[node name="BushnellPollingHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BushnellPollingLabel" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox/BushnellPollingHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "Sync Polling Rate:"
+
+[node name="BushnellPollingOption" type="OptionButton" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellConfigCard/BushnellConfigVBox/BushnellPollingHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+
+[node name="BushnellStatusCard" type="PanelContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="BushnellStatusVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellStatusCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BushnellStatusTitle" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellStatusCard/BushnellStatusVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "Connection & Shot Activity"
+
+[node name="BushnellStatusText" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellStatusCard/BushnellStatusVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+text = "Status: Disconnected (Click Start Monitoring below)"
+
+[node name="BushnellLastShotText" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellStatusCard/BushnellStatusVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 0.55, 1)
+theme_override_font_sizes/font_size = 13
+text = "Last Shot: None"
+
+[node name="BushnellTestShotButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellStatusCard/BushnellStatusVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 42)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 14
+text = "🏌️ Test Sample Shot"
+
+[node name="BushnellInstructionsCard" type="PanelContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="BushnellInstructionsVBox" type="VBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellInstructionsCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BushnellInstructionsTitle" type="Label" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellInstructionsCard/BushnellInstructionsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "📋 FSX Play / FSX 2020 Setup Steps"
+
+[node name="BushnellInstructionsText" type="RichTextLabel" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellInstructionsCard/BushnellInstructionsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/default_color = Color(0.85, 0.9, 0.95, 1)
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
+fit_content = true
+
+[node name="BushnellActionsHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BushnellConnectButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellActionsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "🔗 Start Monitoring"
+
+[node name="BushnellDisconnectButton" type="Button" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab/BushnellVBox/BushnellActionsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "⏹ Stop Monitoring"
+
+[node name="BushnellFileDialog" type="FileDialog" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/TabContainer/BushnellTab"]
+unique_name_in_owner = true
+title = "Select FSX Shots CSV File"
+initial_position = 2
+size = Vector2i(700, 480)
+ok_button_text = "Select"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.csv ; CSV Files", "*.* ; All Files")
+
 [node name="FooterSeparator" type="HSeparator" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
+
+[node name="RememberHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="RememberDeviceCheckBox" type="CheckBox" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer/RememberHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.9, 0.94, 0.98, 1)
+theme_override_colors/font_pressed_color = Color(0.4, 0.85, 0.55, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.5, 0.95, 0.65, 1)
+theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "Remember device and auto-connect on startup"
 
 [node name="FooterHBox" type="HBoxContainer" parent="CenterContainer/ModalPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2

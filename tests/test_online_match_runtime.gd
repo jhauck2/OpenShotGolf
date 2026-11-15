@@ -222,6 +222,8 @@ func _test_1_remote_shot_isolation_h9() -> void:
 	assert(p1.get("total_strokes") == 2, "Remote player total_strokes must be 2, got %s" % str(p1.get("total_strokes")))
 	assert(p1.get("holed_out") == true, "Remote player must be holed out")
 	assert(p1.get("hole_scores", {}).get("1") == 2, "Remote player hole_score for hole 1 must be 2")
+	assert(p1.has("shot_history") and p1["shot_history"].size() == 2, "Remote player must retain in-memory shot_history for live scorecard review")
+	assert(p1.has("shot_stats") and p1["shot_stats"].get("1", []).size() == 2, "Remote player must retain in-memory shot_stats for live scorecard review")
 
 	# Check player club stats file: RemoteRival must NOT be in user://player_club_stats.json
 	var stats = mp.get_player_club_stats("RemoteRival")

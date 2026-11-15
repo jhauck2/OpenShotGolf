@@ -565,31 +565,36 @@ func get_distance_queue(custom_pin_pos: Variant = null) -> Array[Dictionary]:
 			continue
 		if not p.get("active", true) or p.get("paused", false):
 			continue
-		if p.get("holed_out", false):
-			continue
 		
-		var p_pos = p.get("position", Vector3.ZERO)
-		var flat_pos := Vector3(p_pos.x, 0.0, p_pos.z)
-		var dist_meters := flat_pos.distance_to(flat_pin)
-		var dist_yds := int(round(dist_meters * 1.09361))
-		
-		var strokes = p.get("strokes", 0)
-		var is_in_teebox = (strokes == 0)
-		var lie_str = str(p.get("lie_type", "")).to_lower()
-		var is_on_green = (lie_str == "green")
-		var is_fringe = (lie_str == "fringe")
+		var is_holed: bool = bool(p.get("holed_out", false))
 		var p_name = p.get("name", "Player")
-		var club = get_suggested_club(p_name, dist_yds, is_in_teebox, is_on_green, is_fringe)
 		var score_str := _format_player_score_clean(p)
+		var dist_yds: int = 0
+		var dist_str: String = "0 Yds"
+		var club: String = "-"
+		
+		if not is_holed:
+			var p_pos = p.get("position", Vector3.ZERO)
+			var flat_pos := Vector3(p_pos.x, 0.0, p_pos.z)
+			var dist_meters := flat_pos.distance_to(flat_pin)
+			dist_yds = int(round(dist_meters * 1.09361))
+			dist_str = "%d Yds" % int(dist_yds)
+			var strokes = p.get("strokes", 0)
+			var is_in_teebox = (strokes == 0)
+			var lie_str = str(p.get("lie_type", "")).to_lower()
+			var is_on_green = (lie_str == "green")
+			var is_fringe = (lie_str == "fringe")
+			club = get_suggested_club(p_name, dist_yds, is_in_teebox, is_on_green, is_fringe)
 		
 		eligible.append({
 			"player": p,
 			"name": p_name,
 			"formatted_name": format_queue_player_name(p_name),
 			"distance_yards": dist_yds,
-			"distance_str": "%d Yds" % int(dist_yds),
+			"distance_str": dist_str,
 			"suggested_club": club,
-			"score_str": score_str
+			"score_str": score_str,
+			"holed_out": is_holed
 		})
 	
 	var mode = turn_order_mode
@@ -599,6 +604,12 @@ func get_distance_queue(custom_pin_pos: Variant = null) -> Array[Dictionary]:
 
 	if game_mode in ["Scramble", "2v2 Scramble"]:
 		eligible.sort_custom(func(a, b):
+			var a_holed = a["player"].get("holed_out", false)
+			var b_holed = b["player"].get("holed_out", false)
+			if a_holed != b_holed:
+				return not a_holed
+			if a_holed and b_holed:
+				return players.find(a["player"]) < players.find(b["player"])
 			var a_strokes = a["player"].get("strokes", 0)
 			var b_strokes = b["player"].get("strokes", 0)
 			if a_strokes != b_strokes:
@@ -607,6 +618,12 @@ func get_distance_queue(custom_pin_pos: Variant = null) -> Array[Dictionary]:
 		)
 	elif mode == "Stay Up":
 		eligible.sort_custom(func(a, b):
+			var a_holed = a["player"].get("holed_out", false)
+			var b_holed = b["player"].get("holed_out", false)
+			if a_holed != b_holed:
+				return not a_holed
+			if a_holed and b_holed:
+				return players.find(a["player"]) < players.find(b["player"])
 			var a_tee = (a["player"].get("strokes", 0) == 0)
 			var b_tee = (b["player"].get("strokes", 0) == 0)
 			if a_tee != b_tee:
@@ -615,11 +632,21 @@ func get_distance_queue(custom_pin_pos: Variant = null) -> Array[Dictionary]:
 		)
 	elif mode == "Full Hole":
 		eligible.sort_custom(func(a, b):
+			var a_holed = a["player"].get("holed_out", false)
+			var b_holed = b["player"].get("holed_out", false)
+			if a_holed != b_holed:
+				return not a_holed
 			return players.find(a["player"]) < players.find(b["player"])
 		)
 	else:
 		# Classic and default: furthest from pin hits next
 		eligible.sort_custom(func(a, b):
+			var a_holed = a["player"].get("holed_out", false)
+			var b_holed = b["player"].get("holed_out", false)
+			if a_holed != b_holed:
+				return not a_holed
+			if a_holed and b_holed:
+				return players.find(a["player"]) < players.find(b["player"])
 			return a["distance_yards"] > b["distance_yards"]
 		)
 	
@@ -824,16 +851,25 @@ func record_shot(final_position: Vector3, raw_shot_data: Dictionary = {}) -> voi
 		active_player["lies_in_hole"] = []
 	active_player["lies_in_hole"].append(active_player.get("lie_type", ""))
 	
-	var c_lower = current_club.strip_edges().to_lower()
+	var shot_club = str(raw_shot_data.get("club", raw_shot_data.get("Club", current_club))).strip_edges()
+	if shot_club.is_empty():
+		shot_club = current_club
+	var c_lower = shot_club.to_lower()
 	var is_putter_club = (c_lower in ["pt", "putt", "putter"] or c_lower.begins_with("putt"))
-	if is_putter_club:
+
+	var ball_node = player_node.get("ball") if player_node != null else null
+	var is_actual_putt = is_putter_club
+	if ball_node != null and "is_putt" in ball_node:
+		is_actual_putt = is_putter_club and bool(ball_node.is_putt)
+
+	if is_actual_putt:
 		active_player["last_putt_dist_yards"] = ground_dist_yds
 	else:
 		active_player["last_putt_dist_yards"] = 0.0
 
 	if has_node("/root/AchievementManager") and not practice_mode_active and is_club_averages_tracking_enabled() and recorded and not active_player.get("is_remote", false):
 		var total_yds = (raw_shot_data.get("TotalDistance", 0.0) as float) * 1.09361
-		get_node("/root/AchievementManager").check_shot_achievements(active_player.get("name", ""), current_club, total_yds, prev_longest_drive)
+		get_node("/root/AchievementManager").check_shot_achievements(active_player.get("name", ""), shot_club, total_yds, prev_longest_drive)
 
 	emit_signal("shot_recorded", active_player, raw_shot_data)
 	emit_signal("distance_queue_updated")
@@ -849,14 +885,13 @@ func record_shot(final_position: Vector3, raw_shot_data: Dictionary = {}) -> voi
 		
 		# If ball holed out or stopped inside cup, player holed out.
 		var ball_holed = false
-		if player_node != null and player_node.get("ball") != null:
-			var ball_node = player_node.get("ball")
+		if ball_node != null:
 			ball_holed = bool(ball_node.get("is_falling_in_hole")) or bool(ball_node.get("holed_out_this_shot"))
 		if active_player.get("holed_out", false) or ball_holed or dist_to_pin <= 0.054:
 			active_player["holed_out"] = true
 			print("[MultiplayerManager] Player %s holed out! Score: %d" % [active_player["name"], active_player["strokes"]])
 			var putt_dist = active_player.get("last_putt_dist_yards", 0.0)
-			if is_putter_club and putt_dist > 0.0 and not active_player.get("is_remote", false):
+			if is_actual_putt and putt_dist > 0.0 and not active_player.get("is_remote", false):
 				var putt_ft = putt_dist * 3.0
 				var p_src = raw_shot_data.get("src", "")
 				if p_src == "":
@@ -870,7 +905,8 @@ func record_shot(final_position: Vector3, raw_shot_data: Dictionary = {}) -> voi
 				get_node("/root/AnnouncerEngine").call("AnnounceHoleScore", active_player["name"], active_player["strokes"], par)
 			if has_node("/root/AchievementManager") and not active_player.get("is_remote", false):
 				var shot_dist = active_player.get("last_shot_distance_yards", 0.0)
-				get_node("/root/AchievementManager").check_hole_achievements(active_player.get("name", ""), par, active_player["strokes"], active_player.get("lies_in_hole", []), putt_dist, true, current_club, shot_dist)
+				var pass_putt_dist = putt_dist if is_actual_putt else 0.0
+				get_node("/root/AchievementManager").check_hole_achievements(active_player.get("name", ""), par, active_player["strokes"], active_player.get("lies_in_hole", []), pass_putt_dist, true, shot_club, shot_dist)
 		else:
 			# Play clap if drive lands in fairway, or ball lands on green in par-1 or less strokes
 			var landed_in_fairway = (par >= 4 and active_player["strokes"] == 1 and active_player.get("lie_type", "") == "fairway")
@@ -3642,11 +3678,13 @@ func record_global_shot(player_name: String, club_name: String, raw_shot: Dictio
 			if shot_total_yds > current_longest:
 				stats[target_key]["_records"]["longest_drive"] = shot_total_yds
 	elif club_code == "Pt":
-		var shot_putt_ft = shot_total_yds * 3.0
-		if shot_putt_ft > 0.0 and shot_putt_ft <= 180.0:
-			var current_longest_putt = float(stats[target_key]["_records"].get("longest_putt_ft", 0.0))
-			if shot_putt_ft > current_longest_putt:
-				stats[target_key]["_records"]["longest_putt_ft"] = shot_putt_ft
+		var was_holed = bool(entry.get("holed", raw_shot.get("holed", raw_shot.get("is_holed", false))))
+		if was_holed:
+			var shot_putt_ft = shot_total_yds * 3.0
+			if shot_putt_ft > 0.0 and shot_putt_ft <= 180.0:
+				var current_longest_putt = float(stats[target_key]["_records"].get("longest_putt_ft", 0.0))
+				if shot_putt_ft > current_longest_putt:
+					stats[target_key]["_records"]["longest_putt_ft"] = shot_putt_ft
 
 	# Exclude outlier shots (extreme duffs or sensor glitches) from standard club averages
 	if is_shot_outlier(stats[target_key][club_code], entry, club_code):
@@ -4653,10 +4691,12 @@ func calculate_player_stats(player_name: String) -> Dictionary:
 											var diff_sign = "+" if diff > 0 else ""
 											var diff_str = "%s%d" % [diff_sign, diff] if diff != 0 else "E"
 											
-											if not stats["best_courses"].has(course_t) or diff < stats["best_courses"][course_t]["diff"]:
+											if not stats["best_courses"].has(course_t) or diff < stats["best_courses"][course_t]["diff"] or (diff == stats["best_courses"][course_t]["diff"] and hole_scores.size() > int(stats["best_courses"][course_t].get("holes", 0))):
 												stats["best_courses"][course_t] = {
 													"diff": diff,
-													"str": "%s (%d holes)" % [diff_str, hole_scores.size()]
+													"str": "%s (%d holes)" % [diff_str, hole_scores.size()],
+													"strokes": player_strokes,
+													"holes": hole_scores.size()
 												}
 						
 				file_name = dir.get_next()
@@ -4949,6 +4989,49 @@ func record_remote_shot(event: Dictionary) -> void:
 					target_p["position"] = final_position
 			if cur_pin.distance_to(pin_vec) > 0.05 and cur_pin.distance_to(pin_vec) <= 40.0:
 				set_current_pin_position(pin_vec)
+
+	# Update in-memory shot_history and shot_stats so remote players' shot paths
+	# and distances appear on the scorecard review just like local players.
+	if not target_p.has("shot_history") or not (target_p["shot_history"] is Array):
+		target_p["shot_history"] = []
+	target_p["shot_history"].append(final_position)
+
+	if not hole_id.is_empty():
+		if not target_p.has("shot_stats") or not (target_p["shot_stats"] is Dictionary):
+			target_p["shot_stats"] = {}
+		if not target_p["shot_stats"].has(hole_id) or not (target_p["shot_stats"][hole_id] is Array):
+			target_p["shot_stats"][hole_id] = []
+
+		var stat_entry: Dictionary = {}
+		if event.has("shot_stat") and event["shot_stat"] is Dictionary and not (event["shot_stat"] as Dictionary).is_empty():
+			stat_entry = (event["shot_stat"] as Dictionary).duplicate(true)
+			stat_entry["start_pos"] = start_pos
+			stat_entry["end_pos"] = final_position
+			if not stat_entry.has("shot_num"):
+				stat_entry["shot_num"] = target_p.get("strokes", 1)
+		else:
+			var shot_dist_yds: float = Vector2(start_pos.x, start_pos.z).distance_to(Vector2(final_position.x, final_position.z)) * 1.09361
+			stat_entry = {
+				"shot_num": target_p.get("strokes", 1),
+				"start_pos": start_pos,
+				"end_pos": final_position,
+				"club": str(event.get("club", target_p.get("last_shot_club", "Dr"))),
+				"speed_mph": 0.0,
+				"ball_speed_mph": 0.0,
+				"club_speed_mph": 0.0,
+				"smash_factor": 0.0,
+				"vla_deg": 0.0,
+				"hla_deg": 0.0,
+				"back_spin_rpm": 0.0,
+				"side_spin_rpm": 0.0,
+				"total_spin_rpm": 0.0,
+				"spin_axis_deg": 0.0,
+				"carry_yds": shot_dist_yds,
+				"total_yds": shot_dist_yds,
+				"apex_ft": 0.0,
+				"offline_yds": 0.0
+			}
+		target_p["shot_stats"][hole_id].append(stat_entry)
 
 	var gimme_strokes := int(event.get("gimme_strokes", 0))
 	if gimme_strokes > 0 or bool(event.get("holed_out", false)):

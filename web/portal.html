@@ -355,8 +355,10 @@
           <div class="portal-nav-tabs">
             <button class="portal-tab-btn active" data-tab="overview">Overview &amp; Clubs</button>
             <button class="portal-tab-btn" data-tab="shot-analysis">Shot Data Analysis</button>
+            <button class="portal-tab-btn" data-tab="analytics">📈 Improvement Analytics</button>
             <button class="portal-tab-btn" data-tab="matches">Recent Matches</button>
-            <button class="portal-tab-btn" data-tab="achievements">Swing Analysis &amp; Achievements</button>
+            <button class="portal-tab-btn" data-tab="swing">🎯 Swing Analysis</button>
+            <button class="portal-tab-btn" data-tab="achievements">🏆 Achievements</button>
             <button class="portal-tab-btn" data-tab="settings">Simulator Approvals &amp; Settings</button>
           </div>
 
@@ -412,6 +414,7 @@
               <div class="portal-card-header">
                 <h3 class="portal-card-title">🏌️ Club Distances &amp; Delivery Averages</h3>
                 <div class="card-header-actions">
+                  <button class="btn-action-outline" id="btn-view-analytics-shortcut" style="margin-right: 0.5rem;" title="View in-depth improvement analytics">📈 View Improvement Trends</button>
                   <button class="btn-action-outline btn-danger-outline" id="btn-clear-all-history" title="Clear all ball history across all clubs">🧹 Clear All History</button>
                 </div>
               </div>
@@ -458,6 +461,41 @@
             </div>
           </div>
 
+          <!-- Tab: Improvement Analytics -->
+          <div class="portal-tab-pane" id="portal-tab-analytics">
+            <div class="portal-card">
+              <div class="portal-card-header analytics-header-flex">
+                <div>
+                  <h3 class="portal-card-title">📈 Swing Delivery &amp; Accuracy Improvement Analytics</h3>
+                  <p class="analytics-subtitle">
+                    Review your game trends: track if your offline dispersion is nearing the centerline target, if your club face and path are squaring up to straight, and see data-driven indicators of how your game is improving over time.
+                  </p>
+                </div>
+                <div class="analytics-filter-controls">
+                  <div class="analytics-filter-group">
+                    <label for="analytics-club-select">Club:</label>
+                    <select id="analytics-club-select" class="analytics-select">
+                      <option value="all">All Recorded Clubs (Aggregated)</option>
+                    </select>
+                  </div>
+                  <div class="analytics-filter-group">
+                    <label for="analytics-window-select">Sample Window:</label>
+                    <select id="analytics-window-select" class="analytics-select">
+                      <option value="last10">Last 10 vs Prior 10 Shots</option>
+                      <option value="last25">Last 25 vs Prior 25 Shots</option>
+                      <option value="all">All Recorded Shots (First Half vs Second Half)</option>
+                    </select>
+                  </div>
+                  <button class="btn-action-outline" id="btn-refresh-analytics" title="Recalculate trends">🔄 Refresh</button>
+                </div>
+              </div>
+
+              <div id="analytics-content-container">
+                <!-- Dynamically populated by portal.js -->
+              </div>
+            </div>
+          </div>
+
           <!-- Tab 2: Recent Matches -->
           <div class="portal-tab-pane" id="portal-tab-matches">
             <div class="portal-card">
@@ -470,21 +508,34 @@
             </div>
           </div>
 
-          <!-- Tab 3: Swing Analysis & Achievements -->
-          <div class="portal-tab-pane" id="portal-tab-achievements">
+          <!-- Tab 3: Swing Analysis -->
+          <div class="portal-tab-pane" id="portal-tab-swing">
             <div class="portal-card">
               <div class="portal-card-header">
-                <h3 class="portal-card-title">📈 Swing Analysis Tendencies</h3>
+                <div>
+                  <h3 class="portal-card-title">🎯 Swing Recommendations &amp; Flaw Tendencies</h3>
+                  <p class="analytics-subtitle" style="margin-top: 0.25rem;">
+                    Categorized swing flaws and prioritized improvement recommendations tracked from your launch monitor sessions.
+                  </p>
+                </div>
                 <button class="btn-action-outline btn-danger-outline" id="btn-clear-swing-history" title="Clear swing flaw and tendency history">🧹 Clear Swing History</button>
               </div>
               <div id="swing-analysis-container">
                 <!-- Lazy loaded by portal.js -->
               </div>
             </div>
+          </div>
 
+          <!-- Tab 4: Achievements -->
+          <div class="portal-tab-pane" id="portal-tab-achievements">
             <div class="portal-card">
               <div class="portal-card-header">
-                <h3 class="portal-card-title">🏆 Unlocked Achievements</h3>
+                <div>
+                  <h3 class="portal-card-title">🏆 Unlocked Achievements</h3>
+                  <p class="analytics-subtitle" style="margin-top: 0.25rem;">
+                    Badges, milestones, and challenges unlocked during course play, practice, and minigames.
+                  </p>
+                </div>
               </div>
               <div id="achievements-container">
                 <!-- Lazy loaded by portal.js -->

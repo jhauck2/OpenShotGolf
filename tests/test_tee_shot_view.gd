@@ -8,6 +8,8 @@ func _initialize() -> void:
 
 
 func _run_test() -> void:
+	var course_play_script = load("res://Courses/CoursePlay/course_play.gd")
+	assert(course_play_script != null, "Course play script must load with tee-shot view integration")
 	var view_script = load("res://UI/tee_shot_view.gd")
 	assert(view_script != null, "Tee shot view script must load")
 

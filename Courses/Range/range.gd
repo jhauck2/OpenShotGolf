@@ -29,6 +29,7 @@ var display_data: Dictionary = {
 var raw_ball_data: Dictionary = {}
 var last_display: Dictionary = {}
 var is_aerial_view: bool = false
+var _free_camera: Camera3D = null
 var is_driving_range: bool = false
 var _elevation_width: int = 0
 var _elevation_height: int = 0
@@ -461,6 +462,8 @@ func _ready() -> void:
 
 	GlobalSettings.range_settings.camera_follow_mode.setting_changed.connect(set_camera_follow_mode)
 	set_camera_follow_mode(GlobalSettings.range_settings.camera_follow_mode.value)
+	if GlobalSettings.range_settings.settings.has("shot_replay_follow"):
+		GlobalSettings.range_settings.shot_replay_follow.setting_changed.connect(_on_shot_replay_follow_changed)
 	GlobalSettings.range_settings.camera_height.setting_changed.connect(update_camera_offset)
 	GlobalSettings.range_settings.camera_distance.setting_changed.connect(update_camera_offset)
 	GlobalSettings.range_settings.camera_fov.setting_changed.connect(update_camera_fov)
@@ -1242,7 +1245,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				$RangeUI.emit_signal("skip_flight_requested")
 			get_viewport().set_input_as_handled()
 			return
+		elif event.is_action_pressed("free_cam_toggle"):
+			toggle_free_camera()
+			get_viewport().set_input_as_handled()
+			return
 		elif event.is_action_pressed("hit_shot"):
+			if is_free_camera_active():
+				get_viewport().set_input_as_handled()
+				return
 			if has_node("Player"):
 				var p = get_node("Player")
 				if p.has_method("manual_hit_shot"):
@@ -1399,6 +1409,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 
 	if event is InputEventMouseButton and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
+		if is_free_camera_active():
+			return
 		if event.pressed:
 			if GlobalSettings.is_chipping_minigame and event.button_index == MOUSE_BUTTON_LEFT:
 				var camera = get_viewport().get_camera_3d()
@@ -1672,7 +1684,7 @@ func _process_screen_aiming(delta: float) -> void:
 func _process_keyboard_aiming(delta: float) -> void:
 	if not has_node("Player") or $Player.ball == null or _shot_active:
 		return
-	if is_any_dialog_open():
+	if is_any_dialog_open() or is_free_camera_active():
 		return
 
 	var turn_input: float = 0.0
@@ -2704,6 +2716,13 @@ func _update_averages(target_club: String = "") -> void:
 
 	# No auto reset: leave final numbers visible
 
+func _on_shot_replay_follow_changed(value: bool) -> void:
+	var sess = get_node_or_null("/root/OnlineSession")
+	var is_replay_active = sess != null and sess.has_method("is_replaying_remote_turn") and sess.is_replaying_remote_turn()
+	if is_replay_active:
+		set_camera_follow_mode(value)
+
+
 func set_camera_follow_mode(value) -> void:
 	var camera = get_node_or_null("PhantomCamera3D")
 	if camera == null:
@@ -2715,7 +2734,14 @@ func set_camera_follow_mode(value) -> void:
 		if sess != null and sess.has_method("is_replaying_remote_turn"):
 			is_replay_active = sess.is_replaying_remote_turn()
 
-	if value and has_node("Player") and $Player.ball != null and (_shot_active or is_replay_active):
+	var should_follow: bool = bool(value)
+	if is_replay_active:
+		if has_node("/root/GlobalSettings"):
+			var gs = get_node("/root/GlobalSettings")
+			if gs.range_settings != null and gs.range_settings.settings.has("shot_replay_follow"):
+				should_follow = bool(gs.range_settings.shot_replay_follow.value)
+
+	if should_follow and has_node("Player") and $Player.ball != null and (_shot_active or is_replay_active):
 		camera.follow_mode = PhantomCamera3D.FollowMode.SIMPLE
 		var player = $Player
 		var target_node = player.get_camera_target() if player.has_method("get_camera_target") else player.ball
@@ -2870,7 +2896,12 @@ func on_remote_shot_replay_started(shot_event: Dictionary) -> void:
 			$Camera3D.global_position = cam_pos
 			$Camera3D.look_at(target_look)
 
-	set_camera_follow_mode(true)
+	var should_follow: bool = false
+	if has_node("/root/GlobalSettings"):
+		var gs = get_node("/root/GlobalSettings")
+		if gs.range_settings != null and gs.range_settings.settings.has("shot_replay_follow"):
+			should_follow = bool(gs.range_settings.shot_replay_follow.value)
+	set_camera_follow_mode(should_follow)
 
 
 func on_remote_shot_replay_finished(shot_event: Dictionary) -> void:
@@ -3066,7 +3097,100 @@ func prev_practice_hole() -> void:
 	load_practice_hole(current_practice_hole_index - 1)
 
 
+func is_free_camera_active() -> bool:
+	return _free_camera != null and is_instance_valid(_free_camera) and _free_camera.is_active
+
+
+func toggle_free_camera() -> void:
+	set_free_camera_mode(not is_free_camera_active())
+
+
+func set_free_camera_mode(enabled: bool) -> void:
+	if enabled:
+		if is_aerial_view:
+			_on_map_button_pressed()
+		if _free_camera == null or not is_instance_valid(_free_camera):
+			var free_cam_script = load("res://Utils/free_camera.gd")
+			_free_camera = free_cam_script.new()
+			_free_camera.name = "FreeCamera3D"
+			add_child(_free_camera)
+			if not _free_camera.deactivated.is_connected(_on_free_camera_deactivated):
+				_free_camera.deactivated.connect(_on_free_camera_deactivated)
+		var cur_cam = get_viewport().get_camera_3d() if get_viewport() != null else null
+		_free_camera.activate(cur_cam, self)
+	else:
+		if _free_camera != null and is_instance_valid(_free_camera):
+			_free_camera.deactivate()
+		reset_to_standard_ball_view()
+	if has_node("RangeUI") and $RangeUI.has_method("set_free_camera_btn_state"):
+		$RangeUI.set_free_camera_btn_state(enabled)
+
+
+func _on_free_camera_deactivated() -> void:
+	reset_to_standard_ball_view()
+	if has_node("RangeUI") and $RangeUI.has_method("set_free_camera_btn_state"):
+		$RangeUI.set_free_camera_btn_state(false)
+
+
+func reset_to_standard_ball_view() -> void:
+	if not has_node("Player") or $Player.ball == null:
+		return
+	var ball = $Player.ball
+	var ball_pos: Vector3 = ball.global_position
+	if ball_pos.is_zero_approx() and "spawn_position" in ball and not (ball.spawn_position as Vector3).is_zero_approx():
+		ball_pos = ball.spawn_position
+
+	var is_on_green: bool = false
+	if has_method("is_ball_on_green"):
+		is_on_green = bool(call("is_ball_on_green"))
+
+	var aim_target: Vector3 = aim_target_pos if ("aim_target_pos" in self and not aim_target_pos.is_zero_approx()) else (ball_pos + Vector3.RIGHT * 50.0)
+	var diff: Vector3 = aim_target - ball_pos
+	var angle_rad: float = atan2(diff.z, diff.x)
+	if absf(diff.x) < 0.001 and absf(diff.z) < 0.001:
+		angle_rad = -deg_to_rad(ball.aim_yaw_offset_deg) if "aim_yaw_offset_deg" in ball else 0.0
+
+	var cam_pos: Vector3 = get_address_camera_position(ball_pos, -angle_rad, is_on_green, false)
+	var target_look: Vector3 = get_camera_target_look(aim_target, ball_pos, is_on_green)
+
+	var fov_val: float = 75.0
+	if has_node("/root/GlobalSettings") and GlobalSettings.range_settings != null and "camera_fov" in GlobalSettings.range_settings:
+		fov_val = GlobalSettings.range_settings.camera_fov.value
+
+	if has_node("PhantomCamera3D"):
+		var pcam = $PhantomCamera3D
+		pcam.follow_mode = PhantomCamera3D.FollowMode.NONE
+		pcam.look_at_mode = PhantomCamera3D.LookAtMode.NONE
+		pcam.global_position = cam_pos
+		pcam.look_at(target_look)
+		if pcam.camera_3d_resource != null:
+			pcam.camera_3d_resource.fov = fov_val
+
+	if has_node("Camera3D"):
+		var cam3d = $Camera3D
+		cam3d.global_position = cam_pos
+		cam3d.look_at(target_look)
+		cam3d.fov = fov_val
+		cam3d.make_current()
+
+	if has_node("/root/ScreenOffsetManager"):
+		var som = get_node("/root/ScreenOffsetManager")
+		var cam_to_register = get_node_or_null("PhantomCamera3D")
+		if cam_to_register == null:
+			cam_to_register = get_node_or_null("Camera3D")
+		if cam_to_register != null:
+			som.call("register_camera", cam_to_register)
+		som.call("set_putter_active", is_on_green)
+		som.call("on_ready_for_shot", 0.0, true)
+
+
+func set_free_camera_active(val: bool) -> void:
+	set_free_camera_mode(val)
+
+
 func _on_map_button_pressed() -> void:
+	if not is_aerial_view and is_free_camera_active():
+		set_free_camera_mode(false)
 	is_aerial_view = !is_aerial_view
 	is_screen_aiming = false
 	screen_aim_direction = 0.0
@@ -3756,8 +3880,8 @@ func _calc_is_ball_on_fringe(ball: Node) -> bool:
 func is_putting_view(override_val: Variant = null) -> bool:
 	if override_val != null:
 		return bool(override_val)
-	var club = _get_current_club().to_lower()
-	return is_ball_on_green() or is_ball_on_fringe() or (club in ["pt", "putt", "putter"])
+	var club = _get_current_club().strip_edges().to_lower()
+	return club in ["pt", "putt", "putter"] or club.begins_with("putt")
 
 
 func get_camera_target_look(target_pos: Vector3, origin_pos: Vector3, is_on_green: Variant = null) -> Vector3:

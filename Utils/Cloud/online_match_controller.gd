@@ -588,6 +588,17 @@ func publish_local_shot(
 	var seq := _last_applied_seq + 1
 	var now := Time.get_unix_time_from_system()
 
+	var shot_stat: Dictionary = {}
+	if active_p.has("shot_stats") and active_p["shot_stats"] is Dictionary:
+		var cur_hole = mp.get_current_hole_id()
+		if active_p["shot_stats"].has(cur_hole) and active_p["shot_stats"][cur_hole] is Array and not active_p["shot_stats"][cur_hole].is_empty():
+			var last_stat: Dictionary = active_p["shot_stats"][cur_hole].back()
+			shot_stat = last_stat.duplicate(true)
+			for pos_key in ["start_pos", "end_pos", "position"]:
+				if shot_stat.has(pos_key) and shot_stat[pos_key] is Vector3:
+					var v: Vector3 = shot_stat[pos_key]
+					shot_stat[pos_key] = [v.x, v.y, v.z]
+
 	var event_data := {
 		"seq": seq,
 		"by_uid": my_uid,
@@ -608,6 +619,8 @@ func publish_local_shot(
 		"next_slot": next_slot,
 		"created_at": now
 	}
+	if not shot_stat.is_empty():
+		event_data["shot_stat"] = shot_stat
 
 	_last_applied_seq = seq
 
@@ -1089,6 +1102,9 @@ func _normalize_event_coordinates(evt: Dictionary) -> Dictionary:
 		normalized["start_pos"] = [norm_start.x, norm_start.y, norm_start.z]
 	if normalized.has("end_pos"):
 		normalized["end_pos"] = [norm_end.x, norm_end.y, norm_end.z]
+	if normalized.has("shot_stat") and normalized["shot_stat"] is Dictionary:
+		normalized["shot_stat"]["start_pos"] = [norm_start.x, norm_start.y, norm_start.z]
+		normalized["shot_stat"]["end_pos"] = [norm_end.x, norm_end.y, norm_end.z]
 	normalized["pin"] = [local_pin.x, local_pin.y, local_pin.z]
 	normalized["_normalized"] = true
 	return normalized

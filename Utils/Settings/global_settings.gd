@@ -17,6 +17,10 @@ var current_wind_speed_mph: float = 0.0
 var current_wind_direction_rad: float = 0.0
 var wind_initialized_for_round: bool = false
 
+## When true, temporary in-match forced settings are active and disk saving is blocked
+## so the player's personal settings file is not overwritten.
+var suppress_save: bool = false
+
 
 var _loaded_announcer_settings := {}
 
@@ -222,7 +226,7 @@ func load_settings() -> void:
 		migrated = true
 	
 	# Migration / validation for green speed (clamp out-of-bounds legacy settings like 30.0/50.0 to standard 10.0)
-	if range_settings.green_speed.value < 6.0 or range_settings.green_speed.value > 16.0:
+	if range_settings.green_speed.value < 5.0 or range_settings.green_speed.value > 16.0:
 		range_settings.green_speed.set_value(10.0)
 		migrated = true
 	
@@ -269,7 +273,7 @@ func load_settings() -> void:
 	if typeof(tab_val) != TYPE_INT and typeof(tab_val) != TYPE_FLOAT:
 		range_settings.launch_monitor_tab.set_value(0)
 		migrated = true
-	elif int(tab_val) < 0 or int(tab_val) > 1:
+	elif int(tab_val) < 0 or int(tab_val) > 3:
 		range_settings.launch_monitor_tab.set_value(0)
 		migrated = true
 
@@ -331,6 +335,8 @@ func load_settings() -> void:
 
 
 func save_settings() -> void:
+	if suppress_save:
+		return
 	var config = ConfigFile.new()
 	# Load existing file first to preserve other sections (keybindings, controller bindings, etc.)
 	config.load("user://global_settings.cfg")
@@ -553,8 +559,18 @@ func is_putting_minigame_screen() -> bool:
 
 func get_effective_green_speed() -> float:
 	if range_settings != null and "green_speed" in range_settings:
-		return float(range_settings.green_speed.value)
-	return 10.0
+		var raw_speed = float(range_settings.green_speed.value)
+		# Calibrated green speed:
+		# Setting 10.0 (default) yields effective speed 5.0 (speed of 5.0 previously)
+		# Setting 15.0 yields effective speed 10.0 (speed of 10.0 previously)
+		# Setting 5.0 yields effective speed 3.33 (slower than 10.0)
+		# Linear shift in friction multiplier: speed_mult = 4.0 - 0.2 * raw_speed
+		# effective_speed = 10.0 / speed_mult
+		var speed_mult: float = 4.0 - 0.2 * raw_speed
+		if speed_mult <= 0.05:
+			return 200.0
+		return 10.0 / speed_mult
+	return 5.0
 
 
 func is_minigames_scene() -> bool:

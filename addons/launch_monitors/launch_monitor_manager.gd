@@ -23,6 +23,12 @@ const SQUARE_DEVICE_PREFIX := "squaregolf"
 const GARMIN_CLASS_NAME := "GarminLaunchMonitor"
 const GARMIN_SCRIPT_PATH := "res://addons/launch_monitors/garmin/GarminLaunchMonitor.cs"
 const GARMIN_LOG_PREFIX := "[GarminLM]"
+const RAINMAKER_CLASS_NAME := "RainmakerLaunchMonitor"
+const RAINMAKER_SCRIPT_PATH := "res://addons/launch_monitors/rainmaker/RainmakerLaunchMonitor.cs"
+const RAINMAKER_LOG_PREFIX := "[RainmakerLM]"
+const FSX_CSV_CLASS_NAME := "FsxCsvMonitor"
+const FSX_CSV_SCRIPT_PATH := "res://addons/launch_monitors/fsx/fsx_csv_monitor.gd"
+const FSX_CSV_LOG_PREFIX := "[BushnellFSX]"
 const BLUEZ_DEVICE_SEGMENT_PREFIX := "/dev_"
 const LINUX_AUTO_CONNECT_SCAN_SECONDS := 15.0
 const TRANSIENT_CONNECT_ERROR_MARKERS := [
@@ -42,21 +48,29 @@ var is_ready := false
 var last_sensor_data := {"pos_x": 0, "pos_y": 0, "pos_z": 0, "ready": false, "detected": false}
 var _square_init_error := ""
 var _garmin_init_error := ""
-var _active_driver := "" # "square" or "garmin"
+var _rainmaker_init_error := ""
+var _fsx_csv_init_error := ""
+var _active_driver := "" # "square", "garmin", "rainmaker", or "bushnell_fsx"
 var settings := {
 	"enabled": false,
+	"remember_device": false,
 	"device_id": "",
 	"device_name": "",
-	"device_type": "auto", # "auto", "square", "garmin"
+	"device_type": "auto", # "auto", "square", "garmin", "rainmaker", "bushnell_fsx"
+	"pairing_code": "",
 	"club_code": DEFAULT_CLUB_CODE,
 	"handedness": 0,
 	"ready_ding_enabled": true,
 	"ready_indicator_enabled": true,
-	"ball_placement_guide_enabled": true
+	"ball_placement_guide_enabled": true,
+	"fsx_csv_path": "",
+	"fsx_poll_interval": 0.25
 }
 
 var _square: Node = null
 var _garmin: Node = null
+var _rainmaker: Node = null
+var _fsx_csv: Node = null
 var _config := ConfigFile.new()
 var _linux_auto_connect_active := false
 var _linux_auto_connect_target_address := ""
@@ -88,9 +102,12 @@ func _ready() -> void:
 	_setup_ready_hud()
 	_create_square_monitor()
 	_create_garmin_monitor()
-	if _square == null and _garmin == null:
-		_debug_error("Neither Square nor Garmin monitor could be loaded: Square='%s', Garmin='%s'" % [_square_init_error, _garmin_init_error])
-	if DisplayServer.get_name() != "headless" and bool(settings.get("enabled", false)):
+	_create_rainmaker_monitor()
+	_create_fsx_csv_monitor()
+	if _square == null and _garmin == null and _rainmaker == null and _fsx_csv == null:
+		_debug_error("No launch monitors could be loaded: Square='%s', Garmin='%s', Rainmaker='%s', FSX='%s'" % [_square_init_error, _garmin_init_error, _rainmaker_init_error, _fsx_csv_init_error])
+	var should_auto_connect := bool(settings.get("remember_device", false)) and bool(settings.get("enabled", true)) and str(settings.get("device_id", "")).strip_edges() != ""
+	if DisplayServer.get_name() != "headless" and should_auto_connect:
 		call_deferred("_connect_saved_device_on_startup", str(settings.get("device_id", "")))
 	
 	if EventBus.has_signal("club_selected"):
@@ -206,28 +223,43 @@ func is_square_device_name(name: String) -> bool:
 	)
 
 
+func is_rainmaker_device_name(name: String) -> bool:
+	var n := name.strip_edges().to_lower()
+	if n == "":
+		return false
+	return n.contains("rainmaker") or n.contains("blue tees") or n.contains("bluetees")
+
+
 func is_auto_connecting() -> bool:
 	return _is_auto_connecting_default or _fallback_scan_active
 
 
 func detect_device_type(device_id: String, device_name: String = "") -> String:
+	if device_id == "bushnell_fsx_csv" or device_id == "bushnell_fsx" or device_id.to_lower().contains("fsx"):
+		return "bushnell_fsx"
+	if device_name.to_lower().contains("bushnell") or device_name.to_lower().contains("fsx"):
+		return "bushnell_fsx"
 	if devices.has(device_id):
 		var dev: Dictionary = devices[device_id]
 		var dev_type := str(dev.get("type", ""))
-		if dev_type == "garmin" or dev_type == "square":
+		if dev_type == "garmin" or dev_type == "square" or dev_type == "rainmaker" or dev_type == "bushnell_fsx":
 			return dev_type
 		var dname := str(dev.get("name", ""))
+		if is_rainmaker_device_name(dname):
+			return "rainmaker"
 		if is_square_device_name(dname):
 			return "square"
 		if is_garmin_device_name(dname):
 			return "garmin"
 	if device_name != "":
+		if is_rainmaker_device_name(device_name):
+			return "rainmaker"
 		if is_square_device_name(device_name):
 			return "square"
 		if is_garmin_device_name(device_name):
 			return "garmin"
 	var explicit_type := str(settings.get("device_type", "auto"))
-	if explicit_type == "square" or explicit_type == "garmin":
+	if explicit_type == "square" or explicit_type == "garmin" or explicit_type == "rainmaker" or explicit_type == "bushnell_fsx":
 		return explicit_type
 	return "square"
 
@@ -241,6 +273,8 @@ func start_scan() -> void:
 		_start_garmin_scan()
 	elif dev_type == "square":
 		_start_square_scan()
+	elif dev_type == "rainmaker":
+		_start_rainmaker_scan()
 	else:
 		_start_square_scan()
 		if OS.get_name() == "Android" or OS.get_name() == "macOS" or OS.get_name() == "iOS":
@@ -254,11 +288,12 @@ func stop_scan() -> void:
 	_cancel_linux_auto_connect_scan()
 	_stop_square_scan()
 	_stop_garmin_scan()
+	_stop_rainmaker_scan()
 	if status == "Scanning":
 		_set_status("Disconnected")
 
 
-func connect_to_device(device_id: String, is_auto: bool = false) -> void:
+func connect_to_device(device_id: String, is_auto: bool = false, pairing_code: String = "") -> void:
 	_is_manual_connect = not is_auto
 	if _is_manual_connect:
 		_auto_reconnect_attempts = 0
@@ -266,8 +301,10 @@ func connect_to_device(device_id: String, is_auto: bool = false) -> void:
 	_cancel_default_connect_timer()
 	_stop_fallback_scan()
 	_cancel_linux_auto_connect_scan()
-	_debug_log("connect_to_device requested for %s (auto=%s)" % [device_id, str(is_auto)])
+	_debug_log("connect_to_device requested for %s (auto=%s, codeProvided=%s)" % [device_id, str(is_auto), str(pairing_code != "")])
 	settings["device_id"] = device_id
+	if pairing_code != "":
+		settings["pairing_code"] = pairing_code
 	var device_name := ""
 	var detected_type := ""
 	if devices.has(device_id):
@@ -282,6 +319,8 @@ func connect_to_device(device_id: String, is_auto: bool = false) -> void:
 			device_name = "Square Golf"
 		elif detected_type == "garmin" and is_square_device_name(device_name):
 			device_name = "Garmin Approach R10"
+		elif detected_type == "rainmaker":
+			device_name = "Blue Tees Rainmaker"
 		settings["device_name"] = device_name
 	elif str(settings.get("device_name", "")) != "":
 		var prev_name := str(settings.get("device_name", ""))
@@ -289,19 +328,58 @@ func connect_to_device(device_id: String, is_auto: bool = false) -> void:
 			device_name = "Square Golf"
 		elif detected_type == "garmin" and is_square_device_name(prev_name):
 			device_name = "Garmin Approach R10"
+		elif detected_type == "rainmaker":
+			device_name = "Blue Tees Rainmaker"
 		else:
 			device_name = prev_name
 		settings["device_name"] = device_name
 	else:
-		device_name = "Square Golf" if detected_type == "square" else "Garmin Approach R10"
+		if detected_type == "garmin":
+			device_name = "Garmin Approach R10"
+		elif detected_type == "rainmaker":
+			device_name = "Blue Tees Rainmaker"
+		else:
+			device_name = "Square Golf"
 		settings["device_name"] = device_name
 
 	_active_driver = detected_type
 	stop_scan()
 
-	if detected_type == "garmin":
+	if detected_type == "bushnell_fsx":
 		if _square != null:
 			_square.call("DisconnectFromDevice")
+		if _garmin != null:
+			_garmin.call("DisconnectFromDevice")
+		if _rainmaker != null:
+			_rainmaker.call("DisconnectFromDevice")
+		settings["device_type"] = "bushnell_fsx"
+		settings["device_id"] = "bushnell_fsx_csv"
+		settings["device_name"] = "Bushnell GC3 (FSX)"
+		_save_settings()
+		start_fsx_csv_monitoring(str(settings.get("fsx_csv_path", "")))
+		return
+	elif detected_type == "rainmaker":
+		if _square != null:
+			_square.call("DisconnectFromDevice")
+		if _garmin != null:
+			_garmin.call("DisconnectFromDevice")
+		settings["device_type"] = "rainmaker"
+		_save_settings()
+		if not devices.has(device_id):
+			devices[device_id] = { "name": device_name, "rssi": 0, "type": "rainmaker" }
+		if _rainmaker == null:
+			var msg := "Rainmaker support is unavailable in this build."
+			_set_status(msg)
+			if _is_manual_connect:
+				emit_signal("error_occurred", msg)
+			return
+		var code_to_use := pairing_code if pairing_code != "" else str(settings.get("pairing_code", ""))
+		_rainmaker.call("ConnectToDevice", device_id, code_to_use)
+	elif detected_type == "garmin":
+		if _square != null:
+			_square.call("DisconnectFromDevice")
+		if _rainmaker != null:
+			_rainmaker.call("DisconnectFromDevice")
 		if device_name == "":
 			device_name = "Garmin Approach R10"
 			settings["device_name"] = device_name
@@ -321,6 +399,8 @@ func connect_to_device(device_id: String, is_auto: bool = false) -> void:
 	else:
 		if _garmin != null:
 			_garmin.call("DisconnectFromDevice")
+		if _rainmaker != null:
+			_rainmaker.call("DisconnectFromDevice")
 		if device_name == "":
 			device_name = "Square Golf"
 			settings["device_name"] = device_name
@@ -361,7 +441,23 @@ func disconnect_device() -> void:
 		_square.call("DisconnectFromDevice")
 	if _garmin != null:
 		_garmin.call("DisconnectFromDevice")
+	if _rainmaker != null:
+		_rainmaker.call("DisconnectFromDevice")
+	if _fsx_csv != null:
+		_fsx_csv.call("stop_monitoring")
 	_active_driver = ""
+
+
+func _start_rainmaker_scan() -> void:
+	if _rainmaker != null:
+		_debug_log("Rainmaker start_scan requested")
+		_rainmaker.call("StartScan")
+
+
+func _stop_rainmaker_scan() -> void:
+	if _rainmaker != null:
+		_debug_log("Rainmaker stop_scan requested")
+		_rainmaker.call("StopScan")
 
 
 func _start_square_scan() -> void:
@@ -393,6 +489,15 @@ func set_enabled(value: bool) -> void:
 		_cancel_linux_auto_connect_scan()
 	settings["enabled"] = value
 	_save_settings()
+
+
+func set_remember_device(value: bool) -> void:
+	settings["remember_device"] = value
+	_save_settings()
+
+
+func is_remember_device_enabled() -> bool:
+	return bool(settings.get("remember_device", false))
 
 
 func set_club_code(club_code: String) -> void:
@@ -584,6 +689,146 @@ func _create_garmin_monitor() -> void:
 	_garmin.connect("ShotReceived", _on_garmin_shot_received)
 
 
+func _create_rainmaker_monitor() -> void:
+	_rainmaker_init_error = ""
+	_debug_log("Attempting to load script %s" % RAINMAKER_SCRIPT_PATH)
+	var rainmaker_script := load(RAINMAKER_SCRIPT_PATH) as Script
+	if rainmaker_script == null:
+		_rainmaker_init_error = "Rainmaker script could not be loaded at %s." % RAINMAKER_SCRIPT_PATH
+		_debug_error(_rainmaker_init_error)
+		return
+
+	if not rainmaker_script.can_instantiate():
+		_rainmaker_init_error = "%s script is loaded but cannot instantiate." % RAINMAKER_CLASS_NAME
+		_debug_error(_rainmaker_init_error)
+		return
+
+	_rainmaker = rainmaker_script.new() as Node
+	if _rainmaker == null:
+		_rainmaker_init_error = "%s could not be created from %s." % [RAINMAKER_CLASS_NAME, RAINMAKER_SCRIPT_PATH]
+		_debug_error(_rainmaker_init_error)
+		return
+
+	add_child(_rainmaker)
+	_debug_log("%s instantiated and signals connected." % RAINMAKER_CLASS_NAME)
+	_rainmaker.connect("DeviceDiscovered", _on_rainmaker_device_discovered)
+	_rainmaker.connect("StatusChanged", _on_rainmaker_status_changed)
+	_rainmaker.connect("ErrorOccurred", _on_rainmaker_error_occurred)
+	_rainmaker.connect("BatteryChanged", _on_rainmaker_battery_changed)
+	_rainmaker.connect("FirmwareChanged", _on_rainmaker_firmware_changed)
+	_rainmaker.connect("ReadyChanged", _on_rainmaker_ready_changed)
+	_rainmaker.connect("ShotReceived", _on_rainmaker_shot_received)
+
+
+func _create_fsx_csv_monitor() -> void:
+	_fsx_csv_init_error = ""
+	_debug_log("Attempting to load script %s" % FSX_CSV_SCRIPT_PATH)
+	var fsx_script := load(FSX_CSV_SCRIPT_PATH) as Script
+	if fsx_script == null:
+		_fsx_csv_init_error = "FSX CSV script could not be loaded at %s." % FSX_CSV_SCRIPT_PATH
+		_debug_error(_fsx_csv_init_error)
+		return
+
+	if not fsx_script.can_instantiate():
+		_fsx_csv_init_error = "%s script is loaded but cannot instantiate." % FSX_CSV_CLASS_NAME
+		_debug_error(_fsx_csv_init_error)
+		return
+
+	_fsx_csv = fsx_script.new() as Node
+	if _fsx_csv == null:
+		_fsx_csv_init_error = "%s could not be created from %s." % [FSX_CSV_CLASS_NAME, FSX_CSV_SCRIPT_PATH]
+		_debug_error(_fsx_csv_init_error)
+		return
+
+	add_child(_fsx_csv)
+	_debug_log("%s instantiated and signals connected." % FSX_CSV_CLASS_NAME)
+	_fsx_csv.connect("shot_received", _on_fsx_shot_received)
+	_fsx_csv.connect("status_changed", _on_fsx_status_changed)
+	_fsx_csv.connect("error_occurred", _on_fsx_error_occurred)
+
+	var saved_path := str(settings.get("fsx_csv_path", ""))
+	if saved_path != "" and "csv_path" in _fsx_csv:
+		_fsx_csv.set("csv_path", saved_path)
+
+
+func start_fsx_csv_monitoring(path: String = "") -> void:
+	_stop_square_scan()
+	_stop_garmin_scan()
+	_stop_rainmaker_scan()
+	if _square != null:
+		_square.call("DisconnectFromDevice")
+	if _garmin != null:
+		_garmin.call("DisconnectFromDevice")
+	if _rainmaker != null:
+		_rainmaker.call("DisconnectFromDevice")
+
+	_active_driver = "bushnell_fsx"
+	settings["device_type"] = "bushnell_fsx"
+	settings["device_id"] = "bushnell_fsx_csv"
+	settings["device_name"] = "Bushnell GC3 (FSX)"
+	if path != "":
+		settings["fsx_csv_path"] = path
+	_save_settings()
+
+	if _fsx_csv != null:
+		var target_path = path if path != "" else str(settings.get("fsx_csv_path", ""))
+		_fsx_csv.call("start_monitoring", target_path)
+		var s = str(_fsx_csv.get("status"))
+		_set_status(s)
+		is_ready = true
+		emit_signal("ready_changed", true)
+		_update_hud_display()
+
+
+func stop_fsx_csv_monitoring() -> void:
+	if _fsx_csv != null:
+		_fsx_csv.call("stop_monitoring")
+	if _active_driver == "bushnell_fsx":
+		_set_status("Disconnected")
+		is_ready = false
+		emit_signal("ready_changed", false)
+		_update_hud_display()
+
+
+func get_fsx_csv_monitor() -> Node:
+	return _fsx_csv
+
+
+func _on_fsx_shot_received(data: Dictionary) -> void:
+	if _active_driver != "bushnell_fsx":
+		return
+	if not _is_valid_shot_data(data):
+		_debug_log("Bushnell/FSX practice swing or stationary ball ignored")
+		return
+	if status == "Connecting" or status.begins_with("Found") or status == "Disconnected" or status.begins_with("Waiting"):
+		_set_status("Connected")
+	_debug_log("Bushnell/FSX shot received with %d fields" % data.size())
+	RainPhysics.apply_rain_shot_reduction(data)
+	FoamBallBoost.apply_boost(data, _current_club_name)
+	notify_shot_started()
+	emit_signal("hit_ball", data)
+	_update_hud_display()
+	play_ready_ding()
+
+
+func _on_fsx_status_changed(value: String) -> void:
+	if _active_driver != "bushnell_fsx":
+		return
+	_set_status(value)
+	var became_ready = value == "Connected" or value.begins_with("Monitoring") or value.begins_with("Waiting")
+	if is_ready != became_ready:
+		is_ready = became_ready
+		emit_signal("ready_changed", is_ready)
+		_update_hud_display()
+
+
+func _on_fsx_error_occurred(message: String) -> void:
+	if _active_driver != "bushnell_fsx":
+		return
+	_debug_error("FSX CSV error: %s" % message)
+	emit_signal("error_occurred", message)
+
+
 func set_ball_placement_guide_enabled(enabled: bool) -> void:
 	settings["ball_placement_guide_enabled"] = enabled
 	_save_settings()
@@ -595,26 +840,34 @@ func _load_settings() -> void:
 	if err != OK:
 		return
 	settings["enabled"] = bool(_config.get_value("square", "enabled", false))
+	settings["remember_device"] = bool(_config.get_value("square", "remember_device", false))
 	settings["device_id"] = str(_config.get_value("square", "device_id", ""))
 	settings["device_name"] = str(_config.get_value("square", "device_name", ""))
 	settings["device_type"] = str(_config.get_value("square", "device_type", "auto"))
+	settings["pairing_code"] = str(_config.get_value("square", "pairing_code", ""))
 	settings["club_code"] = str(_config.get_value("square", "club_code", DEFAULT_CLUB_CODE))
 	settings["handedness"] = int(_config.get_value("square", "handedness", 0))
 	settings["ready_ding_enabled"] = bool(_config.get_value("square", "ready_ding_enabled", true))
 	settings["ready_indicator_enabled"] = bool(_config.get_value("square", "ready_indicator_enabled", true))
 	settings["ball_placement_guide_enabled"] = bool(_config.get_value("square", "ball_placement_guide_enabled", true))
+	settings["fsx_csv_path"] = str(_config.get_value("square", "fsx_csv_path", ""))
+	settings["fsx_poll_interval"] = float(_config.get_value("square", "fsx_poll_interval", 0.25))
 
 
 func _save_settings() -> void:
 	_config.set_value("square", "enabled", bool(settings.get("enabled", false)))
+	_config.set_value("square", "remember_device", bool(settings.get("remember_device", false)))
 	_config.set_value("square", "device_id", str(settings.get("device_id", "")))
 	_config.set_value("square", "device_name", str(settings.get("device_name", "")))
 	_config.set_value("square", "device_type", str(settings.get("device_type", "auto")))
+	_config.set_value("square", "pairing_code", str(settings.get("pairing_code", "")))
 	_config.set_value("square", "club_code", str(settings.get("club_code", DEFAULT_CLUB_CODE)))
 	_config.set_value("square", "handedness", int(settings.get("handedness", 0)))
 	_config.set_value("square", "ready_ding_enabled", bool(settings.get("ready_ding_enabled", true)))
 	_config.set_value("square", "ready_indicator_enabled", bool(settings.get("ready_indicator_enabled", true)))
 	_config.set_value("square", "ball_placement_guide_enabled", bool(settings.get("ball_placement_guide_enabled", true)))
+	_config.set_value("square", "fsx_csv_path", str(settings.get("fsx_csv_path", "")))
+	_config.set_value("square", "fsx_poll_interval", float(settings.get("fsx_poll_interval", 0.25)))
 	var err := _config.save(SETTINGS_PATH)
 	if err != OK:
 		_debug_error("Failed to save launch monitor settings file at %s" % SETTINGS_PATH)
@@ -654,6 +907,25 @@ func _on_square_device_discovered(device_id: String, name: String, rssi: int) ->
 		if _is_linux_auto_connect_match(device_id) and is_live:
 			_debug_log("saved Linux Square discovered; connecting automatically")
 			connect_to_device(device_id, true)
+
+
+func _on_rainmaker_device_discovered(device_id: String, name: String, rssi: int) -> void:
+	var display_name := name.strip_edges()
+	var is_live := (rssi <= -10 and rssi >= -120) or (rssi != 0 and rssi != -1)
+	var is_new := not devices.has(device_id)
+	var prev_live := bool(devices.get(device_id, {}).get("is_discovered", false)) if not is_new else false
+	devices[device_id] = {
+		"name": display_name,
+		"rssi": rssi,
+		"type": "rainmaker",
+		"is_discovered": is_live
+	}
+	if is_new or (is_live and not prev_live):
+		_debug_log("Rainmaker device discovered: %s (%s) RSSI=%d live=%s" % [display_name, device_id, rssi, str(is_live)])
+		if device_id == str(settings.get("device_id", "")):
+			settings["device_name"] = display_name
+			_save_settings()
+		emit_signal("device_discovered", device_id, display_name, rssi)
 
 
 func _on_garmin_device_discovered(device_id: String, name: String, rssi: int) -> void:
@@ -710,6 +982,71 @@ func _on_square_status_changed(value: String) -> void:
 			_auto_reconnect_attempts = 0
 			_is_auto_connecting_default = false
 			_stop_fallback_scan()
+
+
+func _on_rainmaker_status_changed(value: String) -> void:
+	if _active_driver != "rainmaker" and _active_driver != "":
+		return
+	_set_status(value)
+
+
+func _on_rainmaker_error_occurred(message: String) -> void:
+	if _active_driver != "rainmaker" and _active_driver != "":
+		return
+	_debug_error("Rainmaker runtime error: %s" % message)
+	emit_signal("error_occurred", message)
+
+
+func _on_rainmaker_battery_changed(level: int) -> void:
+	if _active_driver != "rainmaker":
+		return
+	_debug_log("Rainmaker battery changed: %d%%" % level)
+	battery_level = level
+	emit_signal("battery_changed", level)
+
+
+func _on_rainmaker_firmware_changed(value: String) -> void:
+	if _active_driver != "rainmaker":
+		return
+	_debug_log("Rainmaker firmware changed: %s" % value)
+	firmware = value
+	emit_signal("firmware_changed", value)
+
+
+func _on_rainmaker_ready_changed(value: bool) -> void:
+	if _active_driver != "rainmaker":
+		return
+	_debug_log("Rainmaker ready changed: %s" % str(value))
+	var became_ready := value and not is_ready
+	is_ready = value
+	if value and (status == "Connecting" or status.begins_with("Found") or status == "Disconnected"):
+		_set_status("Connected")
+	if became_ready:
+		if is_ball_in_flight():
+			_pending_ready_ding = true
+		else:
+			_pending_ready_ding = false
+			play_ready_ding()
+	elif not value:
+		_pending_ready_ding = false
+	emit_signal("ready_changed", value)
+	_update_hud_display()
+
+
+func _on_rainmaker_shot_received(data: Dictionary) -> void:
+	if _active_driver != "rainmaker":
+		return
+	if not _is_valid_shot_data(data):
+		_debug_log("Rainmaker practice swing or stationary ball ignored")
+		return
+	if status == "Connecting" or status.begins_with("Found") or status == "Disconnected":
+		_set_status("Connected")
+	_debug_log("Rainmaker shot received with %d fields" % data.size())
+	RainPhysics.apply_rain_shot_reduction(data)
+	FoamBallBoost.apply_boost(data, _current_club_name)
+	notify_shot_started()
+	emit_signal("hit_ball", data)
+	_update_hud_display()
 
 
 func _on_garmin_status_changed(value: String) -> void:
@@ -1008,6 +1345,10 @@ func _connect_saved_device_on_startup(device_id: String) -> void:
 		return
 	var saved_name := str(settings.get("device_name", ""))
 	var saved_type := str(settings.get("device_type", "auto"))
+	if saved_type == "bushnell_fsx" or device_id == "bushnell_fsx_csv":
+		_is_auto_connecting_default = false
+		connect_to_device(device_id, true)
+		return
 	if saved_name == "":
 		saved_name = "Square Golf" if saved_type != "garmin" else "Garmin Approach R10"
 	if not devices.has(device_id):
@@ -1228,7 +1569,7 @@ func _update_hud_display() -> void:
 	if _ready_hud != null and _ready_hud.has_method("set_ready_status"):
 		var hud_enabled := bool(settings.get("ready_indicator_enabled", true))
 		var guide_enabled := bool(settings.get("ball_placement_guide_enabled", true))
-		if _active_driver == "garmin":
+		if _active_driver == "garmin" or _active_driver == "bushnell_fsx":
 			guide_enabled = false
 		if _ready_hud.has_method("set_placement_guide_enabled"):
 			_ready_hud.call("set_placement_guide_enabled", guide_enabled)

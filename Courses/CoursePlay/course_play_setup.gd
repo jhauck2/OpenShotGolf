@@ -1173,7 +1173,7 @@ func _create_green_speed_selector() -> PanelContainer:
 	hbox.add_child(lbl)
 
 	var slider = HSlider.new()
-	slider.min_value = 6.0
+	slider.min_value = 5.0
 	slider.max_value = 16.0
 	slider.step = 0.5
 	if GlobalSettings != null and GlobalSettings.range_settings != null and GlobalSettings.range_settings.settings.has("green_speed"):

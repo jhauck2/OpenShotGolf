@@ -213,6 +213,88 @@ func _initialize():
 
 	print("  PASS: All cart path avoidance checks passed.")
 
+	# ---------------------------------------------------------
+	# Test 7: Verify Comprehensive Hole Path Tree Avoidance
+	# Ensures no trees spawn in front of teeboxes, in the path from teebox to fairway,
+	# or through the fairway to the green.
+	# ---------------------------------------------------------
+	print("\n--- Test 7: Comprehensive Hole Path & Teebox Obstruction Avoidance ---")
+	var simulated_hole_data = {
+		"1": {
+			"par": 4,
+			"pin": Vector2(20, 360),
+			"hole_path": PackedVector2Array([
+				Vector2(20, 0),
+				Vector2(20, 90),
+				Vector2(20, 180),
+				Vector2(20, 270),
+				Vector2(20, 360)
+			]),
+			"teeboxes": {
+				"Black": Vector2(20, 0),
+				"Blue": Vector2(20, 30),
+				"White": Vector2(20, 60),
+				"Red": Vector2(20, 90)
+			}
+		}
+	}
+
+	# Simulated fairway polygon from Y: 120 to Y: 320, width 30m (X: 5 to 35)
+	var fw_poly_hole = PackedVector2Array([
+		Vector2(5, 120),
+		Vector2(35, 120),
+		Vector2(35, 320),
+		Vector2(5, 320)
+	])
+	var fw_list_hole: Array = [fw_poly_hole]
+
+	# Point directly in front of Blue tee (Y: 45, between Blue and White tee): MUST be flagged as in hole path!
+	var between_blue_and_white = Vector2(20, 45)
+	assert(loader.CheckPointInHolePath(between_blue_and_white, simulated_hole_data, fw_list_hole) == true,
+		"Tree directly in front of Blue tee must be blocked")
+
+	# Point directly in front of White tee (Y: 75, between White and Red tee): MUST be flagged as in hole path!
+	var between_white_and_red = Vector2(20, 75)
+	assert(loader.CheckPointInHolePath(between_white_and_red, simulated_hole_data, fw_list_hole) == true,
+		"Tree directly in front of White tee must be blocked")
+
+	# Point directly in front of Red tee (Y: 105, 15m in front of Red tee heading to fairway): MUST be blocked!
+	var in_front_of_red = Vector2(20, 105)
+	assert(loader.CheckPointInHolePath(in_front_of_red, simulated_hole_data, fw_list_hole) == true,
+		"Tree in front of Red tee on path to fairway must be blocked")
+
+	# Point in flight corridor from tee to fairway (Y: 110, X: 26, 6m off centerline): MUST be blocked!
+	var corridor_tee_to_fw = Vector2(26, 110)
+	assert(loader.CheckPointInHolePath(corridor_tee_to_fw, simulated_hole_data, fw_list_hole) == true,
+		"Tree in flight corridor from tee to fairway must be blocked")
+
+	# Point inside the fairway polygon (Y: 200, X: 20): MUST be blocked!
+	var in_fairway_path = Vector2(20, 200)
+	assert(loader.CheckPointInHolePath(in_fairway_path, simulated_hole_data, fw_list_hole) == true,
+		"Tree inside fairway must be blocked")
+
+	# Point 6m outside fairway edge (Y: 200, X: 41): within 12m fairway buffer, MUST be blocked!
+	var near_fairway_edge = Vector2(41, 200)
+	assert(loader.CheckPointInHolePath(near_fairway_edge, simulated_hole_data, fw_list_hole) == true,
+		"Tree within 12m of fairway edge must be blocked")
+
+	# Point between fairway and green on approach path (Y: 340, X: 20): MUST be blocked!
+	var approach_to_green = Vector2(20, 340)
+	assert(loader.CheckPointInHolePath(approach_to_green, simulated_hole_data, fw_list_hole) == true,
+		"Tree on green approach corridor must be blocked")
+
+	# Point safely behind the back Black tee (Y: -20, X: 20): Safe backdrop, permitted!
+	var safe_behind_black = Vector2(20, -20)
+	assert(loader.CheckPointInHolePath(safe_behind_black, simulated_hole_data, fw_list_hole) == false,
+		"Tree safely behind the back Black tee must be permitted as a backdrop")
+
+	# Point in deep rough far to the side (Y: 200, X: 70 - 35m from fairway edge, 50m from centerline): Permitted!
+	var safe_deep_rough = Vector2(70, 200)
+	assert(loader.CheckPointInHolePath(safe_deep_rough, simulated_hole_data, fw_list_hole) == false,
+		"Tree in deep rough far lateral from fairway must be permitted")
+
+	print("  PASS: All comprehensive hole path & teebox clearance checks passed.")
+
 	loader.free()
 	print("\n=======================================================")
 	print("ALL TREE FAIRWAY PROXIMITY AND CLEARANCE TESTS PASSED!")

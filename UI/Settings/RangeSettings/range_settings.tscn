@@ -84,7 +84,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 36
+theme_override_constants/margin_right = 76
 theme_override_constants/margin_bottom = 16
 
 [node name="GameplayVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TabContainer/Gameplay/MarginContainer"]
@@ -322,7 +322,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 36
+theme_override_constants/margin_right = 76
 theme_override_constants/margin_bottom = 16
 
 [node name="StatsVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TabContainer/Stats/MarginContainer"]
@@ -346,7 +346,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 36
+theme_override_constants/margin_right = 76
 theme_override_constants/margin_bottom = 16
 
 [node name="CameraVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer"]
@@ -386,6 +386,38 @@ theme_override_font_sizes/font_size = 18
 text = "On"
 vertical_alignment = 1
 
+[node name="ShotReplayFollow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/ShotReplayFollow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Shot Replay Follow"
+vertical_alignment = 1
+
+[node name="Control" type="Control" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/ShotReplayFollow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label2" type="Label" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/ShotReplayFollow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.76, 0.84, 1)
+theme_override_font_sizes/font_size = 18
+text = "Off"
+vertical_alignment = 1
+
+[node name="CheckButton" type="CheckButton" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/ShotReplayFollow"]
+custom_minimum_size = Vector2(72, 48)
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/ShotReplayFollow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.76, 0.84, 1)
+theme_override_font_sizes/font_size = 18
+text = "On"
+vertical_alignment = 1
+
 [node name="LaunchMonitor" type="ScrollContainer" parent="MarginContainer/VBoxContainer/TabContainer"]
 visible = false
 layout_mode = 2
@@ -402,7 +434,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 36
+theme_override_constants/margin_right = 76
 theme_override_constants/margin_bottom = 16
 
 [node name="LaunchMonitorVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TabContainer/LaunchMonitor/MarginContainer"]
@@ -458,7 +490,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 36
+theme_override_constants/margin_right = 76
 theme_override_constants/margin_bottom = 16
 
 [node name="AnnouncerVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TabContainer/Announcer/MarginContainer"]
@@ -486,6 +518,7 @@ text = "Exit to Menu"
 [connection signal="pressed" from="MarginContainer/VBoxContainer/HeaderHBox/HeaderCloseButton" to="." method="_on_header_close_button_pressed"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/TabContainer/Gameplay/MarginContainer/GameplayVBox/Units/CheckButton" to="." method="_on_units_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/CameraFollow/CheckButton" to="." method="_on_camer_check_button_toggled"]
+[connection signal="toggled" from="MarginContainer/VBoxContainer/TabContainer/Camera/MarginContainer/CameraVBox/ShotReplayFollow/CheckButton" to="." method="_on_shot_replay_follow_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/TabContainer/Gameplay/MarginContainer/GameplayVBox/AutoBallReset/CheckButton" to="." method="_on_auto_reset_check_button_toggled"]
 [connection signal="toggled" from="MarginContainer/VBoxContainer/TabContainer/LaunchMonitor/MarginContainer/LaunchMonitorVBox/ShotInjector/CheckButton" to="." method="_on_injector_check_button_toggled"]
 [connection signal="value_changed" from="MarginContainer/VBoxContainer/TabContainer/Gameplay/MarginContainer/GameplayVBox/BallResetTimer/ResetSpinBox" to="." method="_on_reset_spin_box_value_changed"]

@@ -2981,40 +2981,17 @@ public partial class OsmMapLoader : Node
                 return float.MaxValue;
             };
 
-            // Flight corridor obstruction guard: ensures no generated trees are placed between any tee box and fairway target
-            Func<Vector2, bool> isBetweenTeeAndFairway = (pt) =>
+            var rawFairwayPolygonsList = fairwayPolys.Select(f => f.Polygon).ToList();
+
+            // Flight corridor obstruction guard: ensures no generated trees are placed in front of any tee box,
+            // in the path of the hole from tee to fairway, or through the fairway to the green.
+            Func<Vector2, bool> isPointInHolePath = (pt) =>
             {
-                foreach (var kp in holeInfo)
-                {
-                    var h = kp.Value;
-                    if (h.TeeBoxes == null || h.TeeBoxes.Count == 0) continue;
-
-                    Vector2 target;
-                    if (h.HolePath != null && h.HolePath.Count > 1)
-                    {
-                        target = new Vector2(h.HolePath[1][0], h.HolePath[1][1]);
-                    }
-                    else if (h.HoleLocation != null && h.HoleLocation.Length >= 2)
-                    {
-                        target = new Vector2(h.HoleLocation[0], h.HoleLocation[1]);
-                    }
-                    else
-                    {
-                        continue;
-                    }
-
-                    foreach (var teeKvp in h.TeeBoxes)
-                    {
-                        if (teeKvp.Value == null || teeKvp.Value.Length < 2) continue;
-                        var teePos = new Vector2(teeKvp.Value[0], teeKvp.Value[1]);
-                        if (IsTreeBetweenTeeAndFairway(pt, teePos, target, 18.0f, 35.0f))
-                        {
-                            return true;
-                        }
-                    }
-                }
-                return false;
+                return IsPointInHolePath(pt, holeInfo, rawFairwayPolygonsList, 18.0f, 65.0f, 14.0f, 12.0f);
             };
+
+            // Keep alias for backwards compatibility
+            Func<Vector2, bool> isBetweenTeeAndFairway = isPointInHolePath;
 
             int effectiveMaxTrees = MaxTrees;
 
@@ -3092,38 +3069,21 @@ public partial class OsmMapLoader : Node
                         // Strictly no generated trees close to fairway (< 11m)
                         if (getDistToFairway(pt) < 11.0f) return;
 
-                        // Strictly no generated trees between tee box and fairway
-                        if (isBetweenTeeAndFairway(pt)) return;
+                        // Strictly no generated trees in front of teeboxes or along the hole path
+                        if (isPointInHolePath(pt)) return;
 
-                        // Check line of play safety zone (skip if inside a forest polygon)
-                        bool tooCloseToLineOfPlay = false;
-                        bool insideForest = false;
-                        for (int i = 0; i < forestPolygons.Count; i++)
+                        // Check line of play safety zone: no generated trees in the corridor (18m)
+                        for (int pIdx = 0; pIdx < lineOfPlayPaths.Count; pIdx++)
                         {
-                            if (PointInPolygon(pt, forestPolygons[i]))
+                            var path = lineOfPlayPaths[pIdx];
+                            for (int i = 0; i < path.Count - 1; i++)
                             {
-                                insideForest = true;
-                                break;
-                            }
-                        }
-
-                        if (!insideForest)
-                        {
-                            for (int pIdx = 0; pIdx < lineOfPlayPaths.Count; pIdx++)
-                            {
-                                var path = lineOfPlayPaths[pIdx];
-                                for (int i = 0; i < path.Count - 1; i++)
+                                if (DistanceToSegment(pt, path[i], path[i + 1]) < 18.0f)
                                 {
-                                    if (DistanceToSegment(pt, path[i], path[i + 1]) < 15.0f)
-                                    {
-                                        tooCloseToLineOfPlay = true;
-                                        break;
-                                    }
+                                    return;
                                 }
-                                if (tooCloseToLineOfPlay) break;
                             }
                         }
-                        if (tooCloseToLineOfPlay) return;
 
                         float normX = (rx - courseMinX) / (courseWidth == 0 ? 1f : courseWidth);
                         float normY = (rz - courseMinZ) / (courseDepth == 0 ? 1f : courseDepth);
@@ -3331,8 +3291,25 @@ public partial class OsmMapLoader : Node
                             // Strictly no generated trees close to fairway (< 11m)
                             if (getDistToFairway(rp) < 11.0f) continue;
 
-                            // Strictly no generated trees between tee box and fairway
-                            if (isBetweenTeeAndFairway(rp)) continue;
+                            // Strictly no generated trees in front of teeboxes or along the hole path
+                            if (isPointInHolePath(rp)) continue;
+
+                            // Line of play safety zone: no generated trees in the corridor (18m)
+                            bool tooCloseToLine = false;
+                            for (int pIdx = 0; pIdx < lineOfPlayPaths.Count; pIdx++)
+                            {
+                                var path = lineOfPlayPaths[pIdx];
+                                for (int i = 0; i < path.Count - 1; i++)
+                                {
+                                    if (DistanceToSegment(rp, path[i], path[i + 1]) < 18.0f)
+                                    {
+                                        tooCloseToLine = true;
+                                        break;
+                                    }
+                                }
+                                if (tooCloseToLine) break;
+                            }
+                            if (tooCloseToLine) continue;
 
                             bool tooClose = false;
                             for (int i = 0; i < placedTreePositions.Count; i++)
@@ -3406,15 +3383,15 @@ public partial class OsmMapLoader : Node
                     // Strictly no generated trees close to fairway (< 11m)
                     if (getDistToFairway(pt) < 11.0f) return false;
 
-                    // Strictly no generated trees between tee box and fairway
-                    if (isBetweenTeeAndFairway(pt)) return false;
+                    // Strictly no generated trees in front of teeboxes or along the hole path
+                    if (isPointInHolePath(pt)) return false;
 
                     for (int pIdx = 0; pIdx < lineOfPlayPaths.Count; pIdx++)
                     {
                         var path = lineOfPlayPaths[pIdx];
                         for (int i = 0; i < path.Count - 1; i++)
                         {
-                            if (DistanceToSegment(pt, path[i], path[i + 1]) < 15.0f)
+                            if (DistanceToSegment(pt, path[i], path[i + 1]) < 18.0f)
                                 return false;
                         }
                     }
@@ -3511,19 +3488,9 @@ public partial class OsmMapLoader : Node
                     if (placedTreePositions.Count >= effectiveMaxTrees) break;
                     if (kp.Value.TeeBoxes != null)
                     {
-                        Vector2 target;
-                        if (kp.Value.HolePath != null && kp.Value.HolePath.Count > 1)
-                        {
-                            target = new Vector2(kp.Value.HolePath[1][0], kp.Value.HolePath[1][1]);
-                        }
-                        else if (kp.Value.HoleLocation != null && kp.Value.HoleLocation.Length >= 2)
-                        {
-                            target = new Vector2(kp.Value.HoleLocation[0], kp.Value.HoleLocation[1]);
-                        }
-                        else
-                        {
-                            target = Vector2.Zero;
-                        }
+                        Vector2 pin = (kp.Value.HoleLocation != null && kp.Value.HoleLocation.Length >= 2)
+                            ? new Vector2(kp.Value.HoleLocation[0], kp.Value.HoleLocation[1])
+                            : Vector2.Zero;
 
                         foreach (var teeKvp in kp.Value.TeeBoxes)
                         {
@@ -3531,9 +3498,26 @@ public partial class OsmMapLoader : Node
                             if (teeKvp.Value == null || teeKvp.Value.Length < 2) continue;
                             var teePos = new Vector2(teeKvp.Value[0], teeKvp.Value[1]);
 
-                            Vector2 fwd = (target != Vector2.Zero && target != teePos)
-                                ? (target - teePos).Normalized()
-                                : new Vector2(0, 1);
+                            // Find forward target ahead of teePos towards green
+                            Vector2 toPin = (pin != Vector2.Zero && pin != teePos) ? (pin - teePos).Normalized() : Vector2.Zero;
+                            Vector2 forwardTarget = pin;
+                            if (kp.Value.HolePath != null && kp.Value.HolePath.Count >= 2)
+                            {
+                                float distToPin = (pin != Vector2.Zero) ? teePos.DistanceTo(pin) : float.MaxValue;
+                                for (int pIdx = 0; pIdx < kp.Value.HolePath.Count; pIdx++)
+                                {
+                                    var hpPt = new Vector2(kp.Value.HolePath[pIdx][0], kp.Value.HolePath[pIdx][1]);
+                                    if (toPin != Vector2.Zero && (hpPt - teePos).Dot(toPin) > 5.0f && hpPt.DistanceTo(pin) < distToPin - 5.0f)
+                                    {
+                                        forwardTarget = hpPt;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            Vector2 fwd = (forwardTarget != Vector2.Zero && forwardTarget != teePos)
+                                ? (forwardTarget - teePos).Normalized()
+                                : (toPin != Vector2.Zero ? toPin : new Vector2(0, 1));
                             float baseRearAngle = Mathf.Atan2(-fwd.Y, -fwd.X);
 
                             for (int attempt = 0; attempt < teeAttempts && placedTreePositions.Count < effectiveMaxTrees; attempt++)
@@ -3762,33 +3746,20 @@ public partial class OsmMapLoader : Node
                         if (isTooCloseToDrivingRange(pt, 2.0f)) continue;
                         if (isTooCloseToBunker(pt, 3.5f)) continue;
                         if (isTooCloseToGreen(pt, 5.0f)) continue;
-                        if (isBetweenTeeAndFairway(pt)) continue;
+                        if (isPointInHolePath(pt)) continue;
 
                         bool tooCloseToLineOfPlay = false;
-                        bool insideForest = false;
-                        foreach (var forestPoly in forestPolygons)
+                        foreach (var path in lineOfPlayPaths)
                         {
-                            if (PointInPolygon(pt, forestPoly))
+                            for (int i = 0; i < path.Count - 1; i++)
                             {
-                                insideForest = true;
-                                break;
-                            }
-                        }
-
-                        if (!insideForest)
-                        {
-                            foreach (var path in lineOfPlayPaths)
-                            {
-                                for (int i = 0; i < path.Count - 1; i++)
+                                if (DistanceToSegment(pt, path[i], path[i + 1]) < 12.0f)
                                 {
-                                    if (DistanceToSegment(pt, path[i], path[i + 1]) < 8.0f)
-                                    {
-                                        tooCloseToLineOfPlay = true;
-                                        break;
-                                    }
+                                    tooCloseToLineOfPlay = true;
+                                    break;
                                 }
-                                if (tooCloseToLineOfPlay) break;
                             }
+                            if (tooCloseToLineOfPlay) break;
                         }
                         if (tooCloseToLineOfPlay) continue;
 
@@ -10621,6 +10592,156 @@ public partial class OsmMapLoader : Node
     }
 
     /// <summary>
+    /// Checks whether a point is located in the path of any golf hole (from any tee box to the fairway
+    /// and through the fairway to the green), or in front of any tee box.
+    /// Procedural and satellite-generated trees must never spawn in these areas unless OSM explicitly mapped a tree there.
+    /// </summary>
+    public static bool IsPointInHolePath(
+        Vector2 pt,
+        Dictionary<string, HoleConfig>? holeData,
+        IEnumerable<Vector2[]>? fairwayPolygons = null,
+        float corridorHalfWidth = 18.0f,
+        float minTeeFrontDist = 65.0f,
+        float minTeeClearance = 14.0f,
+        float minFairwayDist = 12.0f)
+    {
+        // 1. Check fairway polygons
+        if (fairwayPolygons != null)
+        {
+            foreach (var fw in fairwayPolygons)
+            {
+                if (fw == null || fw.Length < 3) continue;
+                if (PointInPolygon(pt, fw)) return true;
+                if (DistanceToPolygon(pt, fw) < minFairwayDist) return true;
+            }
+        }
+
+        if (holeData == null) return false;
+
+        foreach (var kvp in holeData)
+        {
+            var h = kvp.Value;
+            Vector2 pinPos = (h.HoleLocation != null && h.HoleLocation.Length >= 2)
+                ? new Vector2(h.HoleLocation[0], h.HoleLocation[1])
+                : Vector2.Zero;
+
+            var pathPts = new List<Vector2>();
+            if (h.HolePath != null)
+            {
+                foreach (var p in h.HolePath)
+                {
+                    if (p != null && p.Length >= 2)
+                    {
+                        pathPts.Add(new Vector2(p[0], p[1]));
+                    }
+                }
+            }
+            if (pathPts.Count == 0 && pinPos != Vector2.Zero)
+            {
+                pathPts.Add(pinPos);
+            }
+
+            // 2. Check hole path segments (through the fairway to the green)
+            if (pathPts.Count >= 2)
+            {
+                for (int i = 0; i < pathPts.Count - 1; i++)
+                {
+                    if (DistanceToSegment(pt, pathPts[i], pathPts[i + 1]) < corridorHalfWidth)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // 3. Check each tee box and its flight corridor to the fairway / green
+            if (h.TeeBoxes != null)
+            {
+                foreach (var teeKvp in h.TeeBoxes)
+                {
+                    if (teeKvp.Value == null || teeKvp.Value.Length < 2) continue;
+                    Vector2 teePos = new Vector2(teeKvp.Value[0], teeKvp.Value[1]);
+
+                    // Radial clearance around the tee box
+                    if (pt.DistanceTo(teePos) < minTeeClearance)
+                    {
+                        return true;
+                    }
+
+                    Vector2 toPin = (pinPos != Vector2.Zero && pinPos != teePos)
+                        ? (pinPos - teePos).Normalized()
+                        : Vector2.Zero;
+                    float distToPin = (pinPos != Vector2.Zero) ? teePos.DistanceTo(pinPos) : float.MaxValue;
+
+                    Vector2 forwardTarget = pinPos;
+                    if (pathPts.Count >= 2)
+                    {
+                        bool foundAhead = false;
+                        for (int i = 0; i < pathPts.Count; i++)
+                        {
+                            Vector2 p = pathPts[i];
+                            if (p == teePos) continue;
+                            if (toPin != Vector2.Zero)
+                            {
+                                float dot = (p - teePos).Dot(toPin);
+                                float pDistToPin = p.DistanceTo(pinPos);
+                                if (dot > 5.0f && pDistToPin < distToPin - 5.0f)
+                                {
+                                    forwardTarget = p;
+                                    foundAhead = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!foundAhead)
+                        {
+                            forwardTarget = (pinPos != Vector2.Zero) ? pinPos : pathPts[^1];
+                        }
+                    }
+
+                    Vector2 driveDir = (forwardTarget != Vector2.Zero && forwardTarget != teePos)
+                        ? (forwardTarget - teePos).Normalized()
+                        : (toPin != Vector2.Zero ? toPin : new Vector2(0, 1));
+
+                    // Corridor connecting tee box to the forward target / fairway entry
+                    if (forwardTarget != Vector2.Zero && forwardTarget != teePos)
+                    {
+                        if (DistanceToSegment(pt, teePos, forwardTarget) < corridorHalfWidth)
+                        {
+                            return true;
+                        }
+                    }
+
+                    // Forward flight path and launch zone immediately in front of the tee box
+                    Vector2 toPt = pt - teePos;
+                    float forwardProj = toPt.Dot(driveDir);
+                    if (forwardProj > 0f)
+                    {
+                        float ptDist = toPt.Length();
+                        float perpDist = Math.Abs(toPt.X * driveDir.Y - toPt.Y * driveDir.X);
+
+                        float maxTargetDist = (forwardTarget != Vector2.Zero) ? teePos.DistanceTo(forwardTarget) : minTeeFrontDist;
+                        if (forwardProj <= maxTargetDist && perpDist < corridorHalfWidth)
+                        {
+                            return true;
+                        }
+
+                        if (ptDist < minTeeFrontDist)
+                        {
+                            float cosAngle = forwardProj / ptDist;
+                            if (perpDist < Math.Max(corridorHalfWidth, 22.0f) && cosAngle > 0.38f)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Checks whether a tree position is inside or too close to any cart path line/polyline.
     /// Default minDistance is 2.2m (cart path half-width ~1.25m + clearance ~0.95m).
     /// </summary>
@@ -10760,38 +10881,10 @@ public partial class OsmMapLoader : Node
             return false;
         }
 
-        // 6. Ensure no trees between any tee box and fairway
-        if (holeData != null)
+        // 6. Ensure no trees in the path of any hole (from tee box to fairway and through fairway to green)
+        if (IsPointInHolePath(pt, holeData, fairwayPolygons, corridorHalfWidth, 65.0f, 14.0f, minFairwayDist))
         {
-            foreach (var kvp in holeData)
-            {
-                var h = kvp.Value;
-                if (h.TeeBoxes == null) continue;
-
-                Vector2 target;
-                if (h.HolePath != null && h.HolePath.Count > 1)
-                {
-                    target = new Vector2(h.HolePath[1][0], h.HolePath[1][1]);
-                }
-                else if (h.HoleLocation != null && h.HoleLocation.Length >= 2)
-                {
-                    target = new Vector2(h.HoleLocation[0], h.HoleLocation[1]);
-                }
-                else
-                {
-                    continue;
-                }
-
-                foreach (var teeKvp in h.TeeBoxes)
-                {
-                    if (teeKvp.Value == null || teeKvp.Value.Length < 2) continue;
-                    var teePos = new Vector2(teeKvp.Value[0], teeKvp.Value[1]);
-                    if (IsTreeBetweenTeeAndFairway(pt, teePos, target, corridorHalfWidth))
-                    {
-                        return false;
-                    }
-                }
-            }
+            return false;
         }
 
         return true;
@@ -10860,6 +10953,175 @@ public partial class OsmMapLoader : Node
     public bool CheckTreeBetweenTeeAndFairway(Vector2 pt, Vector2 teePos, Vector2 fairwayTarget, float corridorHalfWidth = 18.0f, float minTeeFrontDist = 35.0f)
     {
         return IsTreeBetweenTeeAndFairway(pt, teePos, fairwayTarget, corridorHalfWidth, minTeeFrontDist);
+    }
+
+    /// <summary>
+    /// Helper to convert a GDScript hole data dictionary to Dictionary&lt;string, HoleConfig&gt;.
+    /// </summary>
+    public static Dictionary<string, HoleConfig> ConvertGdHoleData(Godot.Collections.Dictionary gdHoles)
+    {
+        var dict = new Dictionary<string, HoleConfig>();
+        if (gdHoles == null) return dict;
+
+        foreach (var kvp in gdHoles)
+        {
+            string key = kvp.Key.AsString();
+            var val = kvp.Value;
+            var cfg = new HoleConfig();
+
+            if (val.VariantType == Variant.Type.Dictionary)
+            {
+                var hDict = val.AsGodotDictionary();
+                if (hDict.TryGetValue("par", out var parVar) || hDict.TryGetValue("Par", out parVar))
+                {
+                    cfg.Par = parVar.AsInt32();
+                }
+
+                Variant pinVar = default;
+                if (hDict.TryGetValue("hole_location", out pinVar) || hDict.TryGetValue("HoleLocation", out pinVar) ||
+                    hDict.TryGetValue("pin", out pinVar) || hDict.TryGetValue("Pin", out pinVar))
+                {
+                    if (pinVar.VariantType == Variant.Type.Vector2)
+                    {
+                        var v = pinVar.AsVector2();
+                        cfg.HoleLocation = new float[] { v.X, v.Y };
+                    }
+                    else if (pinVar.VariantType == Variant.Type.Array)
+                    {
+                        var arr = pinVar.AsGodotArray();
+                        if (arr.Count >= 2) cfg.HoleLocation = new float[] { (float)arr[0], (float)arr[1] };
+                    }
+                }
+
+                Variant pathVar = default;
+                if (hDict.TryGetValue("hole_path", out pathVar) || hDict.TryGetValue("HolePath", out pathVar))
+                {
+                    cfg.HolePath = new List<float[]>();
+                    if (pathVar.VariantType == Variant.Type.PackedVector2Array)
+                    {
+                        foreach (var v in pathVar.AsVector2Array())
+                        {
+                            cfg.HolePath.Add(new float[] { v.X, v.Y });
+                        }
+                    }
+                    else if (pathVar.VariantType == Variant.Type.Array)
+                    {
+                        foreach (var item in pathVar.AsGodotArray())
+                        {
+                            if (item.VariantType == Variant.Type.Vector2)
+                            {
+                                var v = item.AsVector2();
+                                cfg.HolePath.Add(new float[] { v.X, v.Y });
+                            }
+                            else if (item.VariantType == Variant.Type.Array)
+                            {
+                                var a = item.AsGodotArray();
+                                if (a.Count >= 2) cfg.HolePath.Add(new float[] { (float)a[0], (float)a[1] });
+                            }
+                        }
+                    }
+                }
+
+                Variant teesVar = default;
+                if (hDict.TryGetValue("teeboxes", out teesVar) || hDict.TryGetValue("TeeBoxes", out teesVar) ||
+                    hDict.TryGetValue("tees", out teesVar) || hDict.TryGetValue("Tees", out teesVar) ||
+                    hDict.TryGetValue("tee_boxes", out teesVar))
+                {
+                    cfg.TeeBoxes = new Dictionary<string, float[]>();
+                    if (teesVar.VariantType == Variant.Type.Dictionary)
+                    {
+                        foreach (var teeEntry in teesVar.AsGodotDictionary())
+                        {
+                            string tName = teeEntry.Key.AsString();
+                            var tVal = teeEntry.Value;
+                            if (tVal.VariantType == Variant.Type.Vector2)
+                            {
+                                var v = tVal.AsVector2();
+                                cfg.TeeBoxes[tName] = new float[] { v.X, v.Y };
+                            }
+                            else if (tVal.VariantType == Variant.Type.Array)
+                            {
+                                var a = tVal.AsGodotArray();
+                                if (a.Count >= 2) cfg.TeeBoxes[tName] = new float[] { (float)a[0], (float)a[1] };
+                            }
+                        }
+                    }
+                }
+            }
+            dict[key] = cfg;
+        }
+        return dict;
+    }
+
+    /// <summary>
+    /// GDScript-callable wrapper for IsPointInHolePath with default clearance parameters.
+    /// </summary>
+    public bool CheckPointInHolePath(
+        Vector2 pt,
+        Godot.Collections.Dictionary holeData,
+        Godot.Collections.Array fairwayPolygons)
+    {
+        return CheckPointInHolePath(pt, holeData, fairwayPolygons, 18.0f, 65.0f, 14.0f, 12.0f);
+    }
+
+    /// <summary>
+    /// GDScript-callable wrapper for IsPointInHolePath.
+    /// </summary>
+    public bool CheckPointInHolePath(
+        Vector2 pt,
+        Godot.Collections.Dictionary holeData,
+        Godot.Collections.Array fairwayPolygons,
+        float corridorHalfWidth,
+        float minTeeFrontDist,
+        float minTeeClearance,
+        float minFairwayDist)
+    {
+        var hDict = ConvertGdHoleData(holeData);
+        var fwList = new List<Vector2[]>();
+        if (fairwayPolygons != null)
+        {
+            foreach (var item in fairwayPolygons)
+            {
+                if (item.VariantType == Variant.Type.PackedVector2Array)
+                {
+                    fwList.Add(item.AsVector2Array());
+                }
+                else if (item.Obj is Vector2[] vArr)
+                {
+                    fwList.Add(vArr);
+                }
+            }
+        }
+        return IsPointInHolePath(pt, hDict, fwList, corridorHalfWidth, minTeeFrontDist, minTeeClearance, minFairwayDist);
+    }
+
+    /// <summary>
+    /// GDScript-callable wrapper for IsProceduralTreePointValid.
+    /// </summary>
+    public bool CheckProceduralTreePointValid(
+        Vector2 pt,
+        Godot.Collections.Array fairwayPolygons,
+        Godot.Collections.Dictionary holeData,
+        float minFairwayDist = 14.0f,
+        float corridorHalfWidth = 18.0f)
+    {
+        var hDict = ConvertGdHoleData(holeData);
+        var fwList = new List<Vector2[]>();
+        if (fairwayPolygons != null)
+        {
+            foreach (var item in fairwayPolygons)
+            {
+                if (item.VariantType == Variant.Type.PackedVector2Array)
+                {
+                    fwList.Add(item.AsVector2Array());
+                }
+                else if (item.Obj is Vector2[] vArr)
+                {
+                    fwList.Add(vArr);
+                }
+            }
+        }
+        return IsProceduralTreePointValid(pt, fwList, hDict, minFairwayDist, corridorHalfWidth);
     }
 
     public bool CheckTreeTooCloseToCartPath(Vector2 pt, Godot.Collections.Array cartPaths, float minDistance = 2.2f)

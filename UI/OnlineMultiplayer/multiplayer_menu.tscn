@@ -239,6 +239,97 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 38)
 layout_mode = 2
 
+[node name="GimmeModeLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/HostView/SettingsGrid"]
+layout_mode = 2
+text = "Gimme Rules:"
+
+[node name="GimmeModeOption" type="OptionButton" parent="MainMargin/RootVBox/ContentStack/HostView/SettingsGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 38)
+layout_mode = 2
+
+[node name="HostGimmeParamsContainer" type="PanelContainer" parent="MainMargin/RootVBox/ContentStack/HostView"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="HostGimmeMargin" type="MarginContainer" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="HostGimmeVBox" type="VBoxContainer" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HostGimmeTitle" type="Label" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Forced Gimme Parameters (Applied to All Players):"
+
+[node name="HostGimmeGrid" type="GridContainer" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="HostGimme1Check" type="CheckBox" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Gimme +1 Stroke"
+
+[node name="HostGimme1DistLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+layout_mode = 2
+text = "Distance (ft):"
+
+[node name="HostGimme1Dist" type="SpinBox" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 0.5
+value = 4.0
+
+[node name="HostGimme2Check" type="CheckBox" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Gimme +2 Strokes"
+
+[node name="HostGimme2DistLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+layout_mode = 2
+text = "Distance (ft):"
+
+[node name="HostGimme2Dist" type="SpinBox" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 0.5
+value = 10.0
+
+[node name="HostGimme3Check" type="CheckBox" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Gimme +3 Strokes"
+
+[node name="HostGimme3DistLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+layout_mode = 2
+text = "Distance (ft):"
+
+[node name="HostGimme3Dist" type="SpinBox" parent="MainMargin/RootVBox/ContentStack/HostView/HostGimmeParamsContainer/HostGimmeMargin/HostGimmeVBox/HostGimmeGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 0.5
+value = 30.0
+
 [node name="HostGolferSection" type="VBoxContainer" parent="MainMargin/RootVBox/ContentStack/HostView"]
 layout_mode = 2
 theme_override_constants/separation = 6
@@ -577,6 +668,97 @@ layout_mode = 2
 custom_minimum_size = Vector2(240, 38)
 placeholder_text = "YYYY-MM-DD HH:MM"
 max_length = 16
+
+[node name="TGimmeModeLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/TSettingsGrid"]
+layout_mode = 2
+text = "Gimme Rules:"
+
+[node name="TGimmeModeOption" type="OptionButton" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/TSettingsGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 38)
+layout_mode = 2
+
+[node name="THostGimmeParamsContainer" type="PanelContainer" parent="MainMargin/RootVBox/ContentStack/TournamentHostView"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="THostGimmeMargin" type="MarginContainer" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="THostGimmeVBox" type="VBoxContainer" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="THostGimmeTitle" type="Label" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Forced Gimme Parameters (Applied to All Players):"
+
+[node name="THostGimmeGrid" type="GridContainer" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="THostGimme1Check" type="CheckBox" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Gimme +1 Stroke"
+
+[node name="THostGimme1DistLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+layout_mode = 2
+text = "Distance (ft):"
+
+[node name="THostGimme1Dist" type="SpinBox" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 0.5
+value = 4.0
+
+[node name="THostGimme2Check" type="CheckBox" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Gimme +2 Strokes"
+
+[node name="THostGimme2DistLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+layout_mode = 2
+text = "Distance (ft):"
+
+[node name="THostGimme2Dist" type="SpinBox" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 0.5
+value = 10.0
+
+[node name="THostGimme3Check" type="CheckBox" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Gimme +3 Strokes"
+
+[node name="THostGimme3DistLabel" type="Label" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+layout_mode = 2
+text = "Distance (ft):"
+
+[node name="THostGimme3Dist" type="SpinBox" parent="MainMargin/RootVBox/ContentStack/TournamentHostView/THostGimmeParamsContainer/THostGimmeMargin/THostGimmeVBox/THostGimmeGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 0.5
+value = 30.0
 
 [node name="THostGolferSection" type="VBoxContainer" parent="MainMargin/RootVBox/ContentStack/TournamentHostView"]
 layout_mode = 2

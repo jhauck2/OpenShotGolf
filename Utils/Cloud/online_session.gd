@@ -26,8 +26,12 @@ const HEARTBEAT_INTERVAL_SEC := 20.0
 const STALE_HEARTBEAT_THRESHOLD_SEC := 45.0
 const SNAPSHOT_SETTINGS_KEYS := [
 	"wind_enabled", "wind_speed", "green_speed", "random_pin_enabled",
-	"gimme_range_1", "gimme_range_2", "gimme_range_3",
 	"ball_rollout_enabled", "turn_order_mode"
+]
+const GIMME_SETTINGS_KEYS := [
+	"gimme_range_1_enabled", "gimme_range_1_distance",
+	"gimme_range_2_enabled", "gimme_range_2_distance",
+	"gimme_range_3_enabled", "gimme_range_3_distance"
 ]
 
 var is_online_match: bool = false
@@ -217,8 +221,13 @@ func create_lobby(course_config_path: String, settings: Dictionary, visibility: 
 				"wind_dir_rad": float(settings.get("wind_dir_rad", 0.0)),
 				"pin_seed": int(settings.get("pin_seed", randi())),
 				"green_speed": settings.get("green_speed", "Normal"),
-				"gimme_1_enabled": bool(settings.get("gimme_1_enabled", true)),
-				"gimme_1_dist_ft": float(settings.get("gimme_1_dist_ft", 3.0)),
+				"force_gimmes": bool(settings.get("force_gimmes", false)),
+				"gimme_range_1_enabled": bool(settings.get("gimme_range_1_enabled", true)),
+				"gimme_range_1_distance": float(settings.get("gimme_range_1_distance", 4.0)),
+				"gimme_range_2_enabled": bool(settings.get("gimme_range_2_enabled", false)),
+				"gimme_range_2_distance": float(settings.get("gimme_range_2_distance", 10.0)),
+				"gimme_range_3_enabled": bool(settings.get("gimme_range_3_enabled", false)),
+				"gimme_range_3_distance": float(settings.get("gimme_range_3_distance", 30.0)),
 				"random_pin_enabled": bool(settings.get("random_pin_enabled", false)),
 				"ball_rollout_enabled": bool(settings.get("ball_rollout_enabled", true))
 			}
@@ -709,6 +718,7 @@ func _join_match_internal(match_id: String, local_golfers: Array) -> Dictionary:
 	is_local_course_ready = initial_course_ready
 	is_local_course_downloading = false
 	is_local_device_ready = false
+	restore_local_settings()
 	_match_started_emitted = false
 
 	_start_stream(match_id)
@@ -872,6 +882,7 @@ func leave_lobby() -> void:
 	is_local_course_ready = false
 	is_local_course_downloading = false
 	is_local_device_ready = false
+	restore_local_settings()
 
 	if was_spec:
 		lobby_closed.emit("left")
@@ -1109,14 +1120,31 @@ func snapshot_and_apply_match_settings() -> void:
 	_saved_local_settings.clear()
 	var gs = _get_global_settings()
 	if gs != null and gs.range_settings != null:
+		var s: Dictionary = match_meta.get("settings", {})
+
+		# 1. Standard match settings
 		for k in SNAPSHOT_SETTINGS_KEYS:
 			if gs.range_settings.settings.has(k):
 				_saved_local_settings[k] = gs.range_settings.settings[k].value
 
-		var s: Dictionary = match_meta.get("settings", {})
 		for k in SNAPSHOT_SETTINGS_KEYS:
 			if s.has(k) and gs.range_settings.settings.has(k):
 				gs.range_settings.settings[k].set_value(s[k])
+
+		# 2. Gimme settings: only force if host specified force_gimmes == true
+		var force_gimmes: bool = bool(s.get("force_gimmes", false))
+		if force_gimmes:
+			if "suppress_save" in gs:
+				gs.suppress_save = true
+
+			for k in GIMME_SETTINGS_KEYS:
+				if gs.range_settings.settings.has(k):
+					_saved_local_settings[k] = gs.range_settings.settings[k].value
+					if s.has(k):
+						gs.range_settings.settings[k].set_value(s[k])
+			print("[OnlineSession] Applied forced host gimme settings for online match.")
+		else:
+			print("[OnlineSession] Using players' personal local gimme settings.")
 
 		if s.has("wind_speed_mph"):
 			gs.current_wind_speed_mph = float(s["wind_speed_mph"])
@@ -1130,6 +1158,10 @@ func restore_local_settings() -> void:
 		for k in _saved_local_settings:
 			if gs.range_settings.settings.has(k):
 				gs.range_settings.settings[k].set_value(_saved_local_settings[k])
+		if "suppress_save" in gs:
+			gs.suppress_save = false
+		if gs.has_method("save_settings"):
+			gs.save_settings()
 	_saved_local_settings.clear()
 
 	if has_node("/root/CloudSync"):
@@ -1162,6 +1194,7 @@ func end_online_match() -> void:
 	is_local_course_ready = false
 	is_local_course_downloading = false
 	is_local_device_ready = false
+	restore_local_settings()
 	_match_started_emitted = false
 	_close_stream()
 	restore_local_settings()

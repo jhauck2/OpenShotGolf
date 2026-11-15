@@ -22,6 +22,7 @@ func _on_frame() -> void:
 	test_putter_straight_line_roll()
 	test_zero_rest_signal_emission()
 	test_stepped_process_replay_and_tracer()
+	test_shot_replay_follow_setting()
 	print("\n=======================================================")
 	print("ALL WORK PACKAGE 08 TESTS PASSED! 🎉")
 	print("=======================================================")
@@ -229,3 +230,72 @@ func finalize_trail() -> void:
 	replayer.queue_free()
 	mock_tracer.queue_free()
 	print("  PASS: Stepped replay with tracer updates and array coordinates verified")
+
+
+func test_shot_replay_follow_setting() -> void:
+	print("\n--- Test 5: Shot Replay Follow Setting Default & Toggle Behavior ---")
+	var rs = RangeSettings.new()
+	assert(rs.settings.has("shot_replay_follow"), "RangeSettings must include shot_replay_follow setting")
+	assert(rs.shot_replay_follow.value == false, "shot_replay_follow must default to false (current view)")
+
+	# Verify toggle on / off
+	rs.shot_replay_follow.set_value(true)
+	assert(rs.shot_replay_follow.value == true, "shot_replay_follow should be toggled to true")
+	rs.shot_replay_follow.set_value(false)
+	assert(rs.shot_replay_follow.value == false, "shot_replay_follow should be toggled to false")
+
+	# Test Range script replay follow logic with mock range node
+	var range_script = load("res://Courses/Range/range.gd")
+	var range_node = Node3D.new()
+	range_node.set_script(range_script)
+
+	var pcam = Node3D.new()
+	pcam.name = "PhantomCamera3D"
+	pcam.set("follow_mode", 0)
+	pcam.set("look_at_mode", 0)
+	range_node.add_child(pcam)
+
+	var cam3d = Camera3D.new()
+	cam3d.name = "Camera3D"
+	range_node.add_child(cam3d)
+
+	var player = Node3D.new()
+	player.name = "Player"
+	var ball = GolfBall.new()
+	ball.name = "GolfBall"
+	player.add_child(ball)
+	player.set("ball", ball)
+	range_node.add_child(player)
+
+	# When shot_replay_follow is false (default)
+	if GlobalSettings.range_settings != null and GlobalSettings.range_settings.settings.has("shot_replay_follow"):
+		GlobalSettings.range_settings.shot_replay_follow.set_value(false)
+
+	var shot_evt = {
+		"start": Vector3(0, 0, 0),
+		"end": Vector3(100, 5, 50),
+		"club": "7i"
+	}
+
+	range_node.on_remote_shot_replay_started(shot_evt)
+	assert(pcam.get("follow_mode") == 0, "When shot_replay_follow is false, follow_mode must remain NONE (0)")
+
+	range_node.on_remote_shot_replay_finished(shot_evt)
+	assert(pcam.get("follow_mode") == 0, "After finish, follow_mode must remain NONE (0)")
+
+	# When shot_replay_follow is true
+	if GlobalSettings.range_settings != null and GlobalSettings.range_settings.settings.has("shot_replay_follow"):
+		GlobalSettings.range_settings.shot_replay_follow.set_value(true)
+
+	range_node.on_remote_shot_replay_started(shot_evt)
+	assert(pcam.get("follow_mode") == 2, "When shot_replay_follow is true, follow_mode must be SIMPLE (2)")
+
+	range_node.on_remote_shot_replay_finished(shot_evt)
+	assert(pcam.get("follow_mode") == 0, "After finish, follow_mode must reset to NONE (0)")
+
+	# Cleanup
+	if GlobalSettings.range_settings != null and GlobalSettings.range_settings.settings.has("shot_replay_follow"):
+		GlobalSettings.range_settings.shot_replay_follow.set_value(false)
+
+	range_node.queue_free()
+	print("  PASS: Shot Replay Follow setting default and camera follow toggle verified")

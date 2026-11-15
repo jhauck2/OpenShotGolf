@@ -101,6 +101,11 @@ var imm_menu_btn: Button = null
 var imm_menu_container: VBoxContainer = null
 var train_menu_btn: Button = null
 var train_menu_container: VBoxContainer = null
+var visuals_menu_btn: Button = null
+var visuals_menu_container: VBoxContainer = null
+var free_cam_btn: Button = null
+var graphics_toggle_btn: Button = null
+var _free_camera: Camera3D = null
 var golfer_cam_btn: Button = null
 var putting_cam_btn: Button = null
 var announcer_btn: Button = null
@@ -1635,6 +1640,64 @@ func _setup_hud() -> void:
 				apply_material_button_style(rollout_btn, Color(0.5, 0.5, 0.5, 0.85))
 	)
 	train_menu_container.add_child(rollout_btn)
+
+	# --- Visuals Menu Submenu ---
+	visuals_menu_btn = Button.new()
+	visuals_menu_btn.name = "VisualsMenuButton"
+	visuals_menu_btn.text = "👁️ Visuals Menu"
+	visuals_menu_btn.tooltip_text = "Toggle Visual Settings (Free Camera, Graphics Quality, etc.)"
+	visuals_menu_btn.custom_minimum_size = Vector2(180, 56)
+	apply_material_button_style(visuals_menu_btn, Color(0.4, 0.35, 0.65, 0.85))
+
+	visuals_menu_container = VBoxContainer.new()
+	visuals_menu_container.name = "VisualsMenuContainer"
+	visuals_menu_container.add_theme_constant_override("separation", 10)
+	visuals_menu_container.visible = false
+
+	visuals_menu_btn.pressed.connect(func():
+		visuals_menu_container.visible = not visuals_menu_container.visible
+		if visuals_menu_container.visible:
+			visuals_menu_btn.text = "👁️ Visuals Menu: OPEN"
+			apply_material_button_style(visuals_menu_btn, Color(0.5, 0.45, 0.75, 0.9))
+		else:
+			visuals_menu_btn.text = "👁️ Visuals Menu"
+			apply_material_button_style(visuals_menu_btn, Color(0.4, 0.35, 0.65, 0.85))
+		_update_helpers_scroll_layout.call_deferred()
+		call_deferred("_update_hud_focus_neighbors")
+	)
+	toggles_container.add_child(visuals_menu_btn)
+	toggles_container.add_child(visuals_menu_container)
+
+	# Free Camera Toggle Button
+	free_cam_btn = Button.new()
+	free_cam_btn.name = "FreeCameraButton"
+	free_cam_btn.text = "🎥 Free Camera: OFF"
+	free_cam_btn.tooltip_text = "Toggle Free Camera (Fly: WASD/Arrows, Up/Down: Space/Ctrl/E/Q/Wheel, or Click to Move)"
+	free_cam_btn.custom_minimum_size = Vector2(180, 56)
+	apply_material_button_style(free_cam_btn, Color(0.35, 0.35, 0.35, 0.85))
+	free_cam_btn.pressed.connect(func():
+		toggle_free_camera()
+	)
+	visuals_menu_container.add_child(free_cam_btn)
+
+	# Graphics Quality Toggle Button
+	graphics_toggle_btn = Button.new()
+	graphics_toggle_btn.name = "GraphicsToggleButton"
+	graphics_toggle_btn.custom_minimum_size = Vector2(180, 56)
+	graphics_toggle_btn.pressed.connect(func():
+		_cycle_graphics_quality(false)
+	)
+	graphics_toggle_btn.gui_input.connect(func(event: InputEvent):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			_cycle_graphics_quality(true)
+	)
+	visuals_menu_container.add_child(graphics_toggle_btn)
+	_update_graphics_toggle_btn_state()
+
+	if has_node("/root/GlobalSettings"):
+		var gs = get_node("/root/GlobalSettings")
+		if gs.range_settings != null and not gs.range_settings.settings_changed.is_connected(_update_graphics_toggle_btn_state):
+			gs.range_settings.settings_changed.connect(_update_graphics_toggle_btn_state)
 
 	# Stuck Ball Relief Button
 	var s_btn = Button.new()
@@ -3372,7 +3435,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				range_ui.call("set_shot_analysis_enabled", new_v)
 			get_viewport().set_input_as_handled()
 			return
+		elif event.is_action_pressed("free_cam_toggle"):
+			toggle_free_camera()
+			get_viewport().set_input_as_handled()
+			return
 		elif event.is_action_pressed("hit_shot"):
+			if is_free_camera_active():
+				get_viewport().set_input_as_handled()
+				return
 			if course_instance != null:
 				var p = course_instance.get_node_or_null("Player")
 				if p != null:
@@ -3568,6 +3638,15 @@ func _update_hud_tooltips() -> void:
 		dist_btn.tooltip_text = "Hit Menu [%s]" % km.get_action_summary_str("distance_menu_toggle")
 	if rollout_btn != null and is_instance_valid(rollout_btn):
 		rollout_btn.tooltip_text = "Toggle Ball Rollout & Bounce [%s]" % km.get_action_summary_str("rollout_toggle")
+	if free_cam_btn != null and is_instance_valid(free_cam_btn):
+		var km_bind = km.get_action_summary_str("free_cam_toggle")
+		if km_bind.is_empty():
+			free_cam_btn.tooltip_text = "Toggle Free Camera (Fly using Analog Stick, Arrow Keys, or Click to Move)"
+		else:
+			free_cam_btn.tooltip_text = "Toggle Free Camera [%s] (Fly using Analog Stick, Arrow Keys, or Click to Move)" % km_bind
+	if graphics_toggle_btn != null and is_instance_valid(graphics_toggle_btn):
+		var cur_q = _get_current_graphics_quality()
+		graphics_toggle_btn.tooltip_text = "Graphics Quality: %s (Click to cycle Low/Medium/High)" % cur_q
 	if stuck_ball_btn != null and is_instance_valid(stuck_ball_btn):
 		stuck_ball_btn.tooltip_text = "Move ball 2 yards closer to nearest fairway without counting a stroke"
 	if club_selector_node != null and is_instance_valid(club_selector_node):
@@ -3656,6 +3735,246 @@ func _update_track_averages_btn_state() -> void:
 		track_averages_btn.text = "📊 Track Averages: ON" if is_on else "📊 Track Averages: OFF"
 		var c = Color(0.18, 0.55, 0.65, 0.85) if is_on else Color(0.5, 0.5, 0.5, 0.85)
 		apply_material_button_style(track_averages_btn, c)
+
+
+func toggle_free_camera() -> void:
+	set_free_camera_mode(not is_free_camera_active())
+
+
+func is_free_camera_active() -> bool:
+	return _free_camera != null and is_instance_valid(_free_camera) and _free_camera.is_active
+
+
+func set_free_camera_mode(enabled: bool) -> void:
+	if enabled:
+		if course_instance != null and "is_aerial_view" in course_instance and course_instance.is_aerial_view:
+			if course_instance.has_method("toggle_aerial_view"):
+				course_instance.toggle_aerial_view()
+		if _free_camera == null or not is_instance_valid(_free_camera):
+			var free_cam_script = load("res://Utils/free_camera.gd")
+			_free_camera = free_cam_script.new()
+			_free_camera.name = "FreeCamera3D"
+			add_child(_free_camera)
+			if not _free_camera.deactivated.is_connected(_on_free_camera_deactivated):
+				_free_camera.deactivated.connect(_on_free_camera_deactivated)
+		var cur_cam = get_viewport().get_camera_3d() if get_viewport() != null else null
+		_free_camera.activate(cur_cam, course_instance)
+	else:
+		if _free_camera != null and is_instance_valid(_free_camera):
+			_free_camera.deactivate()
+		reset_to_standard_ball_view()
+	_update_free_cam_btn_state()
+	if range_ui != null and range_ui.has_method("set_free_camera_btn_state"):
+		range_ui.call("set_free_camera_btn_state", enabled)
+	if course_instance != null and course_instance.has_method("set_free_camera_active"):
+		course_instance.call("set_free_camera_active", enabled)
+
+
+func _on_free_camera_deactivated() -> void:
+	_update_free_cam_btn_state()
+	reset_to_standard_ball_view()
+	if range_ui != null and range_ui.has_method("set_free_camera_btn_state"):
+		range_ui.call("set_free_camera_btn_state", false)
+	if course_instance != null and course_instance.has_method("set_free_camera_active"):
+		course_instance.call("set_free_camera_active", false)
+
+
+func reset_to_standard_ball_view() -> void:
+	if course_instance == null:
+		return
+	var player_node = course_instance.get_node_or_null("Player")
+	var ball = active_ball
+	if ball == null and player_node != null:
+		ball = player_node.get("ball")
+	if ball == null:
+		if course_instance.has_method("reset_to_standard_ball_view"):
+			course_instance.call("reset_to_standard_ball_view")
+		return
+
+	var ball_pos: Vector3 = ball.global_position
+	if ball_pos.is_zero_approx() and "spawn_position" in ball and not (ball.spawn_position as Vector3).is_zero_approx():
+		ball_pos = ball.spawn_position
+
+	var is_putting = is_default_club_putter() or is_player_on_green() or is_player_on_fringe()
+	var target_aim = course_instance.get("aim_target_pos")
+	if is_putting and course_instance.get("current_hole_location") != null:
+		target_aim = course_instance.get("current_hole_location")
+	elif target_aim == null or (target_aim is Vector3 and target_aim.is_zero_approx()):
+		if course_instance.get("current_hole_location") != null and not (course_instance.current_hole_location as Vector3).is_zero_approx():
+			target_aim = course_instance.current_hole_location
+		else:
+			var aim_yaw: float = ball.get("aim_yaw_offset_deg") if "aim_yaw_offset_deg" in ball else 0.0
+			target_aim = ball_pos + Vector3.RIGHT.rotated(Vector3.UP, deg_to_rad(aim_yaw)) * 50.0
+
+	var diff: Vector3 = target_aim - ball_pos
+	if course_instance.get("current_hole_location") != null and not (course_instance.current_hole_location as Vector3).is_zero_approx():
+		var to_hole: Vector3 = (course_instance.current_hole_location as Vector3) - ball_pos
+		if Vector2(diff.x, diff.z).normalized().dot(Vector2(to_hole.x, to_hole.z).normalized()) < 0.0:
+			diff = to_hole
+			target_aim = course_instance.current_hole_location
+
+	var angle_rad = atan2(diff.z, diff.x)
+	var camera = course_instance.get_node_or_null("PhantomCamera3D")
+	var cam_pos: Vector3
+	if course_instance.has_method("get_address_camera_position"):
+		cam_pos = course_instance.call("get_address_camera_position", ball_pos, -angle_rad, is_putting)
+	else:
+		var cam_dist = 3.6
+		var cam_height = 1.35
+		var gs = get_node_or_null("/root/GlobalSettings")
+		if gs != null and gs.range_settings != null:
+			if "camera_distance" in gs.range_settings:
+				cam_dist = gs.range_settings.camera_distance.value
+			if "camera_height" in gs.range_settings:
+				cam_height = gs.range_settings.camera_height.value
+		var local_offset = Vector3(-1.35, 0.8, 0) if is_putting else Vector3(-cam_dist, cam_height, 0)
+		if course_instance.has_method("get_camera_local_offset"):
+			local_offset = course_instance.call("get_camera_local_offset", is_putting)
+		var rotated_offset = local_offset.rotated(Vector3.UP, -angle_rad)
+		cam_pos = ball_pos + rotated_offset
+
+	if course_instance.has_method("clamp_camera_position"):
+		cam_pos = course_instance.call("clamp_camera_position", cam_pos)
+	elif course_instance.has_method("get_height"):
+		var min_y = course_instance.call("get_height", cam_pos.x, cam_pos.z) + 0.35
+		if cam_pos.y < min_y:
+			cam_pos.y = min_y
+
+	var target_look: Vector3
+	if course_instance.has_method("get_camera_target_look"):
+		target_look = course_instance.call("get_camera_target_look", target_aim, ball_pos, is_putting)
+	elif is_putting:
+		var dist = ball_pos.distance_to(target_aim)
+		var look_dist = clamp(dist * 0.4, 2.0, 6.0)
+		if dist < 2.0:
+			look_dist = dist
+		var fraction = clamp(look_dist / max(dist, 0.001), 0.0, 1.0)
+		target_look = ball_pos.lerp(target_aim, fraction)
+	else:
+		var dist = ball_pos.distance_to(target_aim) if not target_aim.is_zero_approx() else 50.0
+		var aim_dir = (target_aim - ball_pos).normalized() if not target_aim.is_zero_approx() else Vector3.ZERO
+		if aim_dir.is_zero_approx():
+			var yaw: float = ball.get("aim_yaw_offset_deg") if "aim_yaw_offset_deg" in ball else 0.0
+			aim_dir = Vector3.RIGHT.rotated(Vector3.UP, deg_to_rad(yaw))
+		var look_dist = clampf(dist, 10.0, 50.0)
+		var t = clampf(look_dist / maxf(dist, 0.001), 0.0, 1.0)
+		var base_look_pos = ball_pos.lerp(target_aim, t) if not target_aim.is_zero_approx() else (ball_pos + aim_dir * 50.0)
+		target_look = base_look_pos + Vector3.UP * 1.0
+
+	var fov_val := 75.0
+	var gs = get_node_or_null("/root/GlobalSettings")
+	if gs != null and gs.range_settings != null and "camera_fov" in gs.range_settings:
+		fov_val = gs.range_settings.camera_fov.value
+
+	if camera != null:
+		camera.follow_mode = PhantomCamera3D.FollowMode.NONE
+		camera.look_at_mode = PhantomCamera3D.LookAtMode.NONE
+		camera.global_position = cam_pos
+		camera.look_at(target_look)
+		if camera.camera_3d_resource != null:
+			camera.camera_3d_resource.fov = fov_val
+
+	var cam3d = course_instance.get_node_or_null("Camera3D")
+	if cam3d != null:
+		cam3d.global_position = cam_pos
+		cam3d.look_at(target_look)
+		cam3d.fov = fov_val
+		cam3d.make_current()
+
+	if has_node("/root/ScreenOffsetManager"):
+		var som = get_node("/root/ScreenOffsetManager")
+		var cam_to_register = camera if camera != null else cam3d
+		if cam_to_register != null:
+			som.call("register_camera", cam_to_register)
+		som.call("set_putter_active", is_putting)
+		som.call("on_ready_for_shot", 0.0, true)
+
+
+func _update_free_cam_btn_state() -> void:
+	if free_cam_btn != null and is_instance_valid(free_cam_btn):
+		var active = is_free_camera_active()
+		if active:
+			free_cam_btn.text = "🎥 Free Camera: ON"
+			apply_material_button_style(free_cam_btn, Color(0.2, 0.6, 0.75, 0.9))
+		else:
+			free_cam_btn.text = "🎥 Free Camera: OFF"
+			apply_material_button_style(free_cam_btn, Color(0.35, 0.35, 0.35, 0.85))
+
+
+func _get_current_graphics_quality() -> String:
+	var gs = get_node_or_null("/root/GlobalSettings")
+	if gs != null:
+		if gs.has_method("get_graphics_quality"):
+			return gs.get_graphics_quality()
+		elif gs.range_settings != null and gs.range_settings.settings.has("graphics_quality"):
+			return str(gs.range_settings.settings["graphics_quality"].value)
+	return MobilePerformance.get_default_graphics_quality()
+
+
+func _cycle_graphics_quality(reverse: bool = false) -> void:
+	var current_q = _get_current_graphics_quality()
+	var is_mob = MobilePerformance.is_mobile()
+	var qualities = ["Low", "Medium"] if is_mob else ["Low", "Medium", "High"]
+	var idx = qualities.find(current_q)
+	if idx == -1:
+		idx = 0
+	
+	if reverse:
+		idx = (idx - 1 + qualities.size()) % qualities.size()
+	else:
+		idx = (idx + 1) % qualities.size()
+	
+	var next_q = qualities[idx]
+	_apply_selected_graphics_quality(next_q)
+
+
+func _apply_selected_graphics_quality(next_q: String) -> void:
+	var gs = get_node_or_null("/root/GlobalSettings")
+	if gs != null and gs.range_settings != null and gs.range_settings.settings.has("graphics_quality"):
+		gs.range_settings.settings["graphics_quality"].set_value(next_q)
+		gs.save_settings()
+	
+	_update_graphics_toggle_btn_state()
+	if range_ui != null and range_ui.has_method("update_graphics_toggle_btn_state"):
+		range_ui.call("update_graphics_toggle_btn_state")
+	
+	var tree = get_tree()
+	if tree != null and tree.root != null:
+		MobilePerformance.apply_graphics_quality_with_spinner(tree, next_q)
+	elif get_node_or_null("/root") != null:
+		MobilePerformance.apply_graphics_quality(get_node("/root"), next_q)
+
+
+func _update_graphics_toggle_btn_state() -> void:
+	if graphics_toggle_btn == null or not is_instance_valid(graphics_toggle_btn):
+		return
+	var current_q = _get_current_graphics_quality()
+	if MobilePerformance.is_mobile() and current_q == "High":
+		current_q = "Medium"
+	
+	graphics_toggle_btn.text = "🎨 Graphics: %s" % current_q
+	match current_q:
+		"Low":
+			graphics_toggle_btn.tooltip_text = "Graphics Quality: Low (Fast Stylized) - Click to cycle"
+			apply_material_button_style(graphics_toggle_btn, Color(0.48, 0.48, 0.52, 0.85))
+		"Medium":
+			graphics_toggle_btn.tooltip_text = "Graphics Quality: Medium (Balanced PBR) - Click to cycle"
+			apply_material_button_style(graphics_toggle_btn, Color(0.22, 0.48, 0.68, 0.85))
+		"High", _:
+			graphics_toggle_btn.tooltip_text = "Graphics Quality: High (Photorealistic) - Click to cycle"
+			apply_material_button_style(graphics_toggle_btn, Color(0.18, 0.58, 0.38, 0.85))
+
+
+func cycle_graphics_quality(reverse: bool = false) -> void:
+	_cycle_graphics_quality(reverse)
+
+
+func set_graphics_quality(quality: String) -> void:
+	_apply_selected_graphics_quality(quality)
+
+
+func update_graphics_toggle_btn_state() -> void:
+	_update_graphics_toggle_btn_state()
 
 
 func _on_debug_hit_distance_setting_changed(_val) -> void:
@@ -3976,7 +4295,9 @@ func _update_distance_queue() -> void:
 		var club_lbl = Label.new()
 		club_lbl.text = item.get("suggested_club", "")
 		club_lbl.add_theme_font_size_override("font_size", 12)
-		club_lbl.add_theme_color_override("font_color", Color(0.65, 0.82, 0.95))
+		var is_holed: bool = bool(item.get("holed_out", false))
+		var club_color: Color = Color(0.75, 0.78, 0.82) if is_holed else Color(0.65, 0.82, 0.95)
+		club_lbl.add_theme_color_override("font_color", club_color)
 		club_lbl.custom_minimum_size = Vector2(45, 0)
 		club_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		club_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -5606,13 +5927,13 @@ func is_default_club_putter() -> bool:
 func _calc_is_default_club_putter(current_c: String) -> bool:
 	if is_player_on_wrong_green():
 		return false
+	if not current_c.is_empty():
+		return current_c in ["pt", "putt", "putter"] or current_c.begins_with("putt")
 	if course_instance != null and course_instance.has_method("is_default_club_putter"):
 		return bool(course_instance.call("is_default_club_putter"))
-	if not current_c.is_empty():
-		return current_c in ["pt", "putt", "putter"]
 	if course_instance != null and course_instance.has_method("get_default_club"):
 		var def_c = str(course_instance.call("get_default_club")).to_lower()
-		return def_c in ["pt", "putt", "putter"]
+		return def_c in ["pt", "putt", "putter"] or def_c.begins_with("putt")
 	if is_player_on_green():
 		return true
 	if is_player_on_fringe():

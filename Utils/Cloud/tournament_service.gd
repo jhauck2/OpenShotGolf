@@ -21,6 +21,14 @@ var _sync_timer: Timer = null
 var _pending_score_data: Dictionary = {}  # tournament_id -> partial entry dict
 var _joined_tournaments: Array[Dictionary] = []  # locally cached list of joined tournaments
 
+const GIMME_SETTINGS_KEYS := [
+	"gimme_range_1_enabled", "gimme_range_1_distance",
+	"gimme_range_2_enabled", "gimme_range_2_distance",
+	"gimme_range_3_enabled", "gimme_range_3_distance"
+]
+var _saved_tournament_settings: Dictionary = {}
+var active_tournament_id: String = ""
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -141,7 +149,14 @@ func create_tournament(settings: Dictionary) -> Dictionary:
 		"end_date_utc": end_date_str,
 		"status": "open",
 		"player_count": 1,
-		"created_at": now
+		"created_at": now,
+		"force_gimmes": bool(settings.get("force_gimmes", false)),
+		"gimme_range_1_enabled": bool(settings.get("gimme_range_1_enabled", true)),
+		"gimme_range_1_distance": float(settings.get("gimme_range_1_distance", 4.0)),
+		"gimme_range_2_enabled": bool(settings.get("gimme_range_2_enabled", false)),
+		"gimme_range_2_distance": float(settings.get("gimme_range_2_distance", 10.0)),
+		"gimme_range_3_enabled": bool(settings.get("gimme_range_3_enabled", false)),
+		"gimme_range_3_distance": float(settings.get("gimme_range_3_distance", 30.0))
 	}
 
 	var res := await fs.set_doc("tournaments/%s" % doc_id, doc_data)
@@ -376,10 +391,65 @@ func _on_hole_completed(_scores: Array) -> void:
 func _on_game_over(_scores: Array) -> void:
 	var mp := get_node_or_null("/root/MultiplayerManager")
 	if mp == null or mp.practice_mode_active or _is_online_match_active():
+		restore_tournament_settings()
 		return
 	_accumulate_scores_from_mp(mp)
 	# Push immediately on game over
 	push_pending_scores()
+	restore_tournament_settings()
+
+
+func apply_tournament_settings(t_doc: Dictionary) -> void:
+	var gs = _get_global_settings()
+	if gs == null or gs.range_settings == null:
+		return
+
+	active_tournament_id = t_doc.get("tournament_id", "")
+	var force_gimmes: bool = bool(t_doc.get("force_gimmes", false))
+	if not force_gimmes:
+		print("[TournamentService] Tournament uses local player gimme settings.")
+		return
+
+	_saved_tournament_settings.clear()
+	if "suppress_save" in gs:
+		gs.suppress_save = true
+
+	for k in GIMME_SETTINGS_KEYS:
+		if gs.range_settings.settings.has(k):
+			_saved_tournament_settings[k] = gs.range_settings.settings[k].value
+			if t_doc.has(k):
+				gs.range_settings.settings[k].set_value(t_doc[k])
+	print("[TournamentService] Applied forced tournament gimme settings.")
+
+
+func restore_tournament_settings() -> void:
+	active_tournament_id = ""
+	if _saved_tournament_settings.is_empty():
+		return
+	var gs = _get_global_settings()
+	if gs != null and gs.range_settings != null:
+		for k in _saved_tournament_settings:
+			if gs.range_settings.settings.has(k):
+				gs.range_settings.settings[k].set_value(_saved_tournament_settings[k])
+		if "suppress_save" in gs:
+			gs.suppress_save = false
+		if gs.has_method("save_settings"):
+			gs.save_settings()
+	_saved_tournament_settings.clear()
+	print("[TournamentService] Restored player local gimme settings.")
+
+
+func is_tournament_settings_applied() -> bool:
+	return not _saved_tournament_settings.is_empty()
+
+
+func _get_global_settings() -> Node:
+	if has_node("/root/GlobalSettings"):
+		return get_node("/root/GlobalSettings")
+	var loop = Engine.get_main_loop()
+	if loop is SceneTree and loop.root != null and loop.root.has_node("GlobalSettings"):
+		return loop.root.get_node("GlobalSettings")
+	return null
 
 
 func _is_online_match_active() -> bool:

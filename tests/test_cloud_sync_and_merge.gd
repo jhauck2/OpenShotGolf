@@ -816,6 +816,31 @@ func _test_8_web_and_cross_device_clear_tracking() -> void:
 	var merged_f = StatsMerger.merge_profile_stats(swing_device, swing_clear)
 	assert(merged_f["swing_issues"].is_empty(), "Swing issues updated prior to cleared_swing_issues_at must be purged")
 
+	# Scenario G: Swing issues merge with non-zero counts and timestamp preservation
+	var swing_loc = {
+		"swing_issues": {
+			"2026-11": {"Excessive Driver Spin": 6, "Low Driver Launch": 2}
+		},
+		"swing_issues_updated_at": 1500,
+		"tombstones": {
+			"cleared_swing_issues_at": 0
+		}
+	}
+	var swing_cld = {
+		"swing_issues": {
+			"2026-11": {"Excessive Driver Spin": 4, "High Driver Launch / Pop-up": 5}
+		},
+		"swing_issues_updated_at": 1400,
+		"tombstones": {
+			"cleared_swing_issues_at": 0
+		}
+	}
+	var merged_g = StatsMerger.merge_profile_stats(swing_loc, swing_cld)
+	assert(merged_g["swing_issues"]["2026-11"]["Excessive Driver Spin"] == 6, "Max count should be 6")
+	assert(merged_g["swing_issues"]["2026-11"]["High Driver Launch / Pop-up"] == 5, "Cloud flaw should merge")
+	assert(merged_g["swing_issues"]["2026-11"]["Low Driver Launch"] == 2, "Local flaw should merge")
+	assert(merged_g["swing_issues_updated_at"] == 1500, "Updated_at should be 1500")
+
 	print("  PASS: Web and cross-device clear tracking, legacy shot purging, record recalculation, and swing clear verified.")
 
 

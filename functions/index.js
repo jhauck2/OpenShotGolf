@@ -1,7 +1,9 @@
 const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const admin = require("firebase-admin");
 
-admin.initializeApp();
+admin.initializeApp({
+  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://heckle-golf-sim-default-rtdb.firebaseio.com"
+});
 
 const PAUSE_MESSAGE =
   "Multiplayer is temporarily paused for the remainder of the month as the developer's monthly budget has been reached, sorry for the inconvenience.";

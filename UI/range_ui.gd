@@ -44,6 +44,12 @@ var _imm_menu_btn: Button = null
 var _imm_menu_container: VBoxContainer = null
 var _train_menu_btn: Button = null
 var _train_menu_container: VBoxContainer = null
+var _visuals_menu_btn: Button = null
+var _visuals_menu_container: VBoxContainer = null
+var _free_cam_btn: Button = null
+var _free_camera: Camera3D = null
+var _graphics_toggle_btn: Button = null
+signal free_camera_toggled(enabled: bool)
 var _announcer_btn: Button = null
 var _tension_btn: Button = null
 var _screen_offset_ctrl: Control = null
@@ -652,6 +658,68 @@ func _ready() -> void:
 		)
 		train_menu_container.add_child(rollout_btn)
 		_rollout_btn = rollout_btn
+
+		# --- Visuals Menu Submenu ---
+		var visuals_menu_btn = Button.new()
+		visuals_menu_btn.name = "VisualsMenuButton"
+		visuals_menu_btn.text = "👁️ Visuals Menu"
+		visuals_menu_btn.tooltip_text = "Toggle Visual Settings (Free Camera, Graphics Quality, etc.)"
+		visuals_menu_btn.custom_minimum_size = Vector2(180, 56)
+		apply_material_button_style(visuals_menu_btn, Color(0.4, 0.35, 0.65, 0.85))
+
+		var visuals_menu_container = VBoxContainer.new()
+		visuals_menu_container.name = "VisualsMenuContainer"
+		visuals_menu_container.add_theme_constant_override("separation", 10)
+		visuals_menu_container.visible = false
+
+		visuals_menu_btn.pressed.connect(func():
+			visuals_menu_container.visible = not visuals_menu_container.visible
+			if visuals_menu_container.visible:
+				visuals_menu_btn.text = "👁️ Visuals Menu: OPEN"
+				apply_material_button_style(visuals_menu_btn, Color(0.5, 0.45, 0.75, 0.9))
+			else:
+				visuals_menu_btn.text = "👁️ Visuals Menu"
+				apply_material_button_style(visuals_menu_btn, Color(0.4, 0.35, 0.65, 0.85))
+			_update_helpers_scroll_layout.call_deferred()
+			call_deferred("_update_hud_focus_neighbors")
+		)
+		toggles_container.add_child(visuals_menu_btn)
+		toggles_container.add_child(visuals_menu_container)
+		_visuals_menu_btn = visuals_menu_btn
+		_visuals_menu_container = visuals_menu_container
+
+		# Free Camera Toggle Button
+		var free_cam_btn = Button.new()
+		free_cam_btn.name = "FreeCameraButton"
+		free_cam_btn.text = "🎥 Free Camera: OFF"
+		free_cam_btn.tooltip_text = "Toggle Free Camera (Fly: WASD/Arrows, Up/Down: Space/Ctrl/E/Q/Wheel, or Click to Move)"
+		free_cam_btn.custom_minimum_size = Vector2(180, 56)
+		apply_material_button_style(free_cam_btn, Color(0.35, 0.35, 0.35, 0.85))
+		free_cam_btn.pressed.connect(func():
+			toggle_free_camera()
+		)
+		visuals_menu_container.add_child(free_cam_btn)
+		_free_cam_btn = free_cam_btn
+
+		# Graphics Quality Toggle Button
+		var graphics_toggle_btn = Button.new()
+		graphics_toggle_btn.name = "GraphicsToggleButton"
+		graphics_toggle_btn.custom_minimum_size = Vector2(180, 56)
+		graphics_toggle_btn.pressed.connect(func():
+			_cycle_graphics_quality(false)
+		)
+		graphics_toggle_btn.gui_input.connect(func(event: InputEvent):
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+				_cycle_graphics_quality(true)
+		)
+		visuals_menu_container.add_child(graphics_toggle_btn)
+		_graphics_toggle_btn = graphics_toggle_btn
+		_update_graphics_toggle_btn_state()
+
+		if has_node("/root/GlobalSettings"):
+			var gs = get_node("/root/GlobalSettings")
+			if gs.range_settings != null and not gs.range_settings.settings_changed.is_connected(_update_graphics_toggle_btn_state):
+				gs.range_settings.settings_changed.connect(_update_graphics_toggle_btn_state)
 
 		# Stuck Ball Button (Free drop 2 yards closer to nearest fairway)
 		var stuck_ball_btn = Button.new()
@@ -5020,6 +5088,138 @@ func _update_track_averages_btn_state() -> void:
 		apply_material_button_style(_track_averages_btn, c)
 	if _avg_paused_indicator != null and is_instance_valid(_avg_paused_indicator):
 		_avg_paused_indicator.visible = not is_on
+
+
+func toggle_free_camera() -> void:
+	set_free_camera_mode(not is_free_camera_active())
+
+
+func is_free_camera_active() -> bool:
+	if _free_camera != null and is_instance_valid(_free_camera):
+		return _free_camera.is_active
+	var p = get_parent()
+	if p != null and p.has_method("is_free_camera_active"):
+		return p.call("is_free_camera_active")
+	return false
+
+
+func set_free_camera_mode(enabled: bool) -> void:
+	var p = get_parent()
+	if p != null and p.has_method("set_free_camera_mode"):
+		p.call("set_free_camera_mode", enabled)
+	else:
+		if enabled:
+			if _free_camera == null or not is_instance_valid(_free_camera):
+				var free_cam_script = load("res://Utils/free_camera.gd")
+				_free_camera = free_cam_script.new()
+				_free_camera.name = "FreeCamera3D"
+				if p != null:
+					p.add_child(_free_camera)
+				else:
+					add_child(_free_camera)
+				if not _free_camera.deactivated.is_connected(_on_free_camera_deactivated):
+					_free_camera.deactivated.connect(_on_free_camera_deactivated)
+			var cur_cam = get_viewport().get_camera_3d() if get_viewport() != null else null
+			_free_camera.activate(cur_cam, p)
+		else:
+			if _free_camera != null and is_instance_valid(_free_camera):
+				_free_camera.deactivate()
+			if p != null and p.has_method("reset_to_standard_ball_view"):
+				p.call("reset_to_standard_ball_view")
+	set_free_camera_btn_state(enabled)
+	emit_signal("free_camera_toggled", enabled)
+
+
+func _on_free_camera_deactivated() -> void:
+	var p = get_parent()
+	if p != null and p.has_method("reset_to_standard_ball_view"):
+		p.call("reset_to_standard_ball_view")
+	set_free_camera_btn_state(false)
+	emit_signal("free_camera_toggled", false)
+
+
+func set_free_camera_btn_state(enabled: bool) -> void:
+	if _free_cam_btn != null and is_instance_valid(_free_cam_btn):
+		if enabled:
+			_free_cam_btn.text = "🎥 Free Camera: ON"
+			apply_material_button_style(_free_cam_btn, Color(0.2, 0.6, 0.75, 0.9))
+		else:
+			_free_cam_btn.text = "🎥 Free Camera: OFF"
+			apply_material_button_style(_free_cam_btn, Color(0.35, 0.35, 0.35, 0.85))
+
+
+func _get_current_graphics_quality() -> String:
+	var gs = get_node_or_null("/root/GlobalSettings")
+	if gs != null:
+		if gs.has_method("get_graphics_quality"):
+			return gs.get_graphics_quality()
+		elif gs.range_settings != null and gs.range_settings.settings.has("graphics_quality"):
+			return str(gs.range_settings.settings["graphics_quality"].value)
+	return MobilePerformance.get_default_graphics_quality()
+
+
+func _cycle_graphics_quality(reverse: bool = false) -> void:
+	var current_q = _get_current_graphics_quality()
+	var is_mob = MobilePerformance.is_mobile()
+	var qualities = ["Low", "Medium"] if is_mob else ["Low", "Medium", "High"]
+	var idx = qualities.find(current_q)
+	if idx == -1:
+		idx = 0
+	
+	if reverse:
+		idx = (idx - 1 + qualities.size()) % qualities.size()
+	else:
+		idx = (idx + 1) % qualities.size()
+	
+	var next_q = qualities[idx]
+	_apply_selected_graphics_quality(next_q)
+
+
+func _apply_selected_graphics_quality(next_q: String) -> void:
+	var gs = get_node_or_null("/root/GlobalSettings")
+	if gs != null and gs.range_settings != null and gs.range_settings.settings.has("graphics_quality"):
+		gs.range_settings.settings["graphics_quality"].set_value(next_q)
+		gs.save_settings()
+	
+	_update_graphics_toggle_btn_state()
+	
+	var tree = get_tree()
+	if tree != null and tree.root != null:
+		MobilePerformance.apply_graphics_quality_with_spinner(tree, next_q)
+	elif get_node_or_null("/root") != null:
+		MobilePerformance.apply_graphics_quality(get_node("/root"), next_q)
+
+
+func _update_graphics_toggle_btn_state() -> void:
+	if _graphics_toggle_btn == null or not is_instance_valid(_graphics_toggle_btn):
+		return
+	var current_q = _get_current_graphics_quality()
+	if MobilePerformance.is_mobile() and current_q == "High":
+		current_q = "Medium"
+	
+	_graphics_toggle_btn.text = "🎨 Graphics: %s" % current_q
+	match current_q:
+		"Low":
+			_graphics_toggle_btn.tooltip_text = "Graphics Quality: Low (Fast Stylized) - Click to cycle"
+			apply_material_button_style(_graphics_toggle_btn, Color(0.48, 0.48, 0.52, 0.85))
+		"Medium":
+			_graphics_toggle_btn.tooltip_text = "Graphics Quality: Medium (Balanced PBR) - Click to cycle"
+			apply_material_button_style(_graphics_toggle_btn, Color(0.22, 0.48, 0.68, 0.85))
+		"High", _:
+			_graphics_toggle_btn.tooltip_text = "Graphics Quality: High (Photorealistic) - Click to cycle"
+			apply_material_button_style(_graphics_toggle_btn, Color(0.18, 0.58, 0.38, 0.85))
+
+
+func cycle_graphics_quality(reverse: bool = false) -> void:
+	_cycle_graphics_quality(reverse)
+
+
+func set_graphics_quality(quality: String) -> void:
+	_apply_selected_graphics_quality(quality)
+
+
+func update_graphics_toggle_btn_state() -> void:
+	_update_graphics_toggle_btn_state()
 
 
 func _on_stuck_ball_button_pressed() -> void:

@@ -2562,13 +2562,16 @@ func hit() -> void:
 	elif is_on_green:
 		dist_yards = 5.0
 
-	var club = "Pt" if is_on_green else current_selected_club
+	var is_putter_sel := current_selected_club.to_lower() in ["pt", "putt", "putter"] or current_selected_club.to_lower().begins_with("putt")
+	var club = current_selected_club if not current_selected_club.is_empty() else ("Pt" if is_on_green else "Dr")
+	if not is_putter_sel and not current_selected_club.is_empty():
+		club = current_selected_club
 	var distance_menu_script = load("res://UI/distance_menu.gd")
 	var data: Dictionary = {}
 	if distance_menu_script != null and distance_menu_script.has_method("build_shot_payload"):
 		data = distance_menu_script.build_shot_payload(dist_yards, club)
 	else:
-		if is_on_green:
+		if is_putter_sel or (current_selected_club.is_empty() and is_on_green):
 			var putt_speed = 1.8 * sqrt(dist_yards)
 			data = {
 				"Speed": clampf(putt_speed, 2.0, 40.0),
@@ -2689,21 +2692,18 @@ func hit_from_data(data: Dictionary) -> void:
 		current_selected_club = club_name
 
 	var is_driver := current_selected_club.to_lower() in ["dr", "driver", "1w"]
-	var is_putter := current_selected_club.to_lower() in ["pt", "putt", "putter"]
+	var is_putter := current_selected_club.to_lower() in ["pt", "putt", "putter"] or current_selected_club.to_lower().begins_with("putt")
 	var is_teebox := (lie_type == "teebox")
 
 	# Putt determination logic:
-	# Driver shots, teebox shots, and full swings (> 45 mph) are strictly never putts.
-	if is_driver or is_teebox or speed_mph > 45.0:
+	# A hit should only be considered as a putt when a putter is being used.
+	# Driver shots, teebox shots, non-putters, and full swings (> 45 mph) are strictly never putts.
+	if not is_putter or is_driver or is_teebox or speed_mph > 45.0:
 		is_putt = false
-	elif is_putter or shot_type.to_lower() == "putt":
-		# Putting stroke with putter or putt shot type: allow putting up to 14.0 deg VLA
+	else:
+		# Putting stroke with putter: allow putting up to 14.0 deg VLA
 		# (permits natural turf pops off fringe collar grass without converting into an airborne iron flight)
 		is_putt = (vla_deg < 14.0)
-	elif (not _is_position_on_wrong_green(global_position)) and (lie_type == "green" or lie_type == "fringe" or _is_position_on_fringe(global_position)):
-		is_putt = (vla_deg < 5.5) or (shot_type.to_lower() == "putt") or is_putter
-	else:
-		is_putt = (shot_type.to_lower() == "putt" and vla_deg < 5.5)
 
 	# If VLA is 0 or unmeasured on a driver shot with high speed (> 45 mph),
 	# default VLA to standard driver launch angle (11.5 deg) to prevent grounded rollout.

@@ -33,6 +33,14 @@ const BudgetPausedBannerScript = preload("res://UI/Account/budget_paused_banner.
 @onready var wind_option: OptionButton = %WindOption
 @onready var green_speed_option: OptionButton = %GreenSpeedOption
 @onready var visibility_option: OptionButton = %VisibilityOption
+@onready var gimme_mode_option: OptionButton = %GimmeModeOption
+@onready var host_gimme_params_container: PanelContainer = %HostGimmeParamsContainer
+@onready var host_gimme_1_check: CheckBox = %HostGimme1Check
+@onready var host_gimme_1_dist: SpinBox = %HostGimme1Dist
+@onready var host_gimme_2_check: CheckBox = %HostGimme2Check
+@onready var host_gimme_2_dist: SpinBox = %HostGimme2Dist
+@onready var host_gimme_3_check: CheckBox = %HostGimme3Check
+@onready var host_gimme_3_dist: SpinBox = %HostGimme3Dist
 @onready var host_golfer_dropdown: OptionButton = %HostGolferDropdown
 @onready var host_golfer_tee: OptionButton = %HostGolferTee
 @onready var host_create_button: Button = %HostCreateButton
@@ -83,6 +91,14 @@ const BudgetPausedBannerScript = preload("res://UI/Account/budget_paused_banner.
 @onready var t_visibility_option: OptionButton = %TVisibilityOption
 @onready var t_max_players_spinbox: SpinBox = %TMaxPlayersSpinBox
 @onready var t_end_date_input: LineEdit = %TEndDateInput
+@onready var t_gimme_mode_option: OptionButton = %TGimmeModeOption
+@onready var t_host_gimme_params_container: PanelContainer = %THostGimmeParamsContainer
+@onready var t_host_gimme_1_check: CheckBox = %THostGimme1Check
+@onready var t_host_gimme_1_dist: SpinBox = %THostGimme1Dist
+@onready var t_host_gimme_2_check: CheckBox = %THostGimme2Check
+@onready var t_host_gimme_2_dist: SpinBox = %THostGimme2Dist
+@onready var t_host_gimme_3_check: CheckBox = %THostGimme3Check
+@onready var t_host_gimme_3_dist: SpinBox = %THostGimme3Dist
 @onready var t_host_golfer_dropdown: OptionButton = %THostGolferDropdown
 @onready var t_host_golfer_tee: OptionButton = %THostGolferTee
 @onready var t_host_create_button: Button = %THostCreateButton
@@ -183,6 +199,11 @@ func _ready() -> void:
 		join_code_input.text = t.to_upper().strip_edges()
 	)
 
+	gimme_mode_option.item_selected.connect(func(idx):
+		host_gimme_params_container.visible = (idx == 1)
+		_update_controller_focus_navigation()
+	)
+
 	# â”€â”€ Tournament mode signals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	ttab_host_button.pressed.connect(func(): _switch_t_tab("t_host"))
 	ttab_join_button.pressed.connect(func(): _switch_t_tab("t_join"))
@@ -204,6 +225,11 @@ func _ready() -> void:
 
 	t_join_code_input.text_changed.connect(func(t: String):
 		t_join_code_input.text = t.to_upper().strip_edges()
+	)
+
+	t_gimme_mode_option.item_selected.connect(func(idx):
+		t_host_gimme_params_container.visible = (idx == 1)
+		_update_controller_focus_navigation()
 	)
 
 	# Connect OnlineSession signals
@@ -286,10 +312,10 @@ func _apply_styles() -> void:
 
 	for opt in [
 		course_dropdown, length_option, mode_option, turn_order_option,
-		wind_option, green_speed_option, visibility_option,
+		wind_option, green_speed_option, visibility_option, gimme_mode_option,
 		host_golfer_dropdown, host_golfer_tee, join_golfer_dropdown, join_golfer_tee,
 		t_course_dropdown, t_length_option, t_mode_option, t_wind_option,
-		t_green_speed_option, t_visibility_option,
+		t_green_speed_option, t_visibility_option, t_gimme_mode_option,
 		t_host_golfer_dropdown, t_host_golfer_tee,
 		t_join_golfer_dropdown, t_join_golfer_tee,
 		t_public_filter_time_option, t_public_filter_course_option,
@@ -298,6 +324,11 @@ func _apply_styles() -> void:
 	]:
 		if opt != null:
 			ThemeManager.apply_option_button_style(opt)
+
+	if host_gimme_params_container != null:
+		ThemeManager.apply_card_panel_style(host_gimme_params_container, false, 6, 12, 10, 12, 10)
+	if t_host_gimme_params_container != null:
+		ThemeManager.apply_card_panel_style(t_host_gimme_params_container, false, 6, 12, 10, 12, 10)
 
 
 func _get_user_account_display_name(ca: Object) -> String:
@@ -511,6 +542,21 @@ func _populate_dropdowns() -> void:
 			tee_opt.add_item(t)
 		tee_opt.select(1)
 
+	# Gimme mode dropdowns
+	gimme_mode_option.clear()
+	gimme_mode_option.add_item("Use Local Settings")
+	gimme_mode_option.add_item("Force Host Settings")
+	gimme_mode_option.select(0)
+	host_gimme_params_container.visible = false
+
+	t_gimme_mode_option.clear()
+	t_gimme_mode_option.add_item("Use Local Settings")
+	t_gimme_mode_option.add_item("Force Host Settings")
+	t_gimme_mode_option.select(0)
+	t_host_gimme_params_container.visible = false
+
+	_init_host_gimme_values()
+
 	# Filter time period options (shared pattern)
 	var time_labels := ["All Time", "Today", "This Week", "This Month", "Last 90 Days"]
 	var time_values := ["all", "today", "this_week", "this_month", "last_90_days"]
@@ -532,6 +578,30 @@ func _populate_dropdowns() -> void:
 	_populate_players()
 	# Courses (matches)
 	_populate_courses()
+
+
+func _init_host_gimme_values() -> void:
+	var gs = get_node_or_null("/root/GlobalSettings")
+	if gs != null and gs.range_settings != null:
+		var rs = gs.range_settings
+		if rs.gimme_range_1_enabled != null:
+			host_gimme_1_check.button_pressed = bool(rs.gimme_range_1_enabled.value)
+			t_host_gimme_1_check.button_pressed = bool(rs.gimme_range_1_enabled.value)
+		if rs.gimme_range_1_distance != null:
+			host_gimme_1_dist.value = float(rs.gimme_range_1_distance.value)
+			t_host_gimme_1_dist.value = float(rs.gimme_range_1_distance.value)
+		if rs.gimme_range_2_enabled != null:
+			host_gimme_2_check.button_pressed = bool(rs.gimme_range_2_enabled.value)
+			t_host_gimme_2_check.button_pressed = bool(rs.gimme_range_2_enabled.value)
+		if rs.gimme_range_2_distance != null:
+			host_gimme_2_dist.value = float(rs.gimme_range_2_distance.value)
+			t_host_gimme_2_dist.value = float(rs.gimme_range_2_distance.value)
+		if rs.gimme_range_3_enabled != null:
+			host_gimme_3_check.button_pressed = bool(rs.gimme_range_3_enabled.value)
+			t_host_gimme_3_check.button_pressed = bool(rs.gimme_range_3_enabled.value)
+		if rs.gimme_range_3_distance != null:
+			host_gimme_3_dist.value = float(rs.gimme_range_3_distance.value)
+			t_host_gimme_3_dist.value = float(rs.gimme_range_3_distance.value)
 
 
 func _populate_players() -> void:
@@ -655,6 +725,16 @@ func _on_host_create_pressed() -> void:
 		"green_speed": green_speed_option.get_item_text(green_speed_option.selected),
 		"pin_seed": randi()
 	}
+
+	var force_gimmes := (gimme_mode_option.selected == 1)
+	settings["force_gimmes"] = force_gimmes
+	if force_gimmes:
+		settings["gimme_range_1_enabled"] = host_gimme_1_check.button_pressed
+		settings["gimme_range_1_distance"] = float(host_gimme_1_dist.value)
+		settings["gimme_range_2_enabled"] = host_gimme_2_check.button_pressed
+		settings["gimme_range_2_distance"] = float(host_gimme_2_dist.value)
+		settings["gimme_range_3_enabled"] = host_gimme_3_check.button_pressed
+		settings["gimme_range_3_distance"] = float(host_gimme_3_dist.value)
 
 	# Wind mapping
 	var wind_idx := wind_option.selected
@@ -887,10 +967,12 @@ func _on_lobby_updated(meta: Dictionary, devices: Dictionary, golfers: Dictionar
 
 	var course: Dictionary = meta.get("course", {})
 	var settings: Dictionary = meta.get("settings", {})
-	room_details_label.text = "%s | %s | %s" % [
+	var gimme_str: String = "Forced Host Gimmes" if bool(settings.get("force_gimmes", false)) else "Local Gimmes"
+	room_details_label.text = "%s | %s | %s | %s" % [
 		course.get("title", "Course"),
 		settings.get("course_length", "Full 18"),
-		settings.get("game_mode", "Standard")
+		settings.get("game_mode", "Standard"),
+		gimme_str
 	]
 
 	var my_uid: String = sess._get_my_uid() if sess != null else ""
@@ -1172,6 +1254,16 @@ func _on_t_host_create_pressed() -> void:
 		"end_date_utc": end_str,
 		"player_name": golfer_name
 	}
+
+	var t_force_gimmes := (t_gimme_mode_option.selected == 1)
+	settings["force_gimmes"] = t_force_gimmes
+	if t_force_gimmes:
+		settings["gimme_range_1_enabled"] = t_host_gimme_1_check.button_pressed
+		settings["gimme_range_1_distance"] = float(t_host_gimme_1_dist.value)
+		settings["gimme_range_2_enabled"] = t_host_gimme_2_check.button_pressed
+		settings["gimme_range_2_distance"] = float(t_host_gimme_2_dist.value)
+		settings["gimme_range_3_enabled"] = t_host_gimme_3_check.button_pressed
+		settings["gimme_range_3_distance"] = float(t_host_gimme_3_dist.value)
 
 	t_host_create_button.disabled = true
 	t_host_success_panel.visible = false
@@ -1834,8 +1926,10 @@ func _update_controller_focus_navigation() -> void:
 			green_speed_option.focus_neighbor_top = wind_option.get_path()
 			green_speed_option.focus_neighbor_bottom = visibility_option.get_path()
 			visibility_option.focus_neighbor_top = green_speed_option.get_path()
-			visibility_option.focus_neighbor_bottom = host_golfer_dropdown.get_path()
-			host_golfer_dropdown.focus_neighbor_top = visibility_option.get_path()
+			visibility_option.focus_neighbor_bottom = gimme_mode_option.get_path()
+			gimme_mode_option.focus_neighbor_top = visibility_option.get_path()
+			gimme_mode_option.focus_neighbor_bottom = host_golfer_dropdown.get_path()
+			host_golfer_dropdown.focus_neighbor_top = gimme_mode_option.get_path()
 			host_golfer_dropdown.focus_neighbor_right = host_golfer_tee.get_path()
 			host_golfer_tee.focus_neighbor_left = host_golfer_dropdown.get_path()
 			host_golfer_dropdown.focus_neighbor_bottom = host_create_button.get_path()
@@ -1913,8 +2007,10 @@ func _update_controller_focus_navigation() -> void:
 			t_max_players_spinbox.get_line_edit().focus_neighbor_top = t_visibility_option.get_path()
 			t_max_players_spinbox.get_line_edit().focus_neighbor_bottom = t_end_date_input.get_path()
 			t_end_date_input.focus_neighbor_top = t_max_players_spinbox.get_line_edit().get_path()
-			t_end_date_input.focus_neighbor_bottom = t_host_golfer_dropdown.get_path()
-			t_host_golfer_dropdown.focus_neighbor_top = t_end_date_input.get_path()
+			t_end_date_input.focus_neighbor_bottom = t_gimme_mode_option.get_path()
+			t_gimme_mode_option.focus_neighbor_top = t_end_date_input.get_path()
+			t_gimme_mode_option.focus_neighbor_bottom = t_host_golfer_dropdown.get_path()
+			t_host_golfer_dropdown.focus_neighbor_top = t_gimme_mode_option.get_path()
 			t_host_golfer_dropdown.focus_neighbor_right = t_host_golfer_tee.get_path()
 			t_host_golfer_tee.focus_neighbor_left = t_host_golfer_dropdown.get_path()
 			t_host_golfer_dropdown.focus_neighbor_bottom = t_host_create_button.get_path()

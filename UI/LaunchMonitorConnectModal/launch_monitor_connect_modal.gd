@@ -1,6 +1,8 @@
 class_name LaunchMonitorConnectModal
 extends Control
 
+const FsxCsvMonitorClass = preload("res://addons/launch_monitors/fsx/fsx_csv_monitor.gd")
+
 signal closed
 signal skipped
 signal connected_and_continued
@@ -10,6 +12,8 @@ signal connected_and_continued
 @onready var tab_container: TabContainer = %TabContainer
 @onready var bluetooth_tab: ScrollContainer = %BluetoothTab
 @onready var other_tab: ScrollContainer = %OtherTab
+@onready var encrypted_bt_tab: ScrollContainer = %EncryptedBtTab
+@onready var bushnell_tab: ScrollContainer = %BushnellTab
 
 # Bluetooth controls
 @onready var device_type_option: OptionButton = %DeviceTypeOption
@@ -22,6 +26,36 @@ signal connected_and_continued
 @onready var hint_label: Label = %HintLabel
 @onready var device_card: PanelContainer = %DeviceCard
 @onready var status_card: PanelContainer = %StatusCard
+
+# Encrypted Bluetooth controls
+@onready var encrypted_select_card: PanelContainer = %EncryptedSelectCard
+@onready var encrypted_form_card: PanelContainer = %EncryptedFormCard
+@onready var encrypted_model_option: OptionButton = %EncryptedModelOption
+@onready var encrypted_device_option: OptionButton = %EncryptedDeviceOption
+@onready var encrypted_form_title: Label = %EncryptedFormTitle
+@onready var encrypted_code_hbox: HBoxContainer = %EncryptedCodeHBox
+@onready var encrypted_code_label: Label = %EncryptedCodeLabel
+@onready var encrypted_code_input: LineEdit = %EncryptedCodeInput
+@onready var encrypted_instructions_text: RichTextLabel = %EncryptedInstructionsText
+@onready var encrypted_scan_button: Button = %EncryptedScanButton
+@onready var encrypted_connect_button: Button = %EncryptedConnectButton
+@onready var encrypted_disconnect_button: Button = %EncryptedDisconnectButton
+
+# Bushnell GC3 / FSX CSV controls
+@onready var bushnell_config_card: PanelContainer = %BushnellConfigCard
+@onready var bushnell_status_card: PanelContainer = %BushnellStatusCard
+@onready var bushnell_instructions_card: PanelContainer = %BushnellInstructionsCard
+@onready var bushnell_csv_path_input: LineEdit = %BushnellCsvPathInput
+@onready var bushnell_browse_button: Button = %BushnellBrowseButton
+@onready var bushnell_autodetect_button: Button = %BushnellAutoDetectButton
+@onready var bushnell_polling_option: OptionButton = %BushnellPollingOption
+@onready var bushnell_status_text: Label = %BushnellStatusText
+@onready var bushnell_last_shot_text: Label = %BushnellLastShotText
+@onready var bushnell_test_shot_button: Button = %BushnellTestShotButton
+@onready var bushnell_instructions_text: RichTextLabel = %BushnellInstructionsText
+@onready var bushnell_connect_button: Button = %BushnellConnectButton
+@onready var bushnell_disconnect_button: Button = %BushnellDisconnectButton
+@onready var bushnell_file_dialog: FileDialog = %BushnellFileDialog
 
 # Other / GSPro controls
 @onready var other_device_option: OptionButton = %OtherDeviceOption
@@ -42,6 +76,7 @@ signal connected_and_continued
 @onready var instructions_text: RichTextLabel = %InstructionsText
 
 # Footer controls
+@onready var remember_device_checkbox: CheckBox = %RememberDeviceCheckBox
 @onready var skip_button: Button = %SkipButton
 @onready var continue_button: Button = %ContinueButton
 
@@ -104,22 +139,38 @@ func _ready() -> void:
 		ThemeManager.apply_card_panel_style(network_config_card, false, 10, 14, 14, 14, 14)
 	if instructions_card != null:
 		ThemeManager.apply_card_panel_style(instructions_card, false, 10, 14, 14, 14, 14)
+	if encrypted_select_card != null:
+		ThemeManager.apply_card_panel_style(encrypted_select_card, false, 10, 14, 14, 14, 14)
+	if encrypted_form_card != null:
+		ThemeManager.apply_card_panel_style(encrypted_form_card, false, 10, 14, 14, 14, 14)
+	if bushnell_config_card != null:
+		ThemeManager.apply_card_panel_style(bushnell_config_card, false, 10, 14, 14, 14, 14)
+	if bushnell_status_card != null:
+		ThemeManager.apply_card_panel_style(bushnell_status_card, false, 10, 14, 14, 14, 14)
+	if bushnell_instructions_card != null:
+		ThemeManager.apply_card_panel_style(bushnell_instructions_card, false, 10, 14, 14, 14, 14)
 
 	# Responsive modal sizing
 	var viewport_size = get_viewport().get_visible_rect().size
-	var target_width = clamp(viewport_size.x * 0.78, 480.0, 780.0)
-	var target_height = clamp(viewport_size.y * 0.82, 420.0, 680.0)
+	var target_width = clamp(viewport_size.x * 0.82, 620.0, 860.0)
+	var target_height = clamp(viewport_size.y * 0.82, 440.0, 700.0)
 	modal_panel.custom_minimum_size = Vector2(target_width, target_height)
 
 	# Style TabContainer
 	if tab_container != null:
-		tab_container.add_theme_font_size_override("font_size", 18)
-		tab_container.add_theme_constant_override("side_margin", 12)
+		tab_container.clip_tabs = false
+		var tab_bar = tab_container.get_tab_bar()
+		if tab_bar != null:
+			tab_bar.clip_tabs = false
+		tab_container.add_theme_font_size_override("font_size", 15)
+		tab_container.add_theme_constant_override("side_margin", 4)
 		tab_container.add_theme_stylebox_override("tab_selected", _create_tab_style(ThemeManager.COLOR_PRIMARY_NORMAL, ThemeManager.COLOR_PRIMARY_NORMAL.lightened(0.2)))
 		tab_container.add_theme_stylebox_override("tab_unselected", _create_tab_style(ThemeManager.COLOR_NAV_NORMAL, Color(1, 1, 1, 0.15)))
 		tab_container.add_theme_stylebox_override("tab_hovered", _create_tab_style(ThemeManager.COLOR_NAV_HOVER, Color(1, 1, 1, 0.3)))
-		tab_container.set_tab_title(0, "📶 Bluetooth [Q / LB]")
-		tab_container.set_tab_title(1, "🌐 Other (GSPro / Network) [E / RB]")
+		tab_container.set_tab_title(0, "📶 Bluetooth")
+		tab_container.set_tab_title(1, "🌐 Other (GSPro)")
+		tab_container.set_tab_title(2, "🔐 Encrypted BT")
+		tab_container.set_tab_title(3, "⛳ Bushnell (FSX)")
 		tab_container.current_tab = _get_saved_tab()
 		tab_container.tab_changed.connect(_on_tab_changed)
 
@@ -128,6 +179,10 @@ func _ready() -> void:
 		ThemeManager.apply_scroll_container_style(bluetooth_tab, 24)
 	if other_tab != null:
 		ThemeManager.apply_scroll_container_style(other_tab, 24)
+	if encrypted_bt_tab != null:
+		ThemeManager.apply_scroll_container_style(encrypted_bt_tab, 24)
+	if bushnell_tab != null:
+		ThemeManager.apply_scroll_container_style(bushnell_tab, 24)
 
 	# Setup buttons styling
 	ThemeManager.apply_nav_button_style(close_header_button, 6)
@@ -137,9 +192,26 @@ func _ready() -> void:
 	ThemeManager.apply_secondary_button_style(skip_button, 8)
 	ThemeManager.apply_primary_button_style(continue_button, 8)
 
+	ThemeManager.apply_secondary_button_style(encrypted_scan_button, 8)
+	ThemeManager.apply_primary_button_style(encrypted_connect_button, 8)
+	ThemeManager.apply_danger_button_style(encrypted_disconnect_button, 8)
+
+	ThemeManager.apply_secondary_button_style(bushnell_browse_button, 8)
+	ThemeManager.apply_secondary_button_style(bushnell_autodetect_button, 8)
+	ThemeManager.apply_secondary_button_style(bushnell_test_shot_button, 8)
+	ThemeManager.apply_primary_button_style(bushnell_connect_button, 8)
+	ThemeManager.apply_danger_button_style(bushnell_disconnect_button, 8)
+
 	_setup_touch_option_button(device_type_option)
 	_setup_touch_option_button(device_option)
 	_setup_touch_option_button(other_device_option)
+	_setup_touch_option_button(encrypted_model_option)
+	_setup_touch_option_button(encrypted_device_option)
+	_setup_touch_option_button(bushnell_polling_option)
+	if encrypted_code_input != null:
+		ThemeManager.apply_input_style(encrypted_code_input, 8)
+	if bushnell_csv_path_input != null:
+		ThemeManager.apply_input_style(bushnell_csv_path_input, 8)
 
 	# Button signal connections
 	close_header_button.pressed.connect(_on_skip_pressed)
@@ -150,9 +222,30 @@ func _ready() -> void:
 	disconnect_button.pressed.connect(_on_disconnect_pressed)
 	device_option.item_selected.connect(_on_device_option_selected)
 
+	encrypted_scan_button.pressed.connect(_on_encrypted_scan_pressed)
+	encrypted_connect_button.pressed.connect(_on_encrypted_connect_pressed)
+	encrypted_disconnect_button.pressed.connect(_on_encrypted_disconnect_pressed)
+	encrypted_device_option.item_selected.connect(_on_encrypted_device_option_selected)
+	encrypted_model_option.item_selected.connect(_on_encrypted_model_selected)
+
+	if bushnell_browse_button != null:
+		bushnell_browse_button.pressed.connect(_on_bushnell_browse_pressed)
+	if bushnell_autodetect_button != null:
+		bushnell_autodetect_button.pressed.connect(_on_bushnell_autodetect_pressed)
+	if bushnell_connect_button != null:
+		bushnell_connect_button.pressed.connect(_on_bushnell_connect_pressed)
+	if bushnell_disconnect_button != null:
+		bushnell_disconnect_button.pressed.connect(_on_bushnell_disconnect_pressed)
+	if bushnell_test_shot_button != null:
+		bushnell_test_shot_button.pressed.connect(_on_bushnell_test_shot_pressed)
+	if bushnell_file_dialog != null:
+		bushnell_file_dialog.file_selected.connect(_on_bushnell_file_selected)
+
 	# Setup dropdowns & network settings
 	_setup_device_type_dropdown()
 	_setup_other_devices_dropdown()
+	_setup_encrypted_devices_dropdown()
+	_setup_bushnell_tab()
 	_setup_network_config()
 
 	if has_node("/root/LaunchMonitorManager"):
@@ -167,6 +260,14 @@ func _ready() -> void:
 			_launch_monitor.battery_changed.connect(_on_battery_changed)
 		if not _launch_monitor.ready_changed.is_connected(_on_ready_changed):
 			_launch_monitor.ready_changed.connect(_on_ready_changed)
+
+	if remember_device_checkbox != null:
+		ThemeManager.apply_checkbox_style(remember_device_checkbox)
+		var is_remembered := false
+		if _launch_monitor != null:
+			is_remembered = bool(_launch_monitor.settings.get("remember_device", false))
+		remember_device_checkbox.button_pressed = is_remembered
+		remember_device_checkbox.toggled.connect(_on_remember_device_toggled)
 
 	if hint_label != null:
 		if OS.get_name() == "Android":
@@ -199,6 +300,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_on_skip_pressed()
 		get_viewport().set_input_as_handled()
+	elif tab_container != null and tab_container.get_tab_count() > 0:
+		if event.is_action_pressed("tab_left") or (event is InputEventKey and event.pressed and event.keycode == KEY_Q):
+			var prev_idx = (tab_container.current_tab - 1 + tab_container.get_tab_count()) % tab_container.get_tab_count()
+			tab_container.current_tab = prev_idx
+			_on_tab_changed(prev_idx)
+			get_viewport().set_input_as_handled()
+		elif event.is_action_pressed("tab_right") or (event is InputEventKey and event.pressed and event.keycode == KEY_E):
+			var next_idx = (tab_container.current_tab + 1) % tab_container.get_tab_count()
+			tab_container.current_tab = next_idx
+			_on_tab_changed(next_idx)
+			get_viewport().set_input_as_handled()
 
 
 func _create_tab_style(bg_color: Color, border_color: Color) -> StyleBoxFlat:
@@ -211,10 +323,10 @@ func _create_tab_style(bg_color: Color, border_color: Color) -> StyleBoxFlat:
 	style.border_width_bottom = 0
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
 	return style
 
 
@@ -262,7 +374,7 @@ func _get_saved_tab() -> int:
 	if has_node("/root/GlobalSettings"):
 		var gs = get_node("/root/GlobalSettings")
 		if gs.get("range_settings") != null and "launch_monitor_tab" in gs.range_settings:
-			return clampi(int(gs.range_settings.launch_monitor_tab.value), 0, 1)
+			return clampi(int(gs.range_settings.launch_monitor_tab.value), 0, 3)
 	return 0
 
 
@@ -519,6 +631,13 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _on_skip_pressed() -> void:
+	if remember_device_checkbox != null and _launch_monitor != null:
+		var is_remember := remember_device_checkbox.button_pressed
+		_launch_monitor.settings["remember_device"] = is_remember
+		if is_remember:
+			_save_current_device_selection()
+		else:
+			_launch_monitor._save_settings()
 	_save_network_preferences()
 	skipped.emit()
 	closed.emit()
@@ -526,10 +645,61 @@ func _on_skip_pressed() -> void:
 
 
 func _on_continue_pressed() -> void:
+	if remember_device_checkbox != null and _launch_monitor != null:
+		var is_remember := remember_device_checkbox.button_pressed
+		_launch_monitor.settings["remember_device"] = is_remember
+		if is_remember:
+			_save_current_device_selection()
+		else:
+			_launch_monitor._save_settings()
 	_save_network_preferences()
 	connected_and_continued.emit()
 	closed.emit()
 	queue_free()
+
+
+func _on_remember_device_toggled(toggled_on: bool) -> void:
+	if _launch_monitor == null:
+		return
+	_launch_monitor.settings["remember_device"] = toggled_on
+	if toggled_on:
+		_save_current_device_selection()
+	else:
+		_launch_monitor._save_settings()
+
+
+func _save_current_device_selection() -> void:
+	if _launch_monitor == null:
+		return
+	if tab_container != null and tab_container.current_tab == 3:
+		var path = bushnell_csv_path_input.text.strip_edges() if bushnell_csv_path_input != null else ""
+		_launch_monitor.settings["device_id"] = "bushnell_fsx_csv"
+		_launch_monitor.settings["device_name"] = "Bushnell GC3 (FSX)"
+		_launch_monitor.settings["device_type"] = "bushnell_fsx"
+		_launch_monitor.settings["fsx_csv_path"] = path
+		_launch_monitor.settings["enabled"] = true
+		_launch_monitor._save_settings()
+		if has_node("/root/GlobalSettings"):
+			var gs = get_node("/root/GlobalSettings")
+			if gs.get("range_settings") != null and "fsx_csv_path" in gs.range_settings:
+				gs.range_settings.fsx_csv_path.set_value(path)
+				gs.save_settings()
+		return
+	if device_option != null and device_option.item_count > 0:
+		var index := device_option.selected
+		if index < 0:
+			index = 0
+		var dev_id := str(device_option.get_item_metadata(index))
+		if dev_id != "":
+			_launch_monitor.settings["device_id"] = dev_id
+			if _launch_monitor.devices.has(dev_id):
+				var dev = _launch_monitor.devices[dev_id]
+				_launch_monitor.settings["device_name"] = str(dev.get("name", ""))
+			elif str(_launch_monitor.settings.get("device_name", "")) == "":
+				var dev_type := str(_launch_monitor.settings.get("device_type", "auto"))
+				_launch_monitor.settings["device_name"] = "Square Golf" if dev_type != "garmin" else "Garmin Approach R10"
+			_launch_monitor.settings["enabled"] = true
+	_launch_monitor._save_settings()
 
 
 func _on_scan_pressed() -> void:
@@ -555,6 +725,12 @@ func _on_connect_pressed() -> void:
 	var device_id = str(device_option.get_item_metadata(index))
 	if device_id == "":
 		return
+	var is_remember := remember_device_checkbox != null and remember_device_checkbox.button_pressed
+	_launch_monitor.settings["remember_device"] = is_remember
+	_launch_monitor.settings["device_id"] = device_id
+	if _launch_monitor.devices.has(device_id):
+		var dev = _launch_monitor.devices[device_id]
+		_launch_monitor.settings["device_name"] = str(dev.get("name", ""))
 	_launch_monitor.stop_scan()
 	_launch_monitor.set_enabled(true)
 	_launch_monitor.connect_to_device(device_id)
@@ -580,6 +756,9 @@ func _on_device_option_selected(index: int) -> void:
 	if _launch_monitor.devices.has(dev_id):
 		var dev = _launch_monitor.devices[dev_id]
 		_launch_monitor.settings["device_name"] = str(dev.get("name", ""))
+	if remember_device_checkbox != null and remember_device_checkbox.button_pressed:
+		_launch_monitor.settings["remember_device"] = true
+		_launch_monitor.settings["enabled"] = true
 	_launch_monitor._save_settings()
 
 
@@ -663,6 +842,9 @@ func _refresh_devices(preferred_device_id: String = "") -> void:
 		if _launch_monitor.devices.has(selected_device):
 			var dev = _launch_monitor.devices[selected_device]
 			_launch_monitor.settings["device_name"] = str(dev.get("name", ""))
+		if remember_device_checkbox != null and remember_device_checkbox.button_pressed:
+			_launch_monitor.settings["remember_device"] = true
+			_launch_monitor.settings["enabled"] = true
 		_launch_monitor._save_settings()
 
 	# Rebuild OptionButton items if count, ids, or labels (e.g. offline -> live) changed
@@ -725,9 +907,15 @@ func _update_status_display() -> void:
 
 	var current_status: String = str(_launch_monitor.status)
 	scan_button.text = "🔍 Scan"
+	if encrypted_scan_button != null:
+		encrypted_scan_button.text = "🔍 Scan"
 
-	var is_dev_connected: bool = (current_status == "Connected" or current_status == "Ready" or bool(_launch_monitor.is_ready))
-	if is_dev_connected:
+	var is_dev_connected: bool = (current_status == "Connected" or current_status == "Ready" or current_status.to_lower().contains("detecting") or current_status.begins_with("Monitoring") or current_status.begins_with("Waiting") or bool(_launch_monitor.is_ready))
+	if current_status.to_lower().contains("detecting"):
+		status_label.text = "Status: %s" % current_status
+		status_label.add_theme_color_override("font_color", Color(0.35, 0.85, 0.45))
+		continue_button.text = "Continue to Main Menu ➔"
+	elif is_dev_connected:
 		var display_state: String = current_status if (current_status != "Connecting" and not current_status.begins_with("Found")) else "Connected"
 		status_label.text = "Status: Connected (%s)" % display_state
 		status_label.add_theme_color_override("font_color", Color(0.35, 0.85, 0.45))
@@ -736,6 +924,8 @@ func _update_status_display() -> void:
 		status_label.text = "Status: %s" % current_status
 		status_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.32))
 		scan_button.text = "🔄 Scanning..."
+		if encrypted_scan_button != null:
+			encrypted_scan_button.text = "🔄 Scanning..."
 	elif current_status.contains("Connecting") or current_status.contains("Found"):
 		status_label.text = "Status: %s" % current_status
 		status_label.add_theme_color_override("font_color", Color(0.4, 0.75, 0.95))
@@ -759,12 +949,181 @@ func _update_status_display() -> void:
 			battery_label.text = ""
 			battery_label.visible = false
 
+	_update_bushnell_status()
+
+
+const ENCRYPTED_MODELS = {
+	"rainmaker": {
+		"name": "Blue Tees Rainmaker",
+		"requires_code": true,
+		"code_label": "Rainmaker PIN:",
+		"code_placeholder": "Enter PIN from Rainmaker screen",
+		"instructions": "[b]Blue Tees Rainmaker Connection Steps:[/b]\n1. Power on your [b]Blue Tees Rainmaker[/b].\n2. Use the physical remote to select [b]Session[/b] on the unit.\n3. Click [b]Scan[/b] below to find your Rainmaker device over Bluetooth.\n4. Check the Rainmaker's full-color display for the generated [b]PIN code[/b].\n5. Enter the PIN into the box above and click [b]Connect[/b] to complete the session handshake."
+	},
+	"rapsodo": {
+		"name": "Rapsodo MLM2PRO (Direct Encrypted BLE)",
+		"requires_code": true,
+		"code_label": "Pairing Code:",
+		"code_placeholder": "Enter device pairing code",
+		"instructions": "[b]Rapsodo MLM2PRO Direct BLE Steps:[/b]\n1. Turn on your [b]MLM2PRO[/b] and place it in pairing mode.\n2. Click [b]Scan[/b] to locate the device.\n3. Enter the dynamic session code / PIN into the field above.\n4. Click [b]Connect[/b] to authorize the encrypted Bluetooth stream."
+	}
+}
+
+
+func _setup_encrypted_devices_dropdown() -> void:
+	if encrypted_model_option == null:
+		return
+	encrypted_model_option.clear()
+	var keys = ["rainmaker", "rapsodo"]
+	for i in range(keys.size()):
+		var k = keys[i]
+		encrypted_model_option.add_item(ENCRYPTED_MODELS[k]["name"], i)
+		encrypted_model_option.set_item_metadata(i, k)
+	
+	encrypted_model_option.select(0)
+	_on_encrypted_model_selected(0)
+	_refresh_encrypted_devices()
+
+
+func _on_encrypted_model_selected(index: int) -> void:
+	if encrypted_model_option == null or index < 0:
+		return
+	var key = str(encrypted_model_option.get_item_metadata(index))
+	var model_info = ENCRYPTED_MODELS.get(key, {})
+	if model_info.is_empty():
+		return
+	
+	if encrypted_form_title != null:
+		encrypted_form_title.text = "🔐 %s Pairing" % model_info["name"]
+	if encrypted_code_label != null:
+		encrypted_code_label.text = model_info.get("code_label", "Pairing Code:")
+	if encrypted_code_input != null:
+		encrypted_code_input.placeholder_text = model_info.get("code_placeholder", "")
+		if _launch_monitor != null and key == "rainmaker":
+			encrypted_code_input.text = str(_launch_monitor.settings.get("pairing_code", ""))
+	if encrypted_instructions_text != null:
+		encrypted_instructions_text.text = model_info.get("instructions", "")
+	
+	_refresh_encrypted_devices()
+
+
+func _refresh_encrypted_devices(preferred_id: String = "") -> void:
+	if encrypted_device_option == null or _launch_monitor == null or encrypted_model_option == null:
+		return
+	
+	encrypted_device_option.clear()
+	var model_key = str(encrypted_model_option.get_item_metadata(encrypted_model_option.selected))
+	var selected_device := preferred_id
+	if selected_device == "":
+		selected_device = str(_launch_monitor.settings.get("device_id", ""))
+	
+	var count := 0
+	for dev_id in _launch_monitor.devices:
+		var dev = _launch_monitor.devices[dev_id]
+		var dev_name: String = str(dev.get("name", ""))
+		var dev_type: String = str(dev.get("type", ""))
+		var is_live: bool = bool(dev.get("is_discovered", false))
+
+		var match_model := false
+		if model_key == "rainmaker":
+			match_model = (dev_type == "rainmaker" or (_launch_monitor != null and _launch_monitor.is_rainmaker_device_name(dev_name)))
+		else:
+			match_model = dev_name.to_lower().contains(model_key)
+
+		if match_model:
+			var live_suffix := " 📶" if is_live else " (Offline)"
+			var label := "%s (%s)%s" % [dev_name, dev_id, live_suffix]
+			encrypted_device_option.add_item(label, count)
+			encrypted_device_option.set_item_metadata(count, dev_id)
+			count += 1
+
+	if encrypted_device_option.item_count == 0:
+		encrypted_device_option.add_item("No %s devices discovered (Click Scan)" % ENCRYPTED_MODELS[model_key]["name"], 0)
+		encrypted_device_option.set_item_metadata(0, "")
+		encrypted_connect_button.disabled = true
+	else:
+		encrypted_connect_button.disabled = false
+		var target_idx := 0
+		for i in range(encrypted_device_option.item_count):
+			if str(encrypted_device_option.get_item_metadata(i)) == selected_device:
+				target_idx = i
+				break
+		encrypted_device_option.select(target_idx)
+
+
+func _on_encrypted_device_option_selected(index: int) -> void:
+	if encrypted_device_option == null or index < 0 or _launch_monitor == null:
+		return
+	var dev_id = str(encrypted_device_option.get_item_metadata(index))
+	if dev_id != "":
+		_launch_monitor.settings["device_id"] = dev_id
+		if _launch_monitor.devices.has(dev_id):
+			_launch_monitor.settings["device_name"] = str(_launch_monitor.devices[dev_id].get("name", ""))
+		_launch_monitor._save_settings()
+
+
+func _on_encrypted_scan_pressed() -> void:
+	if _launch_monitor == null or encrypted_model_option == null:
+		return
+	var model_key = str(encrypted_model_option.get_item_metadata(encrypted_model_option.selected))
+	if _launch_monitor.status == "Scanning":
+		_launch_monitor.stop_scan()
+		encrypted_scan_button.text = "🔍 Scan"
+		status_label.text = "Status: Disconnected"
+		status_label.add_theme_color_override("font_color", ThemeManager.COLOR_TEXT_MUTED)
+		return
+	
+	_launch_monitor.set_device_type(model_key)
+	_launch_monitor.start_scan()
+	encrypted_scan_button.text = "⏹ Stop Scan"
+	status_label.text = "Status: Scanning for %s..." % ENCRYPTED_MODELS[model_key]["name"]
+	status_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.32))
+
+
+func _on_encrypted_connect_pressed() -> void:
+	if _launch_monitor == null or encrypted_device_option == null or encrypted_device_option.item_count == 0:
+		return
+	var idx = encrypted_device_option.selected
+	if idx < 0:
+		idx = 0
+	var device_id = str(encrypted_device_option.get_item_metadata(idx))
+	if device_id == "":
+		return
+	
+	var pairing_code := ""
+	if encrypted_code_input != null:
+		pairing_code = encrypted_code_input.text.strip_edges()
+	
+	var model_key = str(encrypted_model_option.get_item_metadata(encrypted_model_option.selected))
+	_launch_monitor.set_device_type(model_key)
+	_launch_monitor.settings["pairing_code"] = pairing_code
+	_launch_monitor.settings["device_id"] = device_id
+	if _launch_monitor.devices.has(device_id):
+		_launch_monitor.settings["device_name"] = str(_launch_monitor.devices[device_id].get("name", ""))
+	
+	var is_remember := remember_device_checkbox != null and remember_device_checkbox.button_pressed
+	_launch_monitor.settings["remember_device"] = is_remember
+	_launch_monitor.stop_scan()
+	_launch_monitor.set_enabled(true)
+	_launch_monitor.connect_to_device(device_id, false, pairing_code)
+	status_label.text = "Status: Connecting to %s..." % _launch_monitor.settings.get("device_name", "Device")
+	status_label.add_theme_color_override("font_color", Color(0.4, 0.75, 0.95))
+
+
+func _on_encrypted_disconnect_pressed() -> void:
+	if _launch_monitor != null:
+		_launch_monitor.set_enabled(false)
+		_launch_monitor.disconnect_device()
+		status_label.text = "Status: Disconnected"
+		status_label.add_theme_color_override("font_color", ThemeManager.COLOR_TEXT_MUTED)
+
 
 func _on_device_discovered(device_id: String, name: String, _rssi: int) -> void:
 	var dev = _launch_monitor.devices.get(device_id, {}) if _launch_monitor != null else {}
 	var is_live: bool = bool(dev.get("is_discovered", false)) or ((_rssi <= -10 and _rssi >= -120) or (_rssi != 0 and _rssi != -1))
 	var pref_id := device_id if is_live else ""
 	_refresh_devices(pref_id)
+	_refresh_encrypted_devices(pref_id)
 	if is_live and _launch_monitor != null and (_launch_monitor.status == "Scanning" or _launch_monitor.status.contains("Searching")):
 		var display_name := name if name != "" else "Launch Monitor"
 		status_label.text = "Status: Found %s! Ready to connect." % display_name
@@ -804,3 +1163,175 @@ func _exit_tree() -> void:
 			_launch_monitor.battery_changed.disconnect(_on_battery_changed)
 		if _launch_monitor.ready_changed.is_connected(_on_ready_changed):
 			_launch_monitor.ready_changed.disconnect(_on_ready_changed)
+		if _launch_monitor.has_method("get_fsx_csv_monitor"):
+			var fsx = _launch_monitor.get_fsx_csv_monitor()
+			if fsx != null and fsx.has_signal("new_shot_logged") and fsx.new_shot_logged.is_connected(_on_bushnell_new_shot_logged):
+				fsx.new_shot_logged.disconnect(_on_bushnell_new_shot_logged)
+
+
+func _setup_bushnell_tab() -> void:
+	if bushnell_polling_option != null:
+		bushnell_polling_option.clear()
+		bushnell_polling_option.add_item("Fast (100 ms)", 0)
+		bushnell_polling_option.set_item_metadata(0, 0.10)
+		bushnell_polling_option.add_item("Standard (250 ms)", 1)
+		bushnell_polling_option.set_item_metadata(1, 0.25)
+		bushnell_polling_option.add_item("Battery Saver (500 ms)", 2)
+		bushnell_polling_option.set_item_metadata(2, 0.50)
+		bushnell_polling_option.select(1)
+		bushnell_polling_option.item_selected.connect(_on_bushnell_polling_selected)
+
+	var saved_path := ""
+	if has_node("/root/GlobalSettings"):
+		var gs = get_node("/root/GlobalSettings")
+		if gs.get("range_settings") != null and "fsx_csv_path" in gs.range_settings:
+			saved_path = str(gs.range_settings.fsx_csv_path.value)
+	if saved_path == "" and _launch_monitor != null:
+		saved_path = str(_launch_monitor.settings.get("fsx_csv_path", ""))
+	if saved_path == "":
+		var defaults = FsxCsvMonitorClass.find_default_fsx_csv_paths()
+		if not defaults.is_empty():
+			saved_path = defaults[0]
+
+	if bushnell_csv_path_input != null:
+		bushnell_csv_path_input.text = saved_path
+		bushnell_csv_path_input.text_changed.connect(_on_bushnell_path_changed)
+
+	if bushnell_instructions_text != null:
+		bushnell_instructions_text.text = "[b]How to configure FSX Play / 2020 for Bushnell GC3:[/b]\n" + \
+			"1. Power on your [b]Bushnell GC3[/b] / Launch Pro and launch [b]FSX Play[/b] or [b]FSX 2020[/b].\n" + \
+			"2. In FSX Settings, enable [b]Write Shots CSV[/b] to automatically export shots to disk.\n" + \
+			"3. Confirm the export path points to your [b]shots.csv[/b] or [b]LastShot.csv[/b] file above.\n" + \
+			"4. Click [b]Start Monitoring[/b] below.\n" + \
+			"5. Hit a shot on your launch monitor! Shot data will stream directly into Heckle Golf Simulator with full physics and announcer commentary."
+
+	if _launch_monitor != null and _launch_monitor.has_method("get_fsx_csv_monitor"):
+		var fsx = _launch_monitor.get_fsx_csv_monitor()
+		if fsx != null and fsx.has_signal("new_shot_logged"):
+			if not fsx.new_shot_logged.is_connected(_on_bushnell_new_shot_logged):
+				fsx.new_shot_logged.connect(_on_bushnell_new_shot_logged)
+
+	_update_bushnell_status()
+
+
+func _on_bushnell_browse_pressed() -> void:
+	if bushnell_file_dialog != null:
+		if bushnell_csv_path_input != null and bushnell_csv_path_input.text != "":
+			bushnell_file_dialog.current_path = bushnell_csv_path_input.text
+		bushnell_file_dialog.popup_centered_ratio(0.7)
+
+
+func _on_bushnell_file_selected(path: String) -> void:
+	if bushnell_csv_path_input != null:
+		bushnell_csv_path_input.text = path
+	_save_bushnell_path(path)
+	_update_bushnell_status()
+
+
+func _on_bushnell_autodetect_pressed() -> void:
+	var candidates = FsxCsvMonitorClass.find_default_fsx_csv_paths()
+	if not candidates.is_empty():
+		var found_path = candidates[0]
+		if bushnell_csv_path_input != null:
+			bushnell_csv_path_input.text = found_path
+		_save_bushnell_path(found_path)
+		if bushnell_status_text != null:
+			if FileAccess.file_exists(found_path):
+				bushnell_status_text.text = "Status: File located! Click Start Monitoring."
+				bushnell_status_text.add_theme_color_override("font_color", Color(0.4, 0.85, 0.55))
+			else:
+				bushnell_status_text.text = "Status: Default path set (file will be created on first FSX shot)"
+				bushnell_status_text.add_theme_color_override("font_color", Color(1.0, 0.82, 0.32))
+	else:
+		if bushnell_status_text != null:
+			bushnell_status_text.text = "Status: No default FSX CSV found. Please browse manually."
+			bushnell_status_text.add_theme_color_override("font_color", Color(1.0, 0.42, 0.42))
+
+
+func _on_bushnell_path_changed(new_path: String) -> void:
+	_save_bushnell_path(new_path)
+	_update_bushnell_status()
+
+
+func _save_bushnell_path(path: String) -> void:
+	var trimmed = path.strip_edges()
+	if has_node("/root/GlobalSettings"):
+		var gs = get_node("/root/GlobalSettings")
+		if gs.get("range_settings") != null and "fsx_csv_path" in gs.range_settings:
+			gs.range_settings.fsx_csv_path.set_value(trimmed)
+			gs.save_settings()
+	if _launch_monitor != null:
+		_launch_monitor.settings["fsx_csv_path"] = trimmed
+		_launch_monitor._save_settings()
+
+
+func _on_bushnell_polling_selected(index: int) -> void:
+	if bushnell_polling_option == null or _launch_monitor == null:
+		return
+	var rate: float = float(bushnell_polling_option.get_item_metadata(index))
+	_launch_monitor.settings["fsx_poll_interval"] = rate
+	_launch_monitor._save_settings()
+	var fsx = _launch_monitor.get_fsx_csv_monitor()
+	if fsx != null and fsx.has_method("set_poll_interval"):
+		fsx.call("set_poll_interval", rate)
+
+
+func _on_bushnell_connect_pressed() -> void:
+	if _launch_monitor == null:
+		return
+	var path := ""
+	if bushnell_csv_path_input != null:
+		path = bushnell_csv_path_input.text.strip_edges()
+	_save_bushnell_path(path)
+	_launch_monitor.start_fsx_csv_monitoring(path)
+	_update_status_display()
+	_update_bushnell_status()
+
+
+func _on_bushnell_disconnect_pressed() -> void:
+	if _launch_monitor == null:
+		return
+	_launch_monitor.stop_fsx_csv_monitoring()
+	_update_status_display()
+	_update_bushnell_status()
+
+
+func _on_bushnell_test_shot_pressed() -> void:
+	if _launch_monitor != null and _launch_monitor.has_method("get_fsx_csv_monitor"):
+		var fsx = _launch_monitor.get_fsx_csv_monitor()
+		if fsx != null and fsx.has_method("simulate_test_shot"):
+			fsx.call("simulate_test_shot")
+
+
+func _on_bushnell_new_shot_logged(summary: String) -> void:
+	if bushnell_last_shot_text != null:
+		bushnell_last_shot_text.text = summary
+
+
+func _update_bushnell_status() -> void:
+	if _launch_monitor == null or bushnell_status_text == null:
+		return
+	var is_fsx_active = (_launch_monitor._active_driver == "bushnell_fsx")
+	if is_fsx_active:
+		var fsx = _launch_monitor.get_fsx_csv_monitor()
+		var sub_status = str(fsx.status) if fsx != null else "Active"
+		bushnell_status_text.text = "Status: %s" % sub_status
+		bushnell_status_text.add_theme_color_override("font_color", Color(0.35, 0.85, 0.45))
+		if bushnell_connect_button != null:
+			bushnell_connect_button.text = "🔄 Monitoring Active"
+			bushnell_connect_button.disabled = true
+		if bushnell_disconnect_button != null:
+			bushnell_disconnect_button.disabled = false
+	else:
+		var target_path = bushnell_csv_path_input.text.strip_edges() if bushnell_csv_path_input != null else ""
+		if target_path != "" and FileAccess.file_exists(target_path):
+			bushnell_status_text.text = "Status: File ready (%s). Click Start Monitoring." % target_path.get_file()
+			bushnell_status_text.add_theme_color_override("font_color", Color(0.65, 0.75, 0.85))
+		else:
+			bushnell_status_text.text = "Status: Disconnected"
+			bushnell_status_text.add_theme_color_override("font_color", ThemeManager.COLOR_TEXT_MUTED)
+		if bushnell_connect_button != null:
+			bushnell_connect_button.text = "🔗 Start Monitoring"
+			bushnell_connect_button.disabled = false
+		if bushnell_disconnect_button != null:
+			bushnell_disconnect_button.disabled = true

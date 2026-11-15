@@ -255,7 +255,11 @@ static func merge_profile_stats(local_data: Dictionary, cloud_data: Dictionary) 
 			m_result[iss_str] = maxi(int(loc_m.get(iss_str, 0)), int(cld_m.get(iss_str, 0)))
 		merged_swing[m_str] = m_result
 
+	var eff_swing_updated_at: int = maxi(loc_swing_updated_at, cld_swing_updated_at)
+	if eff_swing_updated_at == 0 and not merged_swing.is_empty():
+		eff_swing_updated_at = int(Time.get_unix_time_from_system())
 	result["swing_issues"] = merged_swing
+	result["swing_issues_updated_at"] = eff_swing_updated_at
 
 	# ── 6. BEST COURSES ──────────────────────────────────────────────────────
 	var loc_courses: Dictionary = local_data.get("best_courses", {})
@@ -272,6 +276,11 @@ static func merge_profile_stats(local_data: Dictionary, cloud_data: Dictionary) 
 			var c_diff = int(cld_courses[c].get("diff", 999))
 			if c_diff < l_diff:
 				merged_courses[c_str] = cld_courses[c]
+			elif c_diff == l_diff:
+				var l_holes = int(merged_courses[c_str].get("holes", 0))
+				var c_holes = int(cld_courses[c].get("holes", 0))
+				if c_holes > l_holes:
+					merged_courses[c_str] = cld_courses[c]
 
 	result["best_courses"] = merged_courses
 	return result

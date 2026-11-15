@@ -179,12 +179,18 @@ func mark_profile_dirty(player_name: String) -> void:
 				var role = str(p.get("link_role", "none"))
 				if role in ["primary", "linked"]:
 					is_synced = true
+					clean_name = str(p.get("name", clean_name))
 				break
 	else:
 		is_synced = true
 
 	if is_synced:
-		if not dirty_profiles.has(clean_name):
+		var already_dirty := false
+		for dp in dirty_profiles:
+			if str(dp).strip_edges().to_lower() == clean_name.to_lower():
+				already_dirty = true
+				break
+		if not already_dirty:
 			dirty_profiles.append(clean_name)
 		_save_sync_state()
 
@@ -522,19 +528,20 @@ func sync_all_eligible_profiles(reason: String = "manual") -> void:
 		var p_name = str(p.get("name", ""))
 		var p_cloud_uid = str(p.get("cloud_uid", ""))
 
+		var is_manual_pass: bool = (reason == "manual")
 		if role == "primary":
 			if p_cloud_uid.is_empty() and not my_uid.is_empty():
 				p_cloud_uid = my_uid
 				p["cloud_uid"] = my_uid
 				mp.save_registered_players(registered)
 			if not p_cloud_uid.is_empty():
-				var res = await sync_single_profile(p_name, p_cloud_uid)
+				var res = await sync_single_profile(p_name, p_cloud_uid, is_manual_pass)
 				if res.get("ok", false):
 					synced.append(p_name)
 				else:
 					all_ok = false
 		elif role == "linked" and not p_cloud_uid.is_empty():
-			var res = await sync_single_profile(p_name, p_cloud_uid)
+			var res = await sync_single_profile(p_name, p_cloud_uid, is_manual_pass)
 			if res.get("ok", false):
 				synced.append(p_name)
 			elif res.get("revoked", false):
@@ -585,7 +592,11 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 				reg_p = p
 				break
 
-	var is_dirty = dirty_profiles.has(player_name)
+	var is_dirty: bool = is_manual
+	for dp in dirty_profiles:
+		if str(dp).strip_edges().to_lower() == player_name.strip_edges().to_lower():
+			is_dirty = true
+			break
 	var local_rev = int(reg_p.get("last_synced_rev", 0))
 
 	# 1. Cheap startup read optimization: get profiles/{uid}
@@ -613,7 +624,11 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 	if not is_owner and not cloud_display_name.is_empty():
 		final_display_name = cloud_display_name
 
-	var needs_stats_sync = is_dirty or (local_rev == 0) or (cloud_rev != local_rev) or cloud_prof.is_empty()
+	var local_ach = _gather_local_achievements(player_name)
+	var local_ach_count: int = local_ach.get("unlocked", {}).size()
+	var cloud_ach_count: int = int(cloud_prof.get("lifetime", {}).get("achievements_count", 0))
+
+	var needs_stats_sync = is_dirty or is_manual or (local_rev == 0) or (cloud_rev != local_rev) or cloud_prof.is_empty() or (local_ach_count > cloud_ach_count)
 
 	if needs_stats_sync:
 		var cloud_stats_doc: Dictionary = {}
@@ -671,6 +686,7 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 		var ach_unlocked = merged.get("achievements", {}).get("unlocked", {})
 		if ach_unlocked is Dictionary and ach_unlocked.size() > int(eff_lifetime.get("achievements_count", 0)):
 			eff_lifetime["achievements_count"] = ach_unlocked.size()
+		eff_lifetime["best_courses"] = merged.get("best_courses", {})
 
 		# Build updated profile document
 		var updated_profile_doc = {
@@ -727,14 +743,18 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 		var leaderboard_opt_in = true
 		if auth != null and "leaderboard_opt_in" in auth:
 			leaderboard_opt_in = bool(auth.get("leaderboard_opt_in"))
-		await _sync_public_leaderboard_profile(client, cloud_uid, final_display_name, reg_p.get("avatar", ""), cloud_prof.get("records", {}), leaderboard_opt_in, cloud_prof.get("lifetime", {}), cloud_prof.get("achievements", {}))
+		await _sync_public_leaderboard_profile(client, cloud_uid, final_display_name, reg_p.get("avatar", ""), cloud_prof.get("records", {}), leaderboard_opt_in, cloud_prof.get("lifetime", {}), local_ach)
 
 	# 2. Upload pending matches for this cloud_uid
 	await _upload_pending_matches_for_uid(client, cloud_uid)
 
 	# Clear dirty status
-	if dirty_profiles.has(player_name):
-		dirty_profiles.erase(player_name)
+	var was_dirty := false
+	for i in range(dirty_profiles.size() - 1, -1, -1):
+		if str(dirty_profiles[i]).strip_edges().to_lower() == player_name.strip_edges().to_lower():
+			dirty_profiles.remove_at(i)
+			was_dirty = true
+	if was_dirty:
 		_save_sync_state()
 
 	return {"ok": true}
@@ -762,34 +782,7 @@ func _gather_local_stats_dict(player_name: String, _reg_p: Dictionary) -> Dictio
 				local_dict["clubs"][clb] = p_stats[clb]
 
 	# Achievements
-	var ach_path = "user://player_achievements.json"
-	if FileAccess.file_exists(ach_path):
-		var f = FileAccess.open(ach_path, FileAccess.READ)
-		if f != null:
-			var parsed = JSON.parse_string(f.get_as_text())
-			f.close()
-			if parsed is Dictionary and parsed.has(player_name):
-				var p_ach = parsed[player_name]
-				if p_ach is Dictionary:
-					var unlocked: Dictionary = {}
-					var heard: Array = []
-					for k in p_ach:
-						if k == "heard_heckles":
-							if p_ach[k] is Dictionary:
-								for h in p_ach[k].keys():
-									heard.append(str(h))
-							elif p_ach[k] is Array:
-								heard = p_ach[k]
-						else:
-							var v = p_ach[k]
-							if v is Dictionary and v.has("unlocked_at"):
-								unlocked[k] = int(v["unlocked_at"])
-							else:
-								unlocked[k] = int(v)
-					local_dict["achievements"] = {
-						"unlocked": unlocked,
-						"heard_heckles": heard
-					}
+	local_dict["achievements"] = _gather_local_achievements(player_name)
 
 	# Swing issues
 	var swing_path = "user://player_swing_issues.json"
@@ -798,11 +791,24 @@ func _gather_local_stats_dict(player_name: String, _reg_p: Dictionary) -> Dictio
 		if sf != null:
 			var parsed_s = JSON.parse_string(sf.get_as_text())
 			sf.close()
-			if parsed_s is Dictionary and parsed_s.has(player_name):
-				var p_sw = parsed_s[player_name]
+			if parsed_s is Dictionary:
+				var p_sw = null
+				if parsed_s.has(player_name):
+					p_sw = parsed_s[player_name]
+				else:
+					var p_lower = player_name.strip_edges().to_lower()
+					for k in parsed_s.keys():
+						if str(k).strip_edges().to_lower() == p_lower:
+							p_sw = parsed_s[k]
+							break
 				if p_sw is Dictionary:
 					local_dict["swing_issues"] = p_sw.get("monthly", {})
-					local_dict["swing_issues_updated_at"] = int(p_sw.get("updated_at", 0))
+					var sw_up = int(p_sw.get("updated_at", 0))
+					if sw_up == 0 and not local_dict["swing_issues"].is_empty():
+						sw_up = int(FileAccess.get_modified_time(swing_path))
+						if sw_up == 0:
+							sw_up = int(Time.get_unix_time_from_system())
+					local_dict["swing_issues_updated_at"] = sw_up
 					if p_sw.has("_cleared_at"):
 						if not local_dict["tombstones"] is Dictionary:
 							local_dict["tombstones"] = {}
@@ -816,6 +822,66 @@ func _gather_local_stats_dict(player_name: String, _reg_p: Dictionary) -> Dictio
 			local_dict["records"]["longest_putt_ft"] = float(calc.get("longest_putt_ft", 0.0))
 
 	return local_dict
+
+
+func _gather_local_achievements(player_name: String) -> Dictionary:
+	var unlocked: Dictionary = {}
+	var heard: Array = []
+
+	var ach_path = "user://player_achievements.json"
+	if FileAccess.file_exists(ach_path):
+		var f = FileAccess.open(ach_path, FileAccess.READ)
+		if f != null:
+			var parsed = JSON.parse_string(f.get_as_text())
+			f.close()
+			if parsed is Dictionary:
+				var p_ach = null
+				if parsed.has(player_name):
+					p_ach = parsed[player_name]
+				else:
+					var p_lower = player_name.strip_edges().to_lower()
+					for k in parsed.keys():
+						if str(k).strip_edges().to_lower() == p_lower:
+							p_ach = parsed[k]
+							break
+				if p_ach is Dictionary:
+					for k in p_ach:
+						if k == "heard_heckles":
+							if p_ach[k] is Dictionary:
+								for h in p_ach[k].keys():
+									heard.append(str(h))
+							elif p_ach[k] is Array:
+								heard = p_ach[k]
+						else:
+							var v = p_ach[k]
+							if v is Dictionary and v.has("unlocked_at"):
+								unlocked[str(k)] = int(v["unlocked_at"])
+							else:
+								unlocked[str(k)] = int(v)
+
+	# Also overlay in-memory AchievementManager state if available
+	var ach_node = get_node_or_null("/root/AchievementManager")
+	if ach_node != null and ach_node.has_method("get_unlocked_achievements"):
+		var live_unlocked = ach_node.get_unlocked_achievements(player_name)
+		if live_unlocked is Dictionary:
+			for k in live_unlocked.keys():
+				var v = live_unlocked[k]
+				if v is Dictionary and v.has("unlocked_at"):
+					unlocked[str(k)] = int(v["unlocked_at"])
+				elif not unlocked.has(str(k)):
+					unlocked[str(k)] = int(v) if v is int else int(Time.get_unix_time_from_system())
+		if ach_node.has_method("get_heard_heckles"):
+			var live_heckles = ach_node.get_heard_heckles(player_name)
+			if live_heckles is Dictionary:
+				for h in live_heckles.keys():
+					var hs = str(h)
+					if not heard.has(hs):
+						heard.append(hs)
+
+	return {
+		"unlocked": unlocked,
+		"heard_heckles": heard
+	}
 
 
 func _apply_merged_stats_locally(player_name: String, merged: Dictionary) -> void:
@@ -869,7 +935,8 @@ func _apply_merged_stats_locally(player_name: String, merged: Dictionary) -> voi
 				all_swing = parsed_s
 	var sw_data = {
 		"monthly": merged.get("swing_issues", {}),
-		"all_time": {}
+		"all_time": {},
+		"updated_at": int(merged.get("swing_issues_updated_at", Time.get_unix_time_from_system()))
 	}
 	for m in sw_data["monthly"]:
 		var m_dict = sw_data["monthly"][m]
@@ -1062,10 +1129,10 @@ func _sync_public_leaderboard_profile(client: FirestoreClient, cloud_uid: String
 			_save_sync_state()
 		return
 
-	var unlocked_count: int = 0
+	var unlocked_count: int = int(lifetime.get("achievements_count", 0))
 	var ach_unlocked = achievements.get("unlocked", {})
-	if ach_unlocked is Dictionary:
-		unlocked_count = ach_unlocked.size()
+	if ach_unlocked is Dictionary and ach_unlocked.size() > 0:
+		unlocked_count = maxi(unlocked_count, ach_unlocked.size())
 
 	var longest_dr: float = float(records.get("longest_drive_yds", records.get("longest_drive", lifetime.get("longest_drive_yds", 0.0))))
 	var longest_pt: float = float(records.get("longest_putt_ft", lifetime.get("longest_putt_ft", 0.0)))

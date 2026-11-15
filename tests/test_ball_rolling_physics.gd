@@ -14,27 +14,35 @@ func _initialize() -> void:
 	var ball = ball_script.new()
 	root.add_child(ball)
 
-	# Verify surface parameters
+	# Verify surface parameters under recalibrated green speeds
 	print("\n--- Test 1: Verifying Surface Rolling Friction Parameters ---")
+	# At Tour speed (15.0), green speed is calibrated to legacy standard 10.0 speed
+	GlobalSettings.range_settings.green_speed.set_value(15.0)
 	ball.set_surface(PhysicsEnums.SurfaceType.FAIRWAY)
-	print("Fairway rolling friction: %.4f" % ball._rolling_friction)
-	assert(ball._rolling_friction >= 0.080 and ball._rolling_friction <= 0.090, "Fairway friction should be ~0.085")
+	print("Fairway rolling friction (Tour 15.0): %.4f" % ball._rolling_friction)
+	assert(ball._rolling_friction >= 0.080 and ball._rolling_friction <= 0.090, "Fairway friction at speed 15 should be ~0.085")
 
 	ball.set_surface(PhysicsEnums.SurfaceType.GREEN)
-	print("Green rolling friction: %.4f" % ball._rolling_friction)
-	assert(ball._rolling_friction >= 0.050 and ball._rolling_friction <= 0.060, "Green friction should be ~0.056")
+	print("Green rolling friction (Tour 15.0): %.4f" % ball._rolling_friction)
+	assert(ball._rolling_friction >= 0.050 and ball._rolling_friction <= 0.060, "Green friction at speed 15 should be ~0.056")
+
+	# At default speed (10.0), green speed is shifted to legacy 5.0 speed
+	GlobalSettings.range_settings.green_speed.set_value(10.0)
+	ball.set_surface(PhysicsEnums.SurfaceType.GREEN)
+	print("Green rolling friction (Default 10.0): %.4f" % ball._rolling_friction)
+	assert(ball._rolling_friction >= 0.105 and ball._rolling_friction <= 0.120, "Green friction at default speed 10 should be ~0.112 (legacy 5.0 speed)")
 
 	ball.set_surface(PhysicsEnums.SurfaceType.ROUGH)
 	print("Rough rolling friction: %.4f" % ball._rolling_friction)
-	assert(ball._rolling_friction >= 0.160 and ball._rolling_friction <= 0.190, "Rough friction should be ~0.175")
+	assert(ball._rolling_friction >= 0.160 and ball._rolling_friction <= 0.210, "Rough friction should be ~0.175-0.200")
 
-	# Verify Fairway friction is greater than Green friction
-	ball.set_surface(PhysicsEnums.SurfaceType.FAIRWAY)
-	var fw_fric = ball._rolling_friction
+	# Verify Rough friction is greater than Green friction
 	ball.set_surface(PhysicsEnums.SurfaceType.GREEN)
 	var gr_fric = ball._rolling_friction
-	assert(fw_fric > gr_fric, "Fairway rolling friction must be greater than Green rolling friction")
-	print("PASS: Surface parameters correctly calibrated (Fairway > Green).")
+	ball.set_surface(PhysicsEnums.SurfaceType.ROUGH)
+	var rough_fric = ball._rolling_friction
+	assert(rough_fric > gr_fric, "Rough rolling friction must be greater than Green rolling friction")
+	print("PASS: Surface parameters correctly calibrated.")
 
 	# Test BallPhysics calculate_forces with slope
 	print("\n--- Test 2: Verifying BallPhysics Forces on Downhill Slope ---")

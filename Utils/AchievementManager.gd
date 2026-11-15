@@ -310,6 +310,26 @@ func _load_heckle_definitions() -> void:
 func _on_audio_line_played(category: String, filepath: String) -> void:
 	record_heckle_line_heard("", filepath, category)
 
+func _find_player_key(player_name: String) -> String:
+	var clean = player_name.strip_edges()
+	if clean.is_empty():
+		return ""
+	if _player_data.has(clean):
+		return clean
+	var lower = clean.to_lower()
+	for k in _player_data.keys():
+		if str(k).strip_edges().to_lower() == lower:
+			return str(k)
+	return ""
+
+func _get_player_data(player_name: String) -> Dictionary:
+	var key = _find_player_key(player_name)
+	if not key.is_empty() and _player_data.has(key):
+		var d = _player_data[key]
+		if d is Dictionary:
+			return d
+	return {}
+
 func record_heckle_line_heard(player_name: String, filepath: String, category: String = "") -> void:
 	if filepath.is_empty():
 		return
@@ -338,10 +358,12 @@ func record_heckle_line_heard(player_name: String, filepath: String, category: S
 	if player_name.is_empty():
 		player_name = "Player 1"
 
-	if not _player_data.has(player_name):
-		_player_data[player_name] = {}
+	var p_key = _find_player_key(player_name)
+	if p_key.is_empty():
+		p_key = player_name.strip_edges()
+		_player_data[p_key] = {}
 
-	var p_data = _player_data[player_name]
+	var p_data = _player_data[p_key]
 	if not p_data.has("heard_heckles") or typeof(p_data["heard_heckles"]) != TYPE_DICTIONARY:
 		p_data["heard_heckles"] = {}
 
@@ -351,35 +373,32 @@ func record_heckle_line_heard(player_name: String, filepath: String, category: S
 	p_data["heard_heckles"][filepath] = Time.get_unix_time_from_system()
 	_save_data()
 	if has_node("/root/CloudSync"):
-		get_node("/root/CloudSync").call("mark_profile_dirty", player_name)
+		get_node("/root/CloudSync").call("mark_profile_dirty", p_key)
 
 	var heard_count = p_data["heard_heckles"].size()
 	var total_target = _total_heckles_count if _total_heckles_count > 0 else 620
 	if heard_count >= total_target:
-		unlock_achievement(player_name, "all_heckles")
+		unlock_achievement(p_key, "all_heckles")
 
 func get_heard_heckles_count(player_name: String) -> int:
-	if player_name.is_empty() or not _player_data.has(player_name):
+	if player_name.is_empty():
 		return 0
-	var p_data = _player_data.get(player_name, {})
+	var p_data = _get_player_data(player_name)
 	var heard = p_data.get("heard_heckles", {})
 	return heard.size() if typeof(heard) == TYPE_DICTIONARY else 0
 
 func get_heard_heckles(player_name: String) -> Dictionary:
 	if player_name.is_empty():
 		player_name = "Player 1"
-	if not _player_data.has(player_name):
-		return {}
-	var p_data = _player_data.get(player_name, {})
+	var p_data = _get_player_data(player_name)
 	var heard = p_data.get("heard_heckles", {})
 	return heard if typeof(heard) == TYPE_DICTIONARY else {}
 
 func is_heckle_heard(player_name: String, filepath: String) -> bool:
 	if player_name.is_empty():
 		player_name = "Player 1"
-	if not _player_data.has(player_name):
-		return false
-	var heard = _player_data[player_name].get("heard_heckles", {})
+	var p_data = _get_player_data(player_name)
+	var heard = p_data.get("heard_heckles", {})
 	return typeof(heard) == TYPE_DICTIONARY and heard.has(filepath)
 
 func get_total_heckles_count() -> int:
@@ -436,7 +455,7 @@ func get_all_achievements() -> Array[Dictionary]:
 func get_unlocked_achievements(player_name: String) -> Dictionary:
 	if player_name.is_empty():
 		return {}
-	var p_data = _player_data.get(player_name, {})
+	var p_data = _get_player_data(player_name)
 	var unlocked: Dictionary = {}
 	for k in p_data.keys():
 		if k == "heard_heckles":
@@ -448,7 +467,7 @@ func get_unlocked_achievements(player_name: String) -> Dictionary:
 func is_unlocked(player_name: String, ach_id: String) -> bool:
 	if player_name.is_empty() or not achievements_db.has(ach_id):
 		return false
-	var p_ach = _player_data.get(player_name, {})
+	var p_ach = _get_player_data(player_name)
 	return p_ach.has(ach_id) and ach_id != "heard_heckles"
 
 func unlock_achievement(player_name: String, ach_id: String) -> bool:
@@ -457,35 +476,37 @@ func unlock_achievement(player_name: String, ach_id: String) -> bool:
 	if has_node("/root/MultiplayerManager"):
 		var mp = get_node("/root/MultiplayerManager")
 		for p in mp.players:
-			if p.get("name", "") == player_name and p.get("is_remote", false):
+			if str(p.get("name", "")).strip_edges().to_lower() == player_name.strip_edges().to_lower() and p.get("is_remote", false):
 				return false
 		
-	if not _player_data.has(player_name):
-		_player_data[player_name] = {}
+	var p_key = _find_player_key(player_name)
+	if p_key.is_empty():
+		p_key = player_name.strip_edges()
+		_player_data[p_key] = {}
 		
-	if _player_data[player_name].has(ach_id):
+	if _player_data[p_key].has(ach_id):
 		return false # Already unlocked
 		
 	var ach_def = achievements_db[ach_id]
-	_player_data[player_name][ach_id] = {
+	_player_data[p_key][ach_id] = {
 		"unlocked_at": Time.get_unix_time_from_system()
 	}
 	_save_data()
 	if has_node("/root/CloudSync"):
-		get_node("/root/CloudSync").call("mark_profile_dirty", player_name)
+		get_node("/root/CloudSync").call("mark_profile_dirty", p_key)
 	
-	print("[AchievementManager] Unlocked '%s' (%s) for player '%s'!" % [ach_def.title, ach_id, player_name])
-	emit_signal("achievement_unlocked", player_name, ach_def)
+	print("[AchievementManager] Unlocked '%s' (%s) for player '%s'!" % [ach_def.title, ach_id, p_key])
+	emit_signal("achievement_unlocked", p_key, ach_def)
 	
 	if ach_id != "all_achievements":
-		_check_all_achievements_unlocked(player_name)
+		_check_all_achievements_unlocked(p_key)
 		
 	return true
 
 func _check_all_achievements_unlocked(player_name: String) -> void:
 	if player_name.is_empty() or is_unlocked(player_name, "all_achievements"):
 		return
-	var p_ach = _player_data.get(player_name, {})
+	var p_ach = _get_player_data(player_name)
 	for aid in achievements_db.keys():
 		if aid == "all_achievements":
 			continue
@@ -537,7 +558,7 @@ func check_hole_achievements(player_name: String, hole_par: int, strokes: int, l
 	# Putting milestones: 20+ ft, 30+ ft (Downtown Drain), 40+ ft, 50+ ft
 	var c_lower = club_name.strip_edges().to_lower()
 	var is_putter = c_lower in ["pt", "putt", "putter"] or c_lower.begins_with("putt")
-	if holed_in_cup and is_putter:
+	if holed_in_cup and is_putter and putt_dist_yards > 0.0:
 		var putt_feet = putt_dist_yards * 3.0
 		if putt_feet >= 20.0 or putt_dist_yards >= (20.0 / 3.0 - 0.01):
 			unlock_achievement(player_name, "putt_20_ft")
