@@ -41,6 +41,8 @@ var hole_data = [
 	{"dist_ft": 50, "angle_deg": 50.0, "desc": "Long Distance Lag"},
 ]
 var holes = []
+var hole_flags: Array[Node3D] = []
+var target_ring: MeshInstance3D = null
 var cup_radius: float = 0.054
 var hole_buttons = []
 var shot_counter: int = 0
@@ -128,8 +130,9 @@ func _ready() -> void:
 	_generate_green_and_rough_terrain()
 	_generate_green_grid_and_heatmap()
 	
-	# 3. Generate Surrounding Environment (Trees & Bushes)
+	# 3. Generate Surrounding Environment (Trees, Bushes & Distant Mountain Backdrop)
 	_generate_trees()
+	_spawn_mountain_backdrop()
 	var q = GlobalSettings.get_graphics_quality() if GlobalSettings != null else "High"
 	MobilePerformance.apply_graphics_quality(self, q)
 	
@@ -287,86 +290,101 @@ func _update_players_button_label() -> void:
 
 
 func _update_flagpole_color() -> void:
-	if not has_node("FlagPin"):
-		return
-	var pin = get_node("FlagPin")
-	var flag = pin.get_node_or_null("Flag")
-	var ring = pin.get_node_or_null("TargetRing")
 	var active_col = get_active_player_color() if pvp_mode else Color(1.0, 0.1, 0.1)
-	if flag != null:
-		if flag.has_method("set_flag_color"):
-			flag.set_flag_color(active_col)
-		elif "flag_color" in flag:
-			flag.set("flag_color", active_col)
-		elif flag.material_override is StandardMaterial3D:
-			flag.material_override.albedo_color = active_col
-			flag.material_override.emission = active_col
-	if ring and ring.material_override is StandardMaterial3D:
+	for pin in hole_flags:
+		if pin == null or not is_instance_valid(pin):
+			continue
+		var flag = pin.get_node_or_null("Flag")
+		if flag != null:
+			if flag.has_method("set_flag_color"):
+				flag.set_flag_color(active_col)
+			elif "flag_color" in flag:
+				flag.set("flag_color", active_col)
+			elif flag.material_override is StandardMaterial3D:
+				flag.material_override.albedo_color = active_col
+				flag.material_override.emission = active_col
+	if target_ring != null and is_instance_valid(target_ring) and target_ring.material_override is StandardMaterial3D:
 		var ring_col = get_active_player_color() if pvp_mode else Color(0.0, 0.8, 1.0)
-		ring.material_override.albedo_color = Color(ring_col.r, ring_col.g, ring_col.b, 0.5)
+		target_ring.material_override.albedo_color = Color(ring_col.r, ring_col.g, ring_col.b, 0.5)
 
 # ----------------- ENVIRONMENT SETUP -----------------
 
 func _setup_environment() -> void:
 	var is_mobile := MobilePerformance.is_mobile()
 
-	# Add DirectionalLight3D
-	var sun = DirectionalLight3D.new()
-	sun.name = "SunLight"
-	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-50)).rotated(Vector3.UP, deg_to_rad(45))
-	sun.shadow_enabled = true
-	sun.light_energy = 1.2
-	sun.directional_shadow_max_distance = 200.0
-	if is_mobile:
-		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-		sun.directional_shadow_blend_splits = true
-		sun.directional_shadow_split_1 = 0.1
+	if ResourceLoader.exists("res://addons/sky_3d/src/Sky3D.gd"):
+		var Sky3DScript = load("res://addons/sky_3d/src/Sky3D.gd")
+		if Sky3DScript != null:
+			var sky3d = Sky3DScript.new()
+			sky3d.name = "Sky3D"
+			sky3d.enable_editor_time = false
+			sky3d.enable_game_time = false
+			sky3d.current_time = 13.25
+			sky3d.sun_energy = 1.1
+			sky3d.sky_contribution = 0.55
+			sky3d.ambient_energy = 0.50
+			add_child(sky3d)
+			if sky3d.environment != null:
+				sky3d.environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+				sky3d.environment.tonemap_white = 6.0
+				sky3d.environment.tonemap_exposure = 1.02
+			MobilePerformance.optimize_sky3d(sky3d)
+			var sun = sky3d.get_node_or_null("SunLight") as DirectionalLight3D
+			if sun != null:
+				sun.shadow_enabled = true
+				sun.directional_shadow_max_distance = 250.0
+				sun.shadow_bias = 0.02
+				sun.shadow_normal_bias = 2.0
+			var skydome = sky3d.get_node_or_null("Skydome")
+			if skydome != null:
+				skydome.clouds_visible = not is_mobile
+				skydome.clouds_cumulus_visible = false
+				skydome.clouds_speed = 0.005
 	else:
-		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-		sun.directional_shadow_blend_splits = true
-		sun.directional_shadow_split_1 = 0.08
-		sun.directional_shadow_split_2 = 0.20
-		sun.directional_shadow_split_3 = 0.50
-	sun.shadow_bias = 0.02
-	sun.shadow_normal_bias = 2.0
-	add_child(sun)
-	
-	# WorldEnvironment with a procedural sky
-	var world_env = WorldEnvironment.new()
-	world_env.name = "WorldEnvironment"
-	
-	var env = Environment.new()
-	env.background_mode = Environment.BG_SKY
-	var sky = Sky.new()
-	sky.process_mode = Sky.PROCESS_MODE_REALTIME
-	sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
-	var sky_mat = ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.25, 0.55, 0.88)
-	sky_mat.sky_horizon_color = Color(0.60, 0.78, 0.92)
-	sky_mat.ground_bottom_color = Color(0.16, 0.28, 0.18)
-	sky_mat.ground_horizon_color = Color(0.60, 0.78, 0.92)
-	sky.sky_material = sky_mat
-	env.sky = sky
-	
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.50
-	env.ambient_light_sky_contribution = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_white = 5.0
-	env.tonemap_exposure = 1.0
-	if is_mobile:
-		env.ssao_enabled = false
-	else:
-		env.ssao_enabled = true
-		env.ssao_radius = 2.0
-		env.ssao_intensity = 1.2
-		env.ssao_power = 1.5
-		env.ssao_detail = 0.2
-		env.ssao_horizon = 0.05
-		env.ssao_ao_channel_affect = 0.5
-	
-	world_env.environment = env
-	add_child(world_env)
+		# Fallback DirectionalLight3D + WorldEnvironment
+		var sun = DirectionalLight3D.new()
+		sun.name = "SunLight"
+		sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-50)).rotated(Vector3.UP, deg_to_rad(45))
+		sun.shadow_enabled = true
+		sun.light_energy = 1.2
+		sun.directional_shadow_max_distance = 200.0
+		if is_mobile:
+			sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+			sun.directional_shadow_blend_splits = true
+			sun.directional_shadow_split_1 = 0.1
+		else:
+			sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+			sun.directional_shadow_blend_splits = true
+			sun.directional_shadow_split_1 = 0.08
+			sun.directional_shadow_split_2 = 0.20
+			sun.directional_shadow_split_3 = 0.50
+		sun.shadow_bias = 0.02
+		sun.shadow_normal_bias = 2.0
+		add_child(sun)
+
+		var world_env = WorldEnvironment.new()
+		world_env.name = "WorldEnvironment"
+		var env = Environment.new()
+		env.background_mode = Environment.BG_SKY
+		var sky = Sky.new()
+		sky.process_mode = Sky.PROCESS_MODE_REALTIME
+		sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
+		var sky_mat = ProceduralSkyMaterial.new()
+		sky_mat.sky_top_color = Color(0.25, 0.55, 0.88)
+		sky_mat.sky_horizon_color = Color(0.60, 0.78, 0.92)
+		sky_mat.ground_bottom_color = Color(0.16, 0.28, 0.18)
+		sky_mat.ground_horizon_color = Color(0.60, 0.78, 0.92)
+		sky.sky_material = sky_mat
+		env.sky = sky
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+		env.ambient_light_energy = 0.50
+		env.ambient_light_sky_contribution = 0.55
+		env.tonemap_mode = Environment.TONE_MAPPER_ACES
+		env.tonemap_white = 5.0
+		env.tonemap_exposure = 1.0
+		env.ssao_enabled = not is_mobile
+		world_env.environment = env
+		add_child(world_env)
 	
 	# Create Camera3D
 	var camera = Camera3D.new()
@@ -421,21 +439,104 @@ func is_inside_green(x: float, z: float) -> bool:
 		return true
 	return dist <= get_green_radius(rel.angle())
 
+func _create_high_rough_material() -> Material:
+	var shader := Shader.new()
+	shader.code = """shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+
+uniform sampler2D tex_rough : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D normal_rough : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D ao_rough : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform sampler2D roughness_rough : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform float uv_scale : hint_range(0.01, 2.0) = 0.38;
+uniform float normal_depth : hint_range(0.0, 2.0) = 0.80;
+
+varying vec3 v_world_pos;
+varying vec3 v_cam_pos;
+
+void vertex() {
+	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_cam_pos = INV_VIEW_MATRIX[3].xyz;
+}
+
+vec2 hash2(vec2 p) {
+	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+	return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+}
+
+float gnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(dot(hash2(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0)),
+				   dot(hash2(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x),
+			   mix(dot(hash2(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)),
+				   dot(hash2(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x), u.y);
+}
+
+void fragment() {
+	float cam_dist = distance(v_world_pos, v_cam_pos);
+	float near_detail_fade = 1.0 - smoothstep(25.0, 60.0, cam_dist);
+	vec2 uv_r = v_world_pos.xz * uv_scale;
+
+	vec3 r_fine = texture(tex_rough, uv_r).rgb;
+	vec3 r_base = near_detail_fade > 0.05
+		? mix(r_fine, texture(tex_rough, uv_r * 0.43 + vec2(0.37, 0.71)).rgb, 0.28 * near_detail_fade)
+		: r_fine;
+
+	float macro_mottle = gnoise(v_world_pos.xz * 0.032) * 0.5 + 0.5;
+	vec3 macro_tint = mix(vec3(0.95, 0.96, 0.91), vec3(1.04, 1.05, 1.01), macro_mottle);
+	float clump_patch = gnoise(v_world_pos.xz * 0.28);
+	vec3 rough_tint = mix(vec3(0.72, 0.94, 0.68), vec3(0.84, 1.02, 0.76), clump_patch * 0.5 + 0.5);
+	vec3 col = r_base * rough_tint * macro_tint;
+
+	float stripe_coord = (v_world_pos.x + v_world_pos.z) * 0.39;
+	float rough_stripe = smoothstep(0.30, 0.70, sin(stripe_coord) * 0.5 + 0.5);
+	col *= mix(0.93, 1.06, rough_stripe);
+
+	float clump_dark = smoothstep(0.15, 0.65, gnoise(v_world_pos.xz * 1.6));
+	col *= mix(1.0, 0.85, clump_dark * 0.35 * near_detail_fade);
+
+	ALBEDO = clamp(col, 0.0, 1.0);
+	NORMAL_MAP = texture(normal_rough, uv_r).rgb;
+	NORMAL_MAP_DEPTH = normal_depth * near_detail_fade;
+	ROUGHNESS = clamp(0.86 + 0.12 * texture(roughness_rough, uv_r).r - clump_patch * 0.04, 0.78, 0.98);
+	AO = mix(0.76, 1.0, texture(ao_rough, uv_r).r);
+	SPECULAR = 0.08;
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = shader
+	sm.set_shader_parameter("tex_rough", load("res://Courses/Environments/grass-rough/albedo.png"))
+	if ResourceLoader.exists("res://Courses/Environments/grass-rough/normal.png"):
+		sm.set_shader_parameter("normal_rough", load("res://Courses/Environments/grass-rough/normal.png"))
+	if ResourceLoader.exists("res://Courses/Environments/grass-rough/ao.png"):
+		sm.set_shader_parameter("ao_rough", load("res://Courses/Environments/grass-rough/ao.png"))
+	if ResourceLoader.exists("res://Courses/Environments/grass-rough/roughness.png"):
+		sm.set_shader_parameter("roughness_rough", load("res://Courses/Environments/grass-rough/roughness.png"))
+	return sm
+
+
 func _generate_green_and_rough_terrain() -> void:
 	var st_green = SurfaceTool.new()
 	st_green.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var mat_green = StandardMaterial3D.new()
 	mat_green.albedo_texture = load("res://Courses/Environments/grass-green/albedo.png")
-	mat_green.roughness = 0.95
-	mat_green.metallic_specular = 0.1
+	if ResourceLoader.exists("res://Courses/Environments/grass-green/normal.png"):
+		mat_green.normal_enabled = true
+		mat_green.normal_texture = load("res://Courses/Environments/grass-green/normal.png")
+	if ResourceLoader.exists("res://Courses/Environments/grass-green/ao.png"):
+		mat_green.ao_enabled = true
+		mat_green.ao_texture = load("res://Courses/Environments/grass-green/ao.png")
+	if ResourceLoader.exists("res://Courses/Environments/grass-green/roughness.png"):
+		mat_green.roughness_texture = load("res://Courses/Environments/grass-green/roughness.png")
+	mat_green.roughness = 0.84
+	mat_green.metallic_specular = 0.14
 	st_green.set_material(mat_green)
 	
 	var st_rough = SurfaceTool.new()
 	st_rough.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var mat_rough = StandardMaterial3D.new()
-	mat_rough.albedo_texture = load("res://Courses/Environments/grass-rough/albedo.png")
-	mat_rough.roughness = 0.95
-	mat_rough.metallic_specular = 0.05
+	var mat_rough: Material = _create_high_rough_material()
 	st_rough.set_material(mat_rough)
 	
 	var min_grid = -24.0
@@ -543,6 +644,48 @@ func _generate_green_and_rough_terrain() -> void:
 				st_rough.add_vertex(p11)
 				st_rough.set_uv(Vector2(x0, z1) * 0.25)
 				st_rough.add_vertex(p01)
+
+	# Distant rough skirt out to 490x490m (-245 to +245) so terrain meets mountain backdrop seamlessly
+	var far_bound := 245.0
+	var inner_bound := 45.0
+	var far_sections = [
+		{"min_x": -far_bound, "max_x": far_bound, "min_z": -far_bound, "max_z": -inner_bound, "div_x": 12, "div_z": 6},
+		{"min_x": -far_bound, "max_x": far_bound, "min_z": inner_bound, "max_z": far_bound, "div_x": 12, "div_z": 6},
+		{"min_x": -far_bound, "max_x": -inner_bound, "min_z": -inner_bound, "max_z": inner_bound, "div_x": 6, "div_z": 8},
+		{"min_x": inner_bound, "max_x": far_bound, "min_z": -inner_bound, "max_z": inner_bound, "div_x": 6, "div_z": 8},
+	]
+	var get_far_h = func(fx: float, fz: float) -> float:
+		var edge_d = maxf(absf(fx) - inner_bound, absf(fz) - inner_bound)
+		if edge_d <= 0.001:
+			return get_height(fx, fz)
+		var blend = clampf(1.0 - edge_d / 35.0, 0.0, 1.0)
+		return get_height(clampf(fx, -inner_bound, inner_bound), clampf(fz, -inner_bound, inner_bound)) * blend
+
+	for sec in far_sections:
+		var cell_w = (sec["max_x"] - sec["min_x"]) / sec["div_x"]
+		var cell_d = (sec["max_z"] - sec["min_z"]) / sec["div_z"]
+		for z in range(sec["div_z"]):
+			for x in range(sec["div_x"]):
+				var x0 = sec["min_x"] + x * cell_w
+				var x1 = x0 + cell_w
+				var z0 = sec["min_z"] + z * cell_d
+				var z1 = z0 + cell_d
+				var p00 = Vector3(x0, get_far_h.call(x0, z0), z0)
+				var p10 = Vector3(x1, get_far_h.call(x1, z0), z0)
+				var p01 = Vector3(x0, get_far_h.call(x0, z1), z1)
+				var p11 = Vector3(x1, get_far_h.call(x1, z1), z1)
+				st_rough.set_uv(Vector2(x0, z0) * 0.25)
+				st_rough.add_vertex(p00)
+				st_rough.set_uv(Vector2(x1, z0) * 0.25)
+				st_rough.add_vertex(p10)
+				st_rough.set_uv(Vector2(x0, z1) * 0.25)
+				st_rough.add_vertex(p01)
+				st_rough.set_uv(Vector2(x1, z0) * 0.25)
+				st_rough.add_vertex(p10)
+				st_rough.set_uv(Vector2(x1, z1) * 0.25)
+				st_rough.add_vertex(p11)
+				st_rough.set_uv(Vector2(x0, z1) * 0.25)
+				st_rough.add_vertex(p01)
 				
 	st_green.generate_normals()
 	var mesh_green = st_green.commit()
@@ -602,19 +745,20 @@ func _generate_trees() -> void:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = 12345
 	
-	var total_trees = 40
+	var total_trees = 64
 	var spawned = 0
 	var attempts = 0
 	
-	while spawned < total_trees and attempts < 250:
+	while spawned < total_trees and attempts < 400:
 		attempts += 1
 		var angle = rng.randf_range(0.0, TAU)
-		var min_tree_dist = max(get_green_radius(angle) + 2.0, 20.0)
-		var dist = rng.randf_range(min_tree_dist, 44.0)
+		var min_tree_dist = max(get_green_radius(angle) + 2.5, 21.0)
+		var max_tree_dist = 44.0 if spawned < 42 else 74.0
+		var dist = rng.randf_range(min_tree_dist, max_tree_dist)
 		
 		var tx = cos(angle) * dist
 		var tz = sin(angle) * dist
-		var ty = get_height(tx, tz)
+		var ty = get_height(tx, tz) if dist <= 44.0 else 0.0
 		
 		var path_idx = rng.randi_range(0, tree_paths.size() - 1)
 		var scene = load(tree_paths[path_idx])
@@ -629,6 +773,99 @@ func _generate_trees() -> void:
 			
 			trees_folder.add_child(tree_inst)
 			spawned += 1
+
+	# Convert trees into spatial-chunked MultiMeshInstance3D and upgrade to HighFidelity volumetric 3D trees
+	if ResourceLoader.exists("res://HighFidelity/Foliage/procedural_tree_generator.gd"):
+		var ptg = load("res://HighFidelity/Foliage/procedural_tree_generator.gd")
+		if ptg != null:
+			ptg.convert_scene_foliage_to_multimesh(trees_folder, false)
+			var mm_container = trees_folder.get_node_or_null("MultiMeshFoliageContainer")
+			if mm_container != null:
+				ptg.upgrade_existing_multimesh_trees(mm_container)
+
+
+func _spawn_mountain_backdrop() -> void:
+	if has_node("MountainBackdrop"):
+		$MountainBackdrop.queue_free()
+
+	if not ResourceLoader.exists("res://Courses/Environments/mountain_backdrop_seamless.png"):
+		return
+	var tex = load("res://Courses/Environments/mountain_backdrop_seamless.png")
+	if tex == null:
+		return
+
+	var mountain_root = Node3D.new()
+	mountain_root.name = "MountainBackdrop"
+	add_child(mountain_root)
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.5
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(mat)
+
+	# Full 360-degree cylindrical panorama arc in the far background past the perimeter trees
+	var radius := 235.0
+	var y_bottom := -6.0
+	var y_top := 80.0
+	var segments := 96
+	var u_start := 0.0
+	var u_end := 4.0
+
+	for i in range(segments):
+		var t0 := float(i) / segments
+		var t1 := float(i + 1) / segments
+		var a0 := t0 * TAU
+		var a1 := t1 * TAU
+		var x0 := radius * cos(a0)
+		var z0 := radius * sin(a0)
+		var x1 := radius * cos(a1)
+		var z1 := radius * sin(a1)
+		var u0 := lerpf(u_start, u_end, t0)
+		var u1 := lerpf(u_start, u_end, t1)
+
+		var p_b0 := Vector3(x0, y_bottom, z0)
+		var p_t0 := Vector3(x0, y_top, z0)
+		var p_b1 := Vector3(x1, y_bottom, z1)
+		var p_t1 := Vector3(x1, y_top, z1)
+
+		var n0 := Vector3(-x0, 0.0, -z0).normalized()
+		var n1 := Vector3(-x1, 0.0, -z1).normalized()
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 0.0))
+		st.add_vertex(p_t0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 1.0))
+		st.add_vertex(p_b1)
+
+	var mesh = st.commit()
+	var mesh_inst = MeshInstance3D.new()
+	mesh_inst.name = "MountainMesh"
+	mesh_inst.mesh = mesh
+	mesh_inst.material_override = mat
+	mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mesh_inst.layers = 1
+	mountain_root.add_child(mesh_inst)
 
 func _create_arrow_mesh() -> Mesh:
 	var st = SurfaceTool.new()
@@ -1085,6 +1322,20 @@ func _setup_player() -> void:
 
 func _setup_holes() -> void:
 	holes.clear()
+	for old_flag in hole_flags:
+		if old_flag != null and is_instance_valid(old_flag):
+			old_flag.queue_free()
+	hole_flags.clear()
+	if target_ring != null and is_instance_valid(target_ring):
+		target_ring.queue_free()
+		target_ring = null
+
+	var q_str = ""
+	var gs = GlobalSettings if GlobalSettings != null else (get_node_or_null("/root/GlobalSettings") if is_inside_tree() else null)
+	if gs != null and gs.has_method("get_graphics_quality"):
+		q_str = gs.get_graphics_quality()
+	var flag_col = get_active_player_color() if pvp_mode else Color(1.0, 0.1, 0.1)
+
 	for i in range(hole_data.size()):
 		var data = hole_data[i]
 		var dist_m = data["dist_ft"] * 0.3048
@@ -1102,6 +1353,32 @@ func _setup_holes() -> void:
 		FlagBuilder.build_hole_cup(cup_root, cup_radius)
 		add_child(cup_root)
 
+		# Spawn flagstick for each hole (hidden on the active target hole, visible on all other holes)
+		var pin = Node3D.new()
+		pin.name = "HoleFlag_%d" % i
+		pin.set_meta("cup_radius", cup_radius)
+		add_child(pin)
+		pin.global_position = hole_pos
+		FlagBuilder.setup_target_flag(pin, 2.0, flag_col, 0.42, 0.30, false, q_str)
+		hole_flags.append(pin)
+
+	# Single glowing blue target ring shown ONLY around the active hole the player is hitting at
+	target_ring = MeshInstance3D.new()
+	var ring_mesh = TorusMesh.new()
+	ring_mesh.inner_radius = cup_radius + 0.015
+	ring_mesh.outer_radius = 0.5
+	ring_mesh.rings = 32
+	ring_mesh.ring_segments = 6
+	target_ring.mesh = ring_mesh
+	target_ring.scale = Vector3(1.0, 0.01, 1.0)
+	target_ring.name = "TargetRing"
+	var ring_col = get_active_player_color() if pvp_mode else Color(0.0, 0.8, 1.0)
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(ring_col.r, ring_col.g, ring_col.b, 0.5)
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	target_ring.material_override = ring_mat
+	add_child(target_ring)
+
 	# Cut out circular openings in the putting green surface for all recessed cups
 	var green_mesh_inst = get_node_or_null("PuttingGreenMesh") as MeshInstance3D
 	if green_mesh_inst != null:
@@ -1113,8 +1390,8 @@ func _select_hole(index: int, reset_ball: bool = true) -> void:
 	selected_hole_index = index
 	user_aim_yaw_offset_deg = 0.0
 		
-	# Draw/Reposition flagpole
-	_spawn_flagpole(holes[index])
+	# Show flags in all holes EXCEPT the active target hole; show blue TargetRing ONLY on the active hole
+	_update_hole_flag_and_ring_visibility()
 	
 	if reset_ball:
 		_reset_ball_position()
@@ -1166,41 +1443,18 @@ func _update_hole_button_labels() -> void:
 					hole_buttons[i].remove_theme_color_override("font_color")
 					_apply_btn_style(hole_buttons[i], Color(0.12, 0.20, 0.28), Color(0.18, 0.30, 0.42))
 
-func _spawn_flagpole(pos: Vector3) -> void:
-	if has_node("FlagPin"):
-		get_node("FlagPin").queue_free()
-		
-	var pin = Node3D.new()
-	pin.name = "FlagPin"
-	pin.set_meta("cup_radius", cup_radius)
-	add_child(pin)
-	pin.global_position = pos
-	
-	var flag_col = get_active_player_color() if pvp_mode else Color(1.0, 0.1, 0.1)
-	var q_str = ""
-	var gs = GlobalSettings if GlobalSettings != null else (get_node_or_null("/root/GlobalSettings") if is_inside_tree() else null)
-	if gs != null and gs.has_method("get_graphics_quality"):
-		q_str = gs.get_graphics_quality()
-	FlagBuilder.setup_target_flag(pin, 2.0, flag_col, 0.42, 0.30, false, q_str)
-	
-	# Glow/Selection Ring (hollow ring around cup so the open hole cup is unobstructed)
-	var ring = MeshInstance3D.new()
-	var ring_mesh = TorusMesh.new()
-	ring_mesh.inner_radius = cup_radius + 0.015
-	ring_mesh.outer_radius = 0.5
-	ring_mesh.rings = 32
-	ring_mesh.ring_segments = 6
-	ring.mesh = ring_mesh
-	ring.scale = Vector3(1.0, 0.01, 1.0)
-	ring.name = "TargetRing"
-	
-	var ring_col = get_active_player_color() if pvp_mode else Color(0.0, 0.8, 1.0)
-	var ring_mat = StandardMaterial3D.new()
-	ring_mat.albedo_color = Color(ring_col.r, ring_col.g, ring_col.b, 0.5)
-	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ring.material_override = ring_mat
-	ring.position = Vector3(0.0, 0.0005, 0.0)
-	pin.add_child(ring)
+func _update_hole_flag_and_ring_visibility() -> void:
+	for i in range(hole_flags.size()):
+		var pin = hole_flags[i]
+		if pin != null and is_instance_valid(pin):
+			pin.visible = (i != selected_hole_index)
+	if target_ring != null and is_instance_valid(target_ring):
+		if selected_hole_index >= 0 and selected_hole_index < holes.size():
+			target_ring.global_position = holes[selected_hole_index] + Vector3(0.0, 0.0005, 0.0)
+			target_ring.visible = true
+		else:
+			target_ring.visible = false
+	_update_flagpole_color()
 
 # ----------------- BALL TELEPORTATION & DYNAMIC AIMING -----------------
 
@@ -1372,6 +1626,7 @@ func _on_launch_monitor_hit_ball(data: Dictionary) -> void:
 		return
 
 	FoamBallBoost.apply_boost(data, "Pt")
+	PowerCalibration.apply_calibration(data)
 
 	if has_node("/root/TensionManager"):
 		TensionManager.stop_tension()

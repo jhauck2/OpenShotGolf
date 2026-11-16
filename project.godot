@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Heckle Golf Simulator"
-config/version="0.176.1"
+config/version="0.180.7"
 run/main_scene="uid://dgyd437dgyv0y"
 config/features=PackedStringArray("4.7", "C#", "Mobile")
 boot_splash/image="res://assets/images/heckle_splash.png"

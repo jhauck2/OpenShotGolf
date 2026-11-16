@@ -473,6 +473,9 @@ func _write_session_header() -> void:
 				str(rs.foam_ball_boost_enabled.value),
 				float(rs.foam_ball_boost_percent.value)
 			])
+			_write_raw("  Power Calibration:  %+.1f%%" % [
+				float(rs.power_calibration_percent.value)
+			])
 
 	# File Integrity and Size Analysis
 	_write_raw("--------------------------------------------------------------------------------")

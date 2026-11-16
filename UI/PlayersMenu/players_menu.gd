@@ -1,5 +1,6 @@
 extends Control
 
+const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
 const ClubDeliveryVisuals = preload("res://UI/GolferCamera/club_delivery_visuals.gd")
 const BudgetPausedBanner = preload("res://UI/Account/budget_paused_banner.gd")
 const AccountModalScene = preload("res://UI/Account/account_modal.tscn")
@@ -89,6 +90,7 @@ var avatar_picker_content: VBoxContainer = VBoxContainer.new()
 var avatar_picker_buttons: Array = []
 
 var new_player_ball_opt: OptionButton = OptionButton.new()
+var new_player_ball_type_opt: OptionButton = OptionButton.new()
 var new_player_ball_preview_container: Control = null
 var create_profile_content: VBoxContainer = VBoxContainer.new()
 var create_profile_avatar_preview_container: Control = null
@@ -99,10 +101,12 @@ var edit_profile_player_name: String = ""
 var edit_profile_email_input: LineEdit = LineEdit.new()
 var edit_profile_avatar_path: String = ""
 var edit_profile_ball_graphic: String = "single_line"
+var edit_profile_ball_type: String = "standard"
 var edit_profile_tee_opt: OptionButton = OptionButton.new()
 var edit_profile_skill_opt: OptionButton = OptionButton.new()
 var edit_profile_handedness_opt: OptionButton = OptionButton.new()
 var edit_profile_ball_opt: OptionButton = OptionButton.new()
+var edit_profile_ball_type_opt: OptionButton = OptionButton.new()
 var edit_profile_content: VBoxContainer = VBoxContainer.new()
 var edit_profile_avatar_preview_container: Control = null
 var edit_profile_ball_preview_container: Control = null
@@ -134,6 +138,21 @@ func _ball_graphic_index_to_id(idx: int) -> String:
 	if idx >= 0 and idx < MultiplayerManager.AVAILABLE_BALL_GRAPHICS.size():
 		return MultiplayerManager.AVAILABLE_BALL_GRAPHICS[idx]["id"]
 	return "single_line"
+
+func _ball_type_id_to_name(ball_type_id: String) -> String:
+	return BallTypePhysics.id_to_display_name(ball_type_id)
+
+func _ball_type_id_to_index(ball_type_id: String) -> int:
+	var norm_id = BallTypePhysics.normalize_ball_type(ball_type_id)
+	for i in range(MultiplayerManager.AVAILABLE_BALL_TYPES.size()):
+		if MultiplayerManager.AVAILABLE_BALL_TYPES[i]["id"] == norm_id:
+			return i
+	return 0
+
+func _ball_type_index_to_id(idx: int) -> String:
+	if idx >= 0 and idx < MultiplayerManager.AVAILABLE_BALL_TYPES.size():
+		return MultiplayerManager.AVAILABLE_BALL_TYPES[idx]["id"]
+	return "standard"
 
 func _create_ball_preview_icon(graphic_id: String, avatar_path: String = "", player_name: String = "", size: Vector2 = Vector2(56, 56)) -> Control:
 	var root_ctrl := Control.new()
@@ -460,6 +479,15 @@ func _ready() -> void:
 	new_player_ball_opt.custom_minimum_size = Vector2(0, 50)
 	ThemeManager.apply_option_button_style(new_player_ball_opt, 17, Vector2(0, 50))
 	new_player_ball_opt.item_selected.connect(func(_idx: int): _update_new_player_ball_preview())
+
+	new_player_ball_type_opt.name = "NewPlayerBallTypeOpt"
+	new_player_ball_type_opt.clear()
+	for bt in MultiplayerManager.AVAILABLE_BALL_TYPES:
+		new_player_ball_type_opt.add_item("Ball Type: " + bt["name"], new_player_ball_type_opt.item_count)
+	new_player_ball_type_opt.selected = 0
+	new_player_ball_type_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	new_player_ball_type_opt.custom_minimum_size = Vector2(0, 50)
+	ThemeManager.apply_option_button_style(new_player_ball_type_opt, 17, Vector2(0, 50))
 
 	avatar_preview_btn.name = "AvatarPreviewBtn"
 	avatar_preview_btn.text = "Avatar: None"
@@ -1609,6 +1637,28 @@ func _open_create_profile_dialog() -> void:
 
 	_update_create_profile_ball_ui()
 
+	# Golf Ball Type (Physics) Section
+	var ball_type_sec = VBoxContainer.new()
+	ball_type_sec.add_theme_constant_override("separation", 6)
+	create_profile_content.add_child(ball_type_sec)
+
+	var ball_type_title = Label.new()
+	ball_type_title.text = "Golf Ball Type (Physics):"
+	ball_type_title.add_theme_font_size_override("font_size", 15)
+	ball_type_title.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	ball_type_sec.add_child(ball_type_title)
+
+	var ball_type_hint = Label.new()
+	ball_type_hint.text = "ℹ️ Standard uses default physics; Soft adds spin with less rollout; Distance adds speed and rollout with less spin."
+	ball_type_hint.add_theme_font_size_override("font_size", 13)
+	ball_type_hint.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
+	ball_type_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ball_type_sec.add_child(ball_type_hint)
+
+	if new_player_ball_type_opt.get_parent() != null:
+		new_player_ball_type_opt.get_parent().remove_child(new_player_ball_type_opt)
+	ball_type_sec.add_child(new_player_ball_type_opt)
+
 	create_profile_dialog.popup_centered()
 	new_player_input.call_deferred("grab_focus")
 
@@ -1724,7 +1774,8 @@ func _on_register_pressed() -> void:
 	var skill_level = _skill_index_to_key(new_player_skill_opt.selected)
 	var handedness = new_player_handedness_opt.selected if new_player_handedness_opt != null else 0
 	var ball_graphic = _ball_graphic_index_to_id(new_player_ball_opt.selected) if new_player_ball_opt != null else "single_line"
-	MultiplayerManager.register_player(name_text, email_text, new_player_avatar_path, [], pref_tee, skill_level, handedness, ball_graphic)
+	var ball_type = _ball_type_index_to_id(new_player_ball_type_opt.selected) if new_player_ball_type_opt != null else "standard"
+	MultiplayerManager.register_player(name_text, email_text, new_player_avatar_path, [], pref_tee, skill_level, handedness, ball_graphic, ball_type)
 	if create_profile_dialog != null and create_profile_dialog.visible:
 		create_profile_dialog.hide()
 	new_player_input.clear()
@@ -1736,6 +1787,8 @@ func _on_register_pressed() -> void:
 		new_player_handedness_opt.selected = 0
 	if new_player_ball_opt != null:
 		new_player_ball_opt.selected = 0
+	if new_player_ball_type_opt != null:
+		new_player_ball_type_opt.selected = 0
 	_update_new_player_avatar_preview()
 	_update_new_player_ball_preview()
 	_update_create_profile_avatar_ui()
@@ -2146,6 +2199,37 @@ func _open_edit_profile_dialog(player_name: String) -> void:
 
 	_update_edit_profile_ball_ui()
 
+	# Golf Ball Type (Physics) Section
+	var ball_type_sec = VBoxContainer.new()
+	ball_type_sec.add_theme_constant_override("separation", 6)
+	edit_profile_content.add_child(ball_type_sec)
+
+	var ball_type_title = Label.new()
+	ball_type_title.text = "Golf Ball Type (Physics):"
+	ball_type_title.add_theme_font_size_override("font_size", 15)
+	ball_type_title.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	ball_type_sec.add_child(ball_type_title)
+
+	var ball_type_hint = Label.new()
+	ball_type_hint.text = "ℹ️ Standard uses default physics; Soft adds spin with less rollout; Distance adds speed and rollout with less spin."
+	ball_type_hint.add_theme_font_size_override("font_size", 13)
+	ball_type_hint.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
+	ball_type_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ball_type_sec.add_child(ball_type_hint)
+
+	edit_profile_ball_type = MultiplayerManager.get_player_ball_type(player_name)
+	edit_profile_ball_type_opt = OptionButton.new()
+	edit_profile_ball_type_opt.clear()
+	for bt in MultiplayerManager.AVAILABLE_BALL_TYPES:
+		edit_profile_ball_type_opt.add_item(bt["name"], edit_profile_ball_type_opt.item_count)
+	edit_profile_ball_type_opt.custom_minimum_size = Vector2(0, 50)
+	ThemeManager.apply_option_button_style(edit_profile_ball_type_opt, 18, Vector2(0, 50))
+	edit_profile_ball_type_opt.selected = _ball_type_id_to_index(edit_profile_ball_type)
+	edit_profile_ball_type_opt.item_selected.connect(func(idx: int):
+		edit_profile_ball_type = _ball_type_index_to_id(idx)
+	)
+	ball_type_sec.add_child(edit_profile_ball_type_opt)
+
 	# Bag Section
 	var bag_sec = VBoxContainer.new()
 	bag_sec.add_theme_constant_override("separation", 6)
@@ -2275,7 +2359,8 @@ func _on_edit_profile_confirmed() -> void:
 	var new_skill = _skill_index_to_key(edit_profile_skill_opt.selected)
 	var new_handedness = edit_profile_handedness_opt.selected if edit_profile_handedness_opt != null else 0
 	var new_ball_graphic = edit_profile_ball_graphic
-	MultiplayerManager.update_player_profile(edit_profile_player_name, new_email, edit_profile_avatar_path, new_tee, new_skill, new_handedness, new_ball_graphic)
+	var new_ball_type = edit_profile_ball_type
+	MultiplayerManager.update_player_profile(edit_profile_player_name, new_email, edit_profile_avatar_path, new_tee, new_skill, new_handedness, new_ball_graphic, new_ball_type)
 	_refresh_players_list()
 	_render_player_profile(edit_profile_player_name)
 
@@ -2595,6 +2680,9 @@ func _render_player_profile(player_name: String) -> void:
 
 	var p_ball = reg_p.get("ball_graphic", "single_line")
 	add_detail_item.call("Ball Alignment", "⚪ " + _ball_graphic_id_to_name(p_ball), Color(0.85, 0.88, 1.0))
+
+	var p_ball_type = reg_p.get("ball_type", "standard")
+	add_detail_item.call("Ball Type", "🏌️ " + _ball_type_id_to_name(p_ball_type), Color(0.82, 0.94, 0.88))
 	
 	# Stats Grid Layout
 	var grid = GridContainer.new()

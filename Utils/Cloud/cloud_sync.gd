@@ -698,6 +698,7 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 			"skill_level": reg_p.get("skill_level", "mid_handicap"),
 			"handedness": int(reg_p.get("handedness", 0)),
 			"ball_graphic": reg_p.get("ball_graphic", "single_line"),
+			"ball_type": reg_p.get("ball_type", "standard"),
 			"bag": reg_p.get("bag", []),
 			"updated_at": int(Time.get_unix_time_from_system()),
 			"updated_by_uid": auth.get_uid() if (auth != null and auth.has_method("get_uid")) else cloud_uid,

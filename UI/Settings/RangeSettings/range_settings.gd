@@ -256,8 +256,8 @@ func _ready() -> void:
 	if ball_type_option != null:
 		ball_type_option.clear()
 		ball_type_option.add_item("Standard Ball", 0)
-		ball_type_option.add_item("Tour Soft", 1)
-		ball_type_option.add_item("Distance / Firm", 2)
+		ball_type_option.add_item("Soft Ball", 1)
+		ball_type_option.add_item("Distance Ball", 2)
 		var ball_id: int = GlobalSettings.range_settings.ball_type.value
 		if ball_id < ball_type_option.item_count:
 			ball_type_option.select(ball_id)
@@ -630,6 +630,92 @@ func _ready() -> void:
 	)
 
 	gameplay_vbox.add_child(curve_slider_container)
+
+	# Power Calibration section in Gameplay tab
+	var power_sep = HSeparator.new()
+	gameplay_vbox.add_child(power_sep)
+
+	var power_title = Label.new()
+	power_title.text = "Power Calibration"
+	power_title.add_theme_font_size_override("font_size", 22)
+	power_title.add_theme_color_override("font_color", Color(0.8, 0.95, 0.8))
+	gameplay_vbox.add_child(power_title)
+
+	var power_desc = Label.new()
+	power_desc.text = "Fine-tune launch monitor ball speed from -10% to +10% if your monitor reads consistently high or low (0% = default)."
+	power_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	power_desc.add_theme_font_size_override("font_size", 16)
+	power_desc.add_theme_color_override("font_color", ThemeManager.COLOR_TEXT_MUTED)
+	gameplay_vbox.add_child(power_desc)
+
+	var power_slider_container = VBoxContainer.new()
+	power_slider_container.name = "PowerCalibrationContainer"
+	power_slider_container.add_theme_constant_override("separation", 6)
+
+	var power_setting = GlobalSettings.range_settings.power_calibration_percent
+	var power_slider_row = HBoxContainer.new()
+	power_slider_row.name = "PowerCalibrationRow"
+	power_slider_row.custom_minimum_size = Vector2(0, 52)
+	power_slider_row.add_theme_constant_override("separation", 10)
+	power_slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var format_power_label = func(val: float) -> String:
+		if is_zero_approx(val):
+			return "Power Adjust: 0%"
+		return "Power Adjust: %+.0f%%" % val
+
+	var power_slider_lbl = Label.new()
+	power_slider_lbl.name = "PowerCalibrationLabel"
+	power_slider_lbl.text = format_power_label.call(float(power_setting.value))
+	power_slider_lbl.add_theme_font_size_override("font_size", 18)
+	power_slider_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_slider_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	power_slider_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	power_slider_lbl.tooltip_text = "Power Calibration"
+	power_slider_row.add_child(power_slider_lbl)
+
+	var power_minus_btn = Button.new()
+	power_minus_btn.name = "PowerCalibrationMinusBtn"
+	power_minus_btn.text = "－"
+	power_minus_btn.custom_minimum_size = Vector2(48, 48)
+	power_minus_btn.add_theme_font_size_override("font_size", 20)
+	ThemeManager.apply_nav_button_style(power_minus_btn, 8)
+	power_slider_row.add_child(power_minus_btn)
+
+	var power_slider = HSlider.new()
+	power_slider.name = "PowerCalibrationSlider"
+	power_slider.min_value = -10.0
+	power_slider.max_value = 10.0
+	power_slider.step = 1.0
+	power_slider.value = float(power_setting.value)
+	power_slider.custom_minimum_size = Vector2(140, 48)
+	power_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_slider_row.add_child(power_slider)
+
+	var power_plus_btn = Button.new()
+	power_plus_btn.name = "PowerCalibrationPlusBtn"
+	power_plus_btn.text = "＋"
+	power_plus_btn.custom_minimum_size = Vector2(48, 48)
+	power_plus_btn.add_theme_font_size_override("font_size", 20)
+	ThemeManager.apply_nav_button_style(power_plus_btn, 8)
+	power_slider_row.add_child(power_plus_btn)
+
+	var power_grid = _create_range_grid([power_slider_row], 2)
+	power_slider_container.add_child(power_grid)
+
+	power_slider.value_changed.connect(func(val: float):
+		power_setting.set_value(val)
+		power_slider_lbl.text = format_power_label.call(val)
+	)
+
+	power_minus_btn.pressed.connect(func():
+		power_slider.value = clamp(power_slider.value - 1.0, power_slider.min_value, power_slider.max_value)
+	)
+	power_plus_btn.pressed.connect(func():
+		power_slider.value = clamp(power_slider.value + 1.0, power_slider.min_value, power_slider.max_value)
+	)
+
+	gameplay_vbox.add_child(power_slider_container)
 
 	# Create and insert Gimme Range configuration settings rows in the Gameplay tab
 	var gimme_sep = HSeparator.new()

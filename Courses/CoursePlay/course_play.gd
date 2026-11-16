@@ -167,6 +167,8 @@ func _ready() -> void:
 	MultiplayerManager.active_player_changed.connect(_on_active_player_changed)
 	if not MultiplayerManager.player_ball_graphic_changed.is_connected(_on_course_ball_graphic_changed):
 		MultiplayerManager.player_ball_graphic_changed.connect(_on_course_ball_graphic_changed)
+	if MultiplayerManager.has_signal("player_ball_type_changed") and not MultiplayerManager.player_ball_type_changed.is_connected(_on_course_ball_type_changed):
+		MultiplayerManager.player_ball_type_changed.connect(_on_course_ball_type_changed)
 	if not MultiplayerManager.player_tee_changed.is_connected(_on_player_tee_changed):
 		MultiplayerManager.player_tee_changed.connect(_on_player_tee_changed)
 	MultiplayerManager.hole_completed.connect(_on_hole_completed)
@@ -4362,6 +4364,16 @@ func _on_course_ball_graphic_changed(player_name: String, _ball_graphic: String)
 			var col = MultiplayerManager.get_player_color(cur_p)
 			active_ball.apply_ball_graphic(bg, av, player_name, col)
 
+func _on_course_ball_type_changed(player_name: String, _ball_type: String) -> void:
+	var cur_p = MultiplayerManager.get_active_player()
+	if not cur_p.is_empty() and cur_p.get("name", "").to_lower() == player_name.to_lower():
+		var player_node = course_instance.get_node_or_null("Player") if course_instance != null else null
+		if player_node != null and player_node.has_method("set_profile"):
+			player_node.set_profile(player_name)
+		elif active_ball != null and active_ball.has_method("apply_ball_type"):
+			var bt = MultiplayerManager.get_player_ball_type(player_name)
+			active_ball.apply_ball_type(bt)
+
 func _get_tee_icon(tee_name: String, size: int = 14) -> ImageTexture:
 	var key = "%s_%d" % [tee_name.strip_edges().to_lower(), size]
 	if _tee_icon_cache.has(key):
@@ -4425,11 +4437,15 @@ func _on_active_player_changed(player: Dictionary) -> void:
 	var p_name = str(player.get("name", ""))
 	if player_node_ref != null and player_node_ref.has_method("set_profile") and not p_name.is_empty():
 		player_node_ref.set_profile(p_name)
-	elif active_ball != null and active_ball.has_method("apply_ball_graphic") and not p_name.is_empty():
-		var bg = MultiplayerManager.get_player_ball_graphic(p_name) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_ball_graphic") else player.get("ball_graphic", "single_line")
-		var av = MultiplayerManager.get_player_avatar(p_name) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_avatar") else player.get("avatar", "")
-		var col = MultiplayerManager.get_player_color(player) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_color") else player.get("color", Color(0.24, 0.46, 0.72))
-		active_ball.apply_ball_graphic(bg, av, p_name, col)
+	elif active_ball != null and not p_name.is_empty():
+		if active_ball.has_method("apply_ball_graphic"):
+			var bg = MultiplayerManager.get_player_ball_graphic(p_name) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_ball_graphic") else player.get("ball_graphic", "single_line")
+			var av = MultiplayerManager.get_player_avatar(p_name) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_avatar") else player.get("avatar", "")
+			var col = MultiplayerManager.get_player_color(player) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_color") else player.get("color", Color(0.24, 0.46, 0.72))
+			active_ball.apply_ball_graphic(bg, av, p_name, col)
+		if active_ball.has_method("apply_ball_type"):
+			var bt = MultiplayerManager.get_player_ball_type(p_name) if MultiplayerManager != null and MultiplayerManager.has_method("get_player_ball_type") else player.get("ball_type", "standard")
+			active_ball.apply_ball_type(bt)
 
 	if MultiplayerManager.hole_ids.is_empty():
 		return

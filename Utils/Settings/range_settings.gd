@@ -43,6 +43,7 @@ var ball_rollout_enabled := Setting.new(true)
 var displayed_stats := Setting.new(StatDefinitions.DEFAULT_ENABLED_STAT_IDS.duplicate())
 var foam_ball_boost_enabled := Setting.new(false)
 var foam_ball_boost_percent := Setting.new(20.0, 0.0, 100.0)
+var power_calibration_percent := Setting.new(0.0, -10.0, 10.0)
 var tcp_server_ip := Setting.new("0.0.0.0")
 var tcp_server_port := Setting.new(49152, 1, 65535)
 var launch_monitor_tab := Setting.new(0, 0, 3)
@@ -124,6 +125,7 @@ func _init():
 		"displayed_stats": displayed_stats,
 		"foam_ball_boost_enabled": foam_ball_boost_enabled,
 		"foam_ball_boost_percent": foam_ball_boost_percent,
+		"power_calibration_percent": power_calibration_percent,
 		"tcp_server_ip": tcp_server_ip,
 		"tcp_server_port": tcp_server_port,
 		"launch_monitor_tab": launch_monitor_tab,

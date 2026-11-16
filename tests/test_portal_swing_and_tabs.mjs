@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { getSwingIssueDetails, getDrillsForAnalyticsIssue } from "../web/js/swing-drills.js";
 
 console.log("=== Running Portal Swing Analysis & Achievements Tests ===");
 
@@ -80,4 +81,31 @@ assert.equal(allTimeTotals["Fade / Open Face"], 5, "All-time fade must be 5");
 assert.equal(allTimeTotals["Low Driver Launch"], 2, "All-time low launch must be 2");
 
 console.log("✓ All-time flaw aggregation arithmetic verified");
+
+// 4. Verify interactive swing issue selection & drill recommendations in portal.js
+assert.ok(
+  portalJs.includes("swing-issue-detail-panel") && portalJs.includes("swing-issue-selector"),
+  "portal.js must render interactive swing issue selector and detail panel"
+);
+assert.ok(
+  portalJs.includes('data-issue="') && portalJs.includes("selectSwingIssue"),
+  "portal.js must allow selecting different swing issues to show fix and drill recommendations"
+);
+assert.ok(
+  portalJs.includes("btn-toggle-analytics-drills") && portalJs.includes("analytics-drills-panel"),
+  "portal.js must provide an option for drills to work on in the Improvement Analytics tab"
+);
+
+// 5. Verify swing-drills knowledge base returns fix & drill details
+const sliceDetails = getSwingIssueDetails("Slice / Open Face-to-Path");
+assert.ok(sliceDetails && sliceDetails.howToFix && sliceDetails.drills.length >= 1, "Slice issue must return howToFix and drills");
+assert.ok(sliceDetails.video && sliceDetails.video.url.includes("youtube.com"), "Slice issue must include tutorial video");
+
+const dynamicAoA = getSwingIssueDetails("Scooping / Upward Iron AoA");
+assert.ok(dynamicAoA && dynamicAoA.drills.length >= 1, "Dynamic Scooping AoA issue must resolve to drills");
+
+const analyticsDrill = getDrillsForAnalyticsIssue("face_open");
+assert.ok(analyticsDrill && analyticsDrill.drills.length >= 1, "Analytics issue key must resolve to drills");
+
+console.log("✓ Swing issue fix & drill knowledge base verified");
 console.log("ALL PORTAL SWING & ACHIEVEMENTS TESTS PASSED! 🎉");

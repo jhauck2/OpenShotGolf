@@ -520,19 +520,43 @@ static func apply_green_hole_cutout_material(green_mesh_inst: MeshInstance3D, ho
 	shader.code = """shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform vec4 albedo_color : source_color = vec4(0.16, 0.42, 0.14, 1.0);
-uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec4 albedo_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform sampler2D albedo_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D normal_texture : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D ao_texture : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform sampler2D roughness_texture : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform bool use_texture = false;
-uniform vec2 uv_scale = vec2(24.0, 24.0);
-uniform float roughness : hint_range(0.0, 1.0) = 0.85;
+uniform bool use_normal = false;
+uniform bool use_ao = false;
+uniform bool use_roughness_tex = false;
+uniform vec2 uv_scale = vec2(1.0, 1.0);
+uniform float roughness : hint_range(0.0, 1.0) = 0.84;
+uniform float normal_scale : hint_range(0.0, 2.0) = 0.65;
 uniform int hole_count = 0;
 uniform vec3 hole_positions[16];
 uniform float hole_radius = 0.054;
 
 varying vec3 v_world_pos;
+varying vec3 v_cam_pos;
 
 void vertex() {
 	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_cam_pos = INV_VIEW_MATRIX[3].xyz;
+}
+
+vec2 hash2(vec2 p) {
+	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+	return -1.0 + 2.0 * fract(sin(p) * 43758.5453123);
+}
+
+float gnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(dot(hash2(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0)),
+				   dot(hash2(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x),
+			   mix(dot(hash2(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)),
+				   dot(hash2(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x), u.y);
 }
 
 void fragment() {
@@ -543,13 +567,39 @@ void fragment() {
 			discard;
 		}
 	}
+	vec2 scaled_uv = v_world_pos.xz * 0.50 * uv_scale;
 	vec3 col = albedo_color.rgb;
 	if (use_texture) {
-		col *= texture(albedo_texture, UV * uv_scale).rgb;
+		col *= texture(albedo_texture, scaled_uv).rgb;
 	}
-	ALBEDO = col;
-	ROUGHNESS = roughness;
-	SPECULAR = 0.12;
+	// Vibrant championship bentgrass green grading + cross-cut tournament mowing pattern
+	col *= vec3(1.02, 1.24, 0.78);
+	float macro_mottle = gnoise(v_world_pos.xz * 0.08) * 0.5 + 0.5;
+	col *= mix(vec3(0.95, 0.96, 0.92), vec3(1.04, 1.05, 1.01), macro_mottle);
+	vec2 mow_dir = normalize(vec2(0.707, 0.707));
+	vec2 mow_perp = vec2(-mow_dir.y, mow_dir.x);
+	float cut_a = sin(dot(v_world_pos.xz, mow_dir) * 4.2) * 0.5 + 0.5;
+	float cut_b = sin(dot(v_world_pos.xz, mow_perp) * 4.2) * 0.5 + 0.5;
+	float green_grid = cut_a * cut_b;
+	col *= mix(0.93, 1.07, green_grid);
+	vec3 view_dir = normalize(v_world_pos - v_cam_pos);
+	float view_sheen = abs(dot(view_dir.xz, mow_dir));
+	col *= (1.0 + (view_sheen - 0.5) * 0.14);
+
+	ALBEDO = clamp(col, 0.0, 1.0);
+	if (use_normal) {
+		NORMAL_MAP = texture(normal_texture, scaled_uv).rgb;
+		NORMAL_MAP_DEPTH = normal_scale;
+	}
+	float r_val = roughness;
+	if (use_roughness_tex) {
+		r_val = clamp(roughness * (0.85 + 0.30 * texture(roughness_texture, scaled_uv).r), 0.5, 1.0);
+	}
+	ROUGHNESS = r_val;
+	if (use_ao) {
+		AO = mix(0.75, 1.0, texture(ao_texture, scaled_uv).r);
+	}
+	SPECULAR = 0.14;
 }
 """
 	var sm = ShaderMaterial.new()
@@ -561,6 +611,15 @@ void fragment() {
 		if base_std.albedo_texture != null:
 			sm.set_shader_parameter("albedo_texture", base_std.albedo_texture)
 			sm.set_shader_parameter("use_texture", true)
+		if base_std.normal_texture != null:
+			sm.set_shader_parameter("normal_texture", base_std.normal_texture)
+			sm.set_shader_parameter("use_normal", true)
+		if base_std.ao_texture != null:
+			sm.set_shader_parameter("ao_texture", base_std.ao_texture)
+			sm.set_shader_parameter("use_ao", true)
+		if base_std.roughness_texture != null:
+			sm.set_shader_parameter("roughness_texture", base_std.roughness_texture)
+			sm.set_shader_parameter("use_roughness_tex", true)
 
 	var packed_holes := PackedVector3Array()
 	var count = mini(hole_positions.size(), 16)

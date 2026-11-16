@@ -256,7 +256,8 @@ func create_lobby(course_config_path: String, settings: Dictionary, visibility: 
 			"avatar": g.get("avatar", ""),
 			"order": i,
 			"hand": int(g.get("handedness", 0)),
-			"ball_graphic": g.get("ball_graphic", "single_line")
+			"ball_graphic": g.get("ball_graphic", "single_line"),
+			"ball_type": g.get("ball_type", "standard")
 		}
 
 	# 1. Create match in RTDB
@@ -703,7 +704,8 @@ func _join_match_internal(match_id: String, local_golfers: Array) -> Dictionary:
 			"avatar": g.get("avatar", ""),
 			"order": order_idx,
 			"hand": int(g.get("handedness", 0)),
-			"ball_graphic": g.get("ball_graphic", "single_line")
+			"ball_graphic": g.get("ball_graphic", "single_line"),
+			"ball_type": g.get("ball_type", "standard")
 		}
 		await client.put_path("matches/" + match_id + "/golfers/" + slot_id, g_payload)
 		golfers[slot_id] = g_payload
@@ -820,7 +822,8 @@ func add_local_golfer_to_lobby(golfer_config: Dictionary) -> Dictionary:
 		"avatar": golfer_config.get("avatar", ""),
 		"order": order_idx,
 		"hand": int(golfer_config.get("handedness", 0)),
-		"ball_graphic": golfer_config.get("ball_graphic", "single_line")
+		"ball_graphic": golfer_config.get("ball_graphic", "single_line"),
+		"ball_type": golfer_config.get("ball_type", "standard")
 	}
 
 	var client := _resolve_rtdb()

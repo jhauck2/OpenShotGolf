@@ -340,6 +340,10 @@ static func apply_graphics_quality(scene_root: Node, quality: String) -> void:
 					for p_col in p_node.get_children():
 						if p_col is CollisionShape3D:
 							p_col.disabled = not n.visible
+						elif p_col is Area3D:
+							for area_col in p_col.get_children():
+								if area_col is CollisionShape3D:
+									area_col.disabled = not n.visible
 
 				if n.material_override != null:
 					n.material_override = null
@@ -530,33 +534,11 @@ static func apply_graphics_quality(scene_root: Node, quality: String) -> void:
 				n.environment.tonemap_white = 6.0
 				n.environment.tonemap_exposure = 1.02
 
+		elif n.name == "ConsolidatedFoliageCollision" or n.name == "ConsolidatedCanopyArea":
+			_apply_tier_collision_shapes(n, is_low, is_med)
+
 		for child in n.get_children():
 			stack.append(child)
-
-	# Update consolidated trunk & canopy collision shapes according to foliage tier
-	var static_col := scene_root.get_node_or_null("ConsolidatedFoliageCollision")
-	if static_col != null:
-		for col in static_col.get_children():
-			if col is CollisionShape3D and col.has_meta("foliage_tier"):
-				var tier: int = col.get_meta("foliage_tier")
-				if is_low:
-					col.disabled = (tier > 0)
-				elif is_med:
-					col.disabled = (tier > 1)
-				else:
-					col.disabled = false
-
-	var canopy_area := scene_root.get_node_or_null("ConsolidatedCanopyArea")
-	if canopy_area != null:
-		for col in canopy_area.get_children():
-			if col is CollisionShape3D and col.has_meta("foliage_tier"):
-				var tier: int = col.get_meta("foliage_tier")
-				if is_low:
-					col.disabled = (tier > 0)
-				elif is_med:
-					col.disabled = (tier > 1)
-				else:
-					col.disabled = false
 
 	if is_high and not is_mobile():
 		if ResourceLoader.exists("res://HighFidelity/Core/high_fidelity_builder.gd"):
@@ -591,6 +573,17 @@ static func apply_graphics_quality(scene_root: Node, quality: String) -> void:
 
 
 static var _low_tree_materials: Dictionary = {}
+
+static func _apply_tier_collision_shapes(container: Node, is_low: bool, is_med: bool) -> void:
+	for col in container.get_children():
+		if col is CollisionShape3D and col.has_meta("foliage_tier"):
+			var tier: int = col.get_meta("foliage_tier")
+			if is_low:
+				col.disabled = (tier > 0)
+			elif is_med:
+				col.disabled = (tier > 1)
+			else:
+				col.disabled = false
 
 static func _apply_shoreline_reeds_visibility(scene_root: Node, visible: bool) -> void:
 	if scene_root == null:

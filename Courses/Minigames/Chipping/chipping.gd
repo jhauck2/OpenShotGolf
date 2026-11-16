@@ -289,41 +289,65 @@ func _update_target_ring_color() -> void:
 # ========================================
 
 func _init_materials() -> void:
-	# Putting Green surface
+	# Putting Green surface (high-res PBR grass)
 	green_mat = StandardMaterial3D.new()
-	if ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
+	if ResourceLoader.exists("res://Courses/Environments/high/grass_green_albedo.png"):
+		green_mat.albedo_texture = load("res://Courses/Environments/high/grass_green_albedo.png")
+		if ResourceLoader.exists("res://Courses/Environments/high/grass_green_normal.png"):
+			green_mat.normal_enabled = true
+			green_mat.normal_texture = load("res://Courses/Environments/high/grass_green_normal.png")
+		if ResourceLoader.exists("res://Courses/Environments/high/grass_green_roughness.png"):
+			green_mat.roughness_texture = load("res://Courses/Environments/high/grass_green_roughness.png")
+		green_mat.albedo_color = Color(0.92, 1.0, 0.92)
+		green_mat.uv1_scale = Vector3(3.5, 3.5, 3.5)
+	elif ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
 		green_mat.albedo_texture = load("res://Courses/Environments/grass-green/albedo.png")
+		if ResourceLoader.exists("res://Courses/Environments/grass-green/normal.png"):
+			green_mat.normal_enabled = true
+			green_mat.normal_texture = load("res://Courses/Environments/grass-green/normal.png")
 		green_mat.albedo_color = Color(0.9, 1.0, 0.9)
-		green_mat.uv1_scale = Vector3(0.12, 0.12, 0.12)
+		green_mat.uv1_scale = Vector3(3.5, 3.5, 3.5)
 	else:
 		green_mat.albedo_color = Color(0.16, 0.65, 0.22)
-	green_mat.roughness = 0.88
-	
-	# Rough grass surround for floating island platform
+	green_mat.roughness = 0.86
+	green_mat.metallic_specular = 0.14
+	green_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
+	# Rough grass surround for tee peninsula & island platforms (high-res PBR)
 	fringe_mat = StandardMaterial3D.new()
-	if ResourceLoader.exists("res://Courses/Environments/grass-rough/albedo.png"):
+	if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_albedo.png"):
+		fringe_mat.albedo_texture = load("res://Courses/Environments/high/grass_rough_albedo.png")
+		if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_normal.png"):
+			fringe_mat.normal_enabled = true
+			fringe_mat.normal_texture = load("res://Courses/Environments/high/grass_rough_normal.png")
+		if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_roughness.png"):
+			fringe_mat.roughness_texture = load("res://Courses/Environments/high/grass_rough_roughness.png")
+		fringe_mat.uv1_scale = Vector3(3.0, 3.0, 3.0)
+	elif ResourceLoader.exists("res://Courses/Environments/grass-rough/albedo.png"):
 		fringe_mat.albedo_texture = load("res://Courses/Environments/grass-rough/albedo.png")
 		if ResourceLoader.exists("res://Courses/Environments/grass-rough/normal.png"):
 			fringe_mat.normal_enabled = true
 			fringe_mat.normal_texture = load("res://Courses/Environments/grass-rough/normal.png")
-		fringe_mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
-	elif ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
-		fringe_mat.albedo_texture = load("res://Courses/Environments/grass-green/albedo.png")
-		fringe_mat.albedo_color = Color(0.28, 0.52, 0.22) # Darker rough green tint
-		fringe_mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
+		fringe_mat.uv1_scale = Vector3(3.0, 3.0, 3.0)
 	else:
 		fringe_mat.albedo_color = Color(0.12, 0.42, 0.14)
-	fringe_mat.roughness = 0.95
-	
+	fringe_mat.roughness = 0.92
+	fringe_mat.metallic_specular = 0.12
+	fringe_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
 	# Sand trap / bunker
 	sand_mat = StandardMaterial3D.new()
 	if ResourceLoader.exists("res://Courses/Environments/sand-bunker/albedo.png"):
 		sand_mat.albedo_texture = load("res://Courses/Environments/sand-bunker/albedo.png")
+		if ResourceLoader.exists("res://Courses/Environments/sand-bunker/normal.png"):
+			sand_mat.normal_enabled = true
+			sand_mat.normal_texture = load("res://Courses/Environments/sand-bunker/normal.png")
 		sand_mat.albedo_color = Color(1.0, 0.96, 0.82)
-		sand_mat.uv1_scale = Vector3(0.2, 0.2, 0.2)
+		sand_mat.uv1_scale = Vector3(2.5, 2.5, 2.5)
 	else:
 		sand_mat.albedo_color = Color(0.94, 0.88, 0.70)
 	sand_mat.roughness = 0.9
+	sand_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	
 	# Red mulch / flowerbed accent zones
 	mulch_mat = StandardMaterial3D.new()
@@ -402,6 +426,91 @@ func _generate_kidney_bean_polygon(base_radius: float, notch: float, lobe: float
 func _setup_environment() -> void:
 	var is_mobile := MobilePerformance.is_mobile()
 
+	var env = Environment.new()
+	env.background_mode = Environment.BG_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_white = 5.5
+	env.tonemap_exposure = 1.02
+	if is_mobile:
+		env.ssao_enabled = false
+	else:
+		env.ssao_enabled = true
+		env.ssao_radius = 2.0
+		env.ssao_intensity = 1.1
+		env.ssao_power = 1.5
+		env.ssao_detail = 0.2
+		env.ssao_horizon = 0.06
+		env.ssao_ao_channel_affect = 0.5
+
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.74, 0.83, 0.93)
+	env.fog_density = 0.0005
+	env.fog_sky_affect = 0.18
+
+	if ResourceLoader.exists("res://addons/sky_3d/src/Sky3D.gd"):
+		var Sky3DScript = load("res://addons/sky_3d/src/Sky3D.gd")
+		if Sky3DScript != null:
+			var sky3d = Sky3DScript.new()
+			sky3d.name = "Sky3D"
+			if sky3d.environment == null:
+				var sky_mat := ShaderMaterial.new()
+				sky_mat.shader = Sky3DScript.sky_shader
+				var sky := Sky.new()
+				sky.sky_material = sky_mat
+				env.sky = sky
+				sky3d.environment = env
+			else:
+				sky3d.environment.tonemap_mode = env.tonemap_mode
+				sky3d.environment.tonemap_white = env.tonemap_white
+				sky3d.environment.tonemap_exposure = env.tonemap_exposure
+				sky3d.environment.ssao_enabled = env.ssao_enabled
+				sky3d.environment.ssao_radius = env.ssao_radius
+				sky3d.environment.ssao_intensity = env.ssao_intensity
+				sky3d.environment.ssao_power = env.ssao_power
+				sky3d.environment.ssao_detail = env.ssao_detail
+				sky3d.environment.ssao_horizon = env.ssao_horizon
+				sky3d.environment.ssao_ao_channel_affect = env.ssao_ao_channel_affect
+				sky3d.environment.fog_enabled = env.fog_enabled
+				sky3d.environment.fog_light_color = env.fog_light_color
+				sky3d.environment.fog_density = env.fog_density
+				sky3d.environment.fog_sky_affect = env.fog_sky_affect
+			sky3d.enable_editor_time = false
+			sky3d.enable_game_time = false
+			sky3d.current_time = 13.25
+			sky3d.sun_energy = 1.15
+			sky3d.sky_contribution = 0.55
+			sky3d.ambient_energy = 0.50
+			add_child(sky3d)
+			MobilePerformance.optimize_sky3d(sky3d)
+			var sun = sky3d.get_node_or_null("SunLight") as DirectionalLight3D
+			if sun != null:
+				sun.shadow_enabled = true
+				sun.directional_shadow_max_distance = 200.0 if is_mobile else 400.0
+				sun.shadow_bias = 0.025
+				sun.shadow_normal_bias = 2.0
+			var skydome = sky3d.get_node_or_null("Skydome")
+			if skydome != null:
+				skydome.clouds_visible = not is_mobile
+				skydome.clouds_cumulus_visible = false
+				skydome.clouds_speed = 0.005
+		else:
+			_setup_fallback_sky_and_sun(env, is_mobile)
+	else:
+		_setup_fallback_sky_and_sun(env, is_mobile)
+
+	_spawn_lake_backdrop()
+
+	var camera = Camera3D.new()
+	camera.name = "Camera3D"
+	camera.current = true
+	add_child(camera)
+	if has_node("/root/TensionManager"):
+		TensionManager.register_camera(camera, 55.0)
+	if has_node("/root/ScreenOffsetManager"):
+		ScreenOffsetManager.register_camera(camera)
+		ScreenOffsetManager.on_ready_for_shot(0.0, true)
+
+func _setup_fallback_sky_and_sun(env: Environment, is_mobile: bool) -> void:
 	var sun = DirectionalLight3D.new()
 	sun.name = "SunLight"
 	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-52)).rotated(Vector3.UP, deg_to_rad(35))
@@ -413,7 +522,7 @@ func _setup_environment() -> void:
 		sun.directional_shadow_blend_splits = true
 		sun.directional_shadow_split_1 = 0.1
 	else:
-		sun.directional_shadow_max_distance = 500.0
+		sun.directional_shadow_max_distance = 400.0
 		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 		sun.directional_shadow_blend_splits = true
 		sun.directional_shadow_split_1 = 0.05
@@ -422,13 +531,9 @@ func _setup_environment() -> void:
 	sun.shadow_bias = 0.03
 	sun.shadow_normal_bias = 2.0
 	add_child(sun)
-	
+
 	var world_env = WorldEnvironment.new()
 	world_env.name = "WorldEnvironment"
-	
-	var env = Environment.new()
-	env.background_mode = Environment.BG_SKY
-	
 	var sky = Sky.new()
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
 	sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
@@ -440,76 +545,193 @@ func _setup_environment() -> void:
 	sky_mat.sun_angle_max = 35.0
 	sky.sky_material = sky_mat
 	env.sky = sky
-	
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.50
 	env.ambient_light_sky_contribution = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_white = 5.0
-	env.tonemap_exposure = 1.0
-	if is_mobile:
-		env.ssao_enabled = false
-	else:
-		env.ssao_enabled = true
-		env.ssao_radius = 2.0
-		env.ssao_intensity = 1.2
-		env.ssao_power = 1.5
-		env.ssao_detail = 0.2
-		env.ssao_horizon = 0.06
-		env.ssao_ao_channel_affect = 0.5
-	
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.65, 0.78, 0.88)
-	env.fog_density = 0.0018
-	env.fog_sky_affect = 0.3
-	
 	world_env.environment = env
 	add_child(world_env)
-	
-	var camera = Camera3D.new()
-	camera.name = "Camera3D"
-	camera.current = true
-	add_child(camera)
-	if has_node("/root/TensionManager"):
-		TensionManager.register_camera(camera, 55.0)
-	if has_node("/root/ScreenOffsetManager"):
-		ScreenOffsetManager.register_camera(camera)
-		ScreenOffsetManager.on_ready_for_shot(0.0, true)
+
+func _spawn_lake_backdrop() -> void:
+	if has_node("LakeBackdrop"):
+		$LakeBackdrop.queue_free()
+
+	var tex_path := "res://Courses/Environments/chipping_lake_backdrop_seamless.png"
+	if not ResourceLoader.exists(tex_path):
+		tex_path = "res://Courses/Environments/mountain_backdrop_seamless.png"
+	if not ResourceLoader.exists(tex_path):
+		push_warning("[chipping.gd] Lake backdrop texture not found.")
+		return
+
+	var tex = load(tex_path)
+	if tex == null:
+		return
+
+	var backdrop_root = Node3D.new()
+	backdrop_root.name = "LakeBackdrop"
+	add_child(backdrop_root)
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.albedo_color = Color(0.84, 0.90, 0.95)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.45
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(mat)
+
+	# Full 360-degree cylindrical panorama sitting low on the distant lake horizon
+	var radius := 400.0
+	var y_bottom := -0.8
+	var y_top := 115.0
+	var segments := 72
+	var angle_start := -PI
+	var angle_end := PI
+	var angle_span := angle_end - angle_start
+	# Center u=0.25 straight ahead (+X, angle=0) so the clubhouse & fairways face the player
+	var u_start := -0.25
+	var u_end := 0.75
+
+	for i in range(segments):
+		var t0 := float(i) / segments
+		var t1 := float(i + 1) / segments
+		var a0 := angle_start + t0 * angle_span
+		var a1 := angle_start + t1 * angle_span
+		var x0 := radius * cos(a0)
+		var z0 := radius * sin(a0)
+		var x1 := radius * cos(a1)
+		var z1 := radius * sin(a1)
+		var u0 := lerpf(u_start, u_end, t0)
+		var u1 := lerpf(u_start, u_end, t1)
+
+		var p_b0 := Vector3(x0, y_bottom, z0)
+		var p_t0 := Vector3(x0, y_top, z0)
+		var p_b1 := Vector3(x1, y_bottom, z1)
+		var p_t1 := Vector3(x1, y_top, z1)
+
+		var n0 := Vector3(-x0, 0.0, -z0).normalized()
+		var n1 := Vector3(-x1, 0.0, -z1).normalized()
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 0.0))
+		st.add_vertex(p_t0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 1.0))
+		st.add_vertex(p_b1)
+
+	var mesh_inst = MeshInstance3D.new()
+	mesh_inst.name = "LakeBackdropMesh"
+	mesh_inst.mesh = st.commit()
+	mesh_inst.material_override = mat
+	mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	backdrop_root.add_child(mesh_inst)
 
 # ========================================
 # WATER HAZARD
 # ========================================
+
+func _make_water_noise_texture(seed_val: int, freq: float, as_normal: bool) -> NoiseTexture2D:
+	var noise = FastNoiseLite.new()
+	noise.seed = seed_val
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = freq
+	noise.fractal_octaves = 3
+	var tex = NoiseTexture2D.new()
+	tex.width = 256
+	tex.height = 256
+	tex.seamless = true
+	tex.as_normal_map = as_normal
+	if as_normal:
+		tex.bump_strength = 4.0
+	tex.noise = noise
+	return tex
 
 func _setup_water_hazard() -> void:
 	var water = StaticBody3D.new()
 	water.name = "WaterPlane"
 	water.set_meta("is_water", true)
 	add_child(water)
-	
+
 	var col_shape = CollisionShape3D.new()
 	var box_shape = BoxShape3D.new()
-	box_shape.size = Vector3(600.0, 0.2, 600.0)
+	box_shape.size = Vector3(900.0, 0.2, 900.0)
 	col_shape.shape = box_shape
-	col_shape.position = Vector3(60.0, -0.6, 0.0)
+	col_shape.position = Vector3(0.0, -0.6, 0.0)
 	water.add_child(col_shape)
-	
+
+	# Underwater lakebed so depth-based water shader always has valid depth
+	var bed_inst = MeshInstance3D.new()
+	bed_inst.name = "LakeBed"
+	var bed_mesh = QuadMesh.new()
+	bed_mesh.size = Vector2(900.0, 900.0)
+	bed_inst.mesh = bed_mesh
+	var bed_mat = StandardMaterial3D.new()
+	bed_mat.albedo_color = Color(0.04, 0.11, 0.16)
+	bed_mat.roughness = 1.0
+	bed_inst.material_override = bed_mat
+	bed_inst.rotation = Vector3(-PI / 2, 0.0, 0.0)
+	bed_inst.position = Vector3(0.0, -4.5, 0.0)
+	bed_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	water.add_child(bed_inst)
+
 	var mesh_inst = MeshInstance3D.new()
 	var plane_mesh = QuadMesh.new()
-	plane_mesh.size = Vector2(600.0, 600.0)
+	plane_mesh.size = Vector2(900.0, 900.0)
+	plane_mesh.subdivide_width = 48
+	plane_mesh.subdivide_depth = 48
 	mesh_inst.mesh = plane_mesh
-	
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.05, 0.24, 0.44, 0.88)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.roughness = 0.06
-	mat.metallic = 0.8
-	mat.emission_enabled = true
-	mat.emission = Color(0.02, 0.09, 0.16)
-	mat.emission_energy_multiplier = 0.35
-	mesh_inst.material_override = mat
-	
+
+	var is_mobile := MobilePerformance.is_mobile()
+	if not is_mobile and ResourceLoader.exists("res://Courses/Environments/shaders/water_shader.gdshader"):
+		var shader_mat = ShaderMaterial.new()
+		shader_mat.shader = load("res://Courses/Environments/shaders/water_shader.gdshader")
+		shader_mat.set_shader_parameter("deep_color", Vector3(0.05, 0.16, 0.28))
+		shader_mat.set_shader_parameter("shallow_color", Vector3(0.12, 0.28, 0.38))
+		shader_mat.set_shader_parameter("foam_color", Vector3(0.72, 0.80, 0.85))
+		shader_mat.set_shader_parameter("roughness", 0.04)
+		shader_mat.set_shader_parameter("depth_fade_distance", 2.2)
+		shader_mat.set_shader_parameter("absorbance", 2.6)
+		shader_mat.set_shader_parameter("wave_scale", 10.0)
+		shader_mat.set_shader_parameter("height_scale", 0.03)
+		shader_mat.set_shader_parameter("wave_speed", 0.015)
+		shader_mat.set_shader_parameter("wave_texture", _make_water_noise_texture(101, 0.04, false))
+		shader_mat.set_shader_parameter("normal1", _make_water_noise_texture(202, 0.06, true))
+		shader_mat.set_shader_parameter("normal2", _make_water_noise_texture(303, 0.08, true))
+		mesh_inst.material_override = shader_mat
+	elif ResourceLoader.exists("res://Courses/Environments/shaders/water_low.gdshader"):
+		var low_mat = ShaderMaterial.new()
+		low_mat.shader = load("res://Courses/Environments/shaders/water_low.gdshader")
+		low_mat.set_shader_parameter("water_color", Color(0.10, 0.28, 0.40))
+		low_mat.set_shader_parameter("water_deep_color", Color(0.04, 0.16, 0.28))
+		low_mat.set_shader_parameter("foam_color", Color(0.20, 0.42, 0.54))
+		low_mat.set_shader_parameter("roughness", 0.35)
+		mesh_inst.material_override = low_mat
+	else:
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(0.06, 0.22, 0.36, 0.90)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.roughness = 0.06
+		mat.metallic = 0.7
+		mesh_inst.material_override = mat
+
 	mesh_inst.rotation = Vector3(-PI / 2, 0.0, 0.0)
-	mesh_inst.position = Vector3(60.0, -0.5, 0.0)
+	mesh_inst.position = Vector3(0.0, -0.5, 0.0)
 	water.add_child(mesh_inst)
 
 # ========================================
@@ -521,29 +743,57 @@ func _setup_tee_box() -> void:
 	tee.name = "TeeBox"
 	tee.set_meta("surface_type", 3) # TEE
 	add_child(tee)
-	
-	var col = CollisionShape3D.new()
-	var box = BoxShape3D.new()
-	box.size = Vector3(5.0, 0.5, 5.0)
-	col.shape = box
-	col.position = Vector3(0.0, -0.25, 0.0)
-	tee.add_child(col)
-	
-	var base_mesh_inst = MeshInstance3D.new()
-	var base_mesh = BoxMesh.new()
-	base_mesh.size = Vector3(5.5, 0.5, 5.5)
-	base_mesh_inst.mesh = base_mesh
-	base_mesh_inst.material_override = wall_mat
-	base_mesh_inst.position = Vector3(0.0, -0.25, 0.0)
-	tee.add_child(base_mesh_inst)
-	
-	var turf_inst = MeshInstance3D.new()
-	var turf_mesh = BoxMesh.new()
-	turf_mesh.size = Vector3(5.0, 0.06, 5.0)
-	turf_inst.mesh = turf_mesh
-	turf_inst.material_override = green_mat
-	turf_inst.position = Vector3(0.0, 0.03, 0.0)
-	tee.add_child(turf_inst)
+
+	# Organic grassy peninsula centered behind the ball so the camera sits over lush turf
+	var peninsula_poly := _generate_kidney_bean_polygon(6.2, 0.08, 0.05, 0.0, Vector2(-1.4, 0.0), 40)
+
+	# Rock retaining edge & pillars into the lake
+	var wall_mesh := _build_retaining_wall_mesh(peninsula_poly, 0.04, -1.6, wall_mat, cap_mat)
+	if wall_mesh:
+		var wall_inst = MeshInstance3D.new()
+		wall_inst.name = "TeeRockWall"
+		wall_inst.mesh = wall_mesh
+		tee.add_child(wall_inst)
+	_add_island_rock_pillars(tee, peninsula_poly, 0.04, -1.6)
+
+	# Rough grass surround surface & collision
+	var rough_mesh := _build_flat_polygon_mesh(peninsula_poly, 0.01, fringe_mat)
+	if rough_mesh:
+		var rough_inst = MeshInstance3D.new()
+		rough_inst.name = "TeeRoughTurf"
+		rough_inst.mesh = rough_mesh
+		tee.add_child(rough_inst)
+
+		var rough_col = CollisionShape3D.new()
+		var rough_concave = ConcavePolygonShape3D.new()
+		rough_concave.set_faces(_build_flat_poly_faces(peninsula_poly, 0.01))
+		rough_col.shape = rough_concave
+		tee.add_child(rough_col)
+
+	# Clean fairway/teeing turf patch in the center around the ball (0, 0, 0)
+	var tee_patch_poly := _create_ellipse_polygon(Vector2(-0.6, 0.0), 3.4, 2.5, 0.0, 28)
+	var patch_mesh := _build_flat_polygon_mesh(tee_patch_poly, 0.025, green_mat)
+	if patch_mesh:
+		var patch_inst = MeshInstance3D.new()
+		patch_inst.name = "TeeFairwayPatch"
+		patch_inst.mesh = patch_mesh
+		tee.add_child(patch_inst)
+
+	# Two subtle wooden tee markers flanking the ball
+	var marker_mat = StandardMaterial3D.new()
+	marker_mat.albedo_color = Color(0.82, 0.75, 0.62)
+	marker_mat.roughness = 0.75
+	for side_z in [-1.15, 1.15]:
+		var marker = MeshInstance3D.new()
+		marker.name = "TeeMarker_%s" % ("L" if side_z < 0 else "R")
+		var m_mesh = CylinderMesh.new()
+		m_mesh.top_radius = 0.07
+		m_mesh.bottom_radius = 0.08
+		m_mesh.height = 0.10
+		marker.mesh = m_mesh
+		marker.material_override = marker_mat
+		marker.position = Vector3(0.25, 0.06, side_z)
+		tee.add_child(marker)
 
 # ========================================
 # PROCEDURAL FLOATING GOLF ISLAND GENERATION
@@ -594,10 +844,10 @@ func _generate_island_layout(idx: int) -> Dictionary:
 			mulch_list.append(_create_ellipse_polygon(Vector2(0.0, -3.2), 2.6, 1.0, deg_to_rad(0)))
 			
 			tree_positions = [
-				Vector3(-1.8, 0.05, -3.0),
-				Vector3(1.6, 0.05, -3.2)
+				Vector3(-2.1, 0.05, -3.2),
+				Vector3(2.0, 0.05, -3.3)
 			]
-			tree_scale_mult = 0.65
+			tree_scale_mult = 0.40
 			dock_pos = Vector3(3.6, 0.0, -1.0)
 			dock_angle = deg_to_rad(-45)
 			dock_scale = 0.65
@@ -619,7 +869,7 @@ func _generate_island_layout(idx: int) -> Dictionary:
 				Vector3(0.0, 0.08, -4.7),
 				Vector3(2.4, 0.08, -4.2)
 			]
-			tree_scale_mult = 0.78
+			tree_scale_mult = 0.52
 			dock_pos = Vector3(-4.8, 0.0, -1.6)
 			dock_angle = deg_to_rad(120)
 			dock_scale = 0.78
@@ -641,7 +891,7 @@ func _generate_island_layout(idx: int) -> Dictionary:
 				Vector3(0.0, 0.1, -5.8),
 				Vector3(3.1, 0.1, -5.2)
 			]
-			tree_scale_mult = 0.9
+			tree_scale_mult = 0.65
 			dock_pos = Vector3(5.8, 0.0, -1.8)
 			dock_angle = deg_to_rad(-60)
 			dock_scale = 0.9
@@ -1203,10 +1453,32 @@ func _plant_trees_on_island(island: Node3D, tree_positions: Array[Vector3], scal
 				var t_inst = scene.instantiate()
 				t_inst.name = "IslandTree_%d" % t_idx
 				t_inst.position = Vector3(t_pos.x, t_pos.y - 0.15, t_pos.z)
-				var scale_val = rng.randf_range(1.2, 1.8) * scale_multiplier
+				var scale_val = rng.randf_range(1.1, 1.55) * scale_multiplier
 				t_inst.scale = Vector3(scale_val, scale_val, scale_val)
 				t_inst.rotation.y = rng.randf_range(0.0, TAU)
 				trees_folder.add_child(t_inst)
+
+	# Add low-poly flowering/foliage bushes along the back mulch border
+	var bush_paths = [
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/bush-01-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/bush-02-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/bush-03-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/bush-04-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/bush-05-staticbody.tscn",
+	]
+	for t_idx in range(tree_positions.size()):
+		var t_pos = tree_positions[t_idx]
+		var bush_path = bush_paths[rng.randi() % bush_paths.size()]
+		if ResourceLoader.exists(bush_path):
+			var b_scene = load(bush_path)
+			if b_scene:
+				var b_inst = b_scene.instantiate()
+				b_inst.name = "IslandBush_%d" % t_idx
+				b_inst.position = Vector3(t_pos.x * 0.85, t_pos.y - 0.05, t_pos.z + 0.55)
+				var b_scale = rng.randf_range(0.45, 0.75) * scale_multiplier
+				b_inst.scale = Vector3(b_scale, b_scale, b_scale)
+				b_inst.rotation.y = rng.randf_range(0.0, TAU)
+				trees_folder.add_child(b_inst)
 
 ## Construct wooden boat landing dock structure
 func _build_boat_dock(dock_pos: Vector3, dock_angle: float, dock_scale: float = 1.0) -> Node3D:
@@ -1286,21 +1558,21 @@ func _select_target_island(index: int, reset_ball: bool = true) -> void:
 				var ring = MeshInstance3D.new()
 				ring.name = "TargetRing"
 				var ring_mesh = TorusMesh.new()
-				ring_mesh.inner_radius = ring_radius + 0.15
-				ring_mesh.outer_radius = ring_radius + 0.55
-				ring_mesh.rings = 36
+				ring_mesh.inner_radius = ring_radius + 0.05
+				ring_mesh.outer_radius = ring_radius + 0.18
+				ring_mesh.rings = 48
 				ring_mesh.ring_segments = 8
 				ring.mesh = ring_mesh
-				
-				var ring_col = get_active_player_color() if pvp_mode else Color(0.0, 0.85, 1.0)
+
+				var ring_col = get_active_player_color() if pvp_mode else Color(0.25, 0.85, 1.0)
 				var ring_mat = StandardMaterial3D.new()
-				ring_mat.albedo_color = Color(ring_col.r, ring_col.g, ring_col.b, 0.7)
+				ring_mat.albedo_color = Color(ring_col.r, ring_col.g, ring_col.b, 0.45)
 				ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				ring_mat.emission_enabled = true
 				ring_mat.emission = ring_col
-				ring_mat.emission_energy_multiplier = 0.8
+				ring_mat.emission_energy_multiplier = 0.45
 				ring.material_override = ring_mat
-				ring.position = Vector3(0.0, 0.06, 0.0)
+				ring.position = Vector3(0.0, 0.045, 0.0)
 				island_node.add_child(ring)
 				
 	var dist_yards = island_distances_yards[index]
@@ -1363,6 +1635,8 @@ func _setup_player() -> void:
 	player.rest.connect(_on_ball_rest)
 	
 	player.ball.spawn_position = player.global_position
+	if player.has_method("set_profile"):
+		player.set_profile(get_active_player_name())
 	player.ball.reset()
 
 func _reset_ball_position() -> void:
@@ -1371,6 +1645,8 @@ func _reset_ball_position() -> void:
 	shot_in_progress = false
 	player.global_position = Vector3(0.0, 0.05, 0.0)
 	player.ball.spawn_position = player.global_position
+	if player.has_method("set_profile"):
+		player.set_profile(get_active_player_name())
 	player.ball.reset()
 	player.reset_ball()
 	_update_aim_and_camera()
@@ -1469,6 +1745,7 @@ func _on_launch_monitor_hit_ball(data: Dictionary) -> void:
 		return
 
 	FoamBallBoost.apply_boost(data)
+	PowerCalibration.apply_calibration(data)
 
 	if has_node("/root/TensionManager"):
 		TensionManager.stop_tension()
@@ -1629,8 +1906,10 @@ func _on_ball_rest(_shot_data: Dictionary) -> void:
 func _sync_launch_monitor_player() -> void:
 	if not pvp_mode or players_list.is_empty():
 		return
+	var cur_name = get_active_player_name()
+	if player != null and player.has_method("set_profile"):
+		player.set_profile(cur_name)
 	if has_node("/root/LaunchMonitorManager") and has_node("/root/MultiplayerManager"):
-		var cur_name = get_active_player_name()
 		var hand = MultiplayerManager.get_player_handedness(cur_name)
 		get_node("/root/LaunchMonitorManager").set_handedness(hand)
 

@@ -186,9 +186,22 @@ function summarizeShotGroup(shots) {
       avgSmash: null,
       smashCount: 0,
       avgCarry: 0,
+      avgTotalYds: 0,
+      avgRollYds: 0,
+      maxCarryYds: 0,
+      minCarryYds: 0,
       stdDevCarry: 0,
       avgBallSpeed: null,
       avgClubSpeed: null,
+      avgVla: null,
+      vlaCount: 0,
+      avgHla: null,
+      hlaCount: 0,
+      avgSpin: null,
+      spinCount: 0,
+      avgHi: null,
+      avgVi: null,
+      hiViCount: 0,
       avgImpactOffsetMm: null,
       impactCount: 0
     };
@@ -206,9 +219,15 @@ function summarizeShotGroup(shots) {
   let absFtpSum = 0, signedFtpSum = 0, ftpCount = 0;
   let smashSum = 0, smashCount = 0;
   let carrySum = 0;
+  let totalSum = 0, totalCount = 0;
+  let rollSum = 0, rollCount = 0;
   const carryList = [];
   let ballSpeedSum = 0, ballSpeedCount = 0;
   let clubSpeedSum = 0, clubSpeedCount = 0;
+  let vlaSum = 0, vlaCount = 0;
+  let hlaSum = 0, hlaCount = 0;
+  let spinSum = 0, spinCount = 0;
+  let hiSum = 0, viSum = 0, hiViCount = 0;
   let impactOffsetSum = 0, impactCount = 0;
 
   shots.forEach((s) => {
@@ -251,6 +270,15 @@ function summarizeShotGroup(shots) {
       carryList.push(s.carryYds);
     }
 
+    if (s.totalYds > 0) {
+      totalSum += s.totalYds;
+      totalCount++;
+      if (s.carryYds > 0) {
+        rollSum += Math.max(0, s.totalYds - s.carryYds);
+        rollCount++;
+      }
+    }
+
     if (s.ballSpeed != null && s.ballSpeed > 0) {
       ballSpeedSum += s.ballSpeed;
       ballSpeedCount++;
@@ -261,6 +289,27 @@ function summarizeShotGroup(shots) {
       clubSpeedCount++;
     }
 
+    if (s.vla != null) {
+      vlaSum += s.vla;
+      vlaCount++;
+    }
+
+    if (s.hla != null) {
+      hlaSum += s.hla;
+      hlaCount++;
+    }
+
+    if (s.totalSpin != null && s.totalSpin > 0) {
+      spinSum += s.totalSpin;
+      spinCount++;
+    }
+
+    if (s.hi != null && s.vi != null) {
+      hiSum += s.hi;
+      viSum += s.vi;
+      hiViCount++;
+    }
+
     if (s.impactOffsetMm != null) {
       impactOffsetSum += s.impactOffsetMm;
       impactCount++;
@@ -268,6 +317,8 @@ function summarizeShotGroup(shots) {
   });
 
   const avgCarry = carryList.length > 0 ? carrySum / carryList.length : 0;
+  const maxCarryYds = carryList.length > 0 ? Math.max(...carryList) : 0;
+  const minCarryYds = carryList.length > 0 ? Math.min(...carryList) : 0;
   let stdDevCarry = 0;
   if (carryList.length > 1) {
     const variance = carryList.reduce((acc, val) => acc + Math.pow(val - avgCarry, 2), 0) / carryList.length;
@@ -293,9 +344,22 @@ function summarizeShotGroup(shots) {
     avgSmash: smashCount > 0 ? Math.round((smashSum / smashCount) * 100) / 100 : null,
     smashCount,
     avgCarry: Math.round(avgCarry * 10) / 10,
+    avgTotalYds: totalCount > 0 ? Math.round((totalSum / totalCount) * 10) / 10 : Math.round(avgCarry * 10) / 10,
+    avgRollYds: rollCount > 0 ? Math.round((rollSum / rollCount) * 10) / 10 : 0,
+    maxCarryYds: Math.round(maxCarryYds * 10) / 10,
+    minCarryYds: Math.round(minCarryYds * 10) / 10,
     stdDevCarry: Math.round(stdDevCarry * 10) / 10,
     avgBallSpeed: ballSpeedCount > 0 ? Math.round((ballSpeedSum / ballSpeedCount) * 10) / 10 : null,
     avgClubSpeed: clubSpeedCount > 0 ? Math.round((clubSpeedSum / clubSpeedCount) * 10) / 10 : null,
+    avgVla: vlaCount > 0 ? Math.round((vlaSum / vlaCount) * 10) / 10 : null,
+    vlaCount,
+    avgHla: hlaCount > 0 ? Math.round((hlaSum / hlaCount) * 10) / 10 : null,
+    hlaCount,
+    avgSpin: spinCount > 0 ? Math.round(spinSum / spinCount) : null,
+    spinCount,
+    avgHi: hiViCount > 0 ? Math.round((hiSum / hiViCount) * 10) / 10 : null,
+    avgVi: hiViCount > 0 ? Math.round((viSum / hiViCount) * 10) / 10 : null,
+    hiViCount,
     avgImpactOffsetMm: impactCount > 0 ? Math.round((impactOffsetSum / impactCount) * 10) / 10 : null,
     impactCount
   };
@@ -478,9 +542,18 @@ export function computeImprovementAnalytics(shots, sampleWindowMode = "last10") 
     }
   }
 
-  // Distance change
+  // Distance & Speed changes
   const carryDelta = Math.round((recent.avgCarry - baseline.avgCarry) * 10) / 10;
   const carryDispersionDelta = Math.round((recent.stdDevCarry - baseline.stdDevCarry) * 10) / 10;
+  const totalDelta = Math.round((recent.avgTotalYds - baseline.avgTotalYds) * 10) / 10;
+  const ballSpeedDelta = (recent.avgBallSpeed != null && baseline.avgBallSpeed != null)
+    ? Math.round((recent.avgBallSpeed - baseline.avgBallSpeed) * 10) / 10 : null;
+  const clubSpeedDelta = (recent.avgClubSpeed != null && baseline.avgClubSpeed != null)
+    ? Math.round((recent.avgClubSpeed - baseline.avgClubSpeed) * 10) / 10 : null;
+  const vlaDelta = (recent.avgVla != null && baseline.avgVla != null)
+    ? Math.round((recent.avgVla - baseline.avgVla) * 10) / 10 : null;
+  const spinDelta = (recent.avgSpin != null && baseline.avgSpin != null)
+    ? Math.round(recent.avgSpin - baseline.avgSpin) : null;
 
   return {
     hasData: true,
@@ -525,7 +598,18 @@ export function computeImprovementAnalytics(shots, sampleWindowMode = "last10") 
     },
     distance: {
       carryDelta,
+      totalDelta,
       carryDispersionDelta
+    },
+    speed: {
+      ballSpeedDelta,
+      clubSpeedDelta
+    },
+    launch: {
+      vlaDelta
+    },
+    spin: {
+      spinDelta
     },
     shots
   };
@@ -841,7 +925,8 @@ export function generateStrikeTrendChartSvg(shots, options = {}) {
 }
 
 /**
- * Generates automated AI coaching observations and practice recommendations.
+ * Generates automated AI coaching observations and practice recommendations
+ * with linked drill issue keys for actionable practice plans.
  */
 export function generateCoachingInsights(analytics) {
   if (!analytics || !analytics.hasData || analytics.totalShots < 2) {
@@ -849,12 +934,13 @@ export function generateCoachingInsights(analytics) {
       {
         icon: "💡",
         title: "Log More Swings",
-        desc: "Hit a series of shots on the launch monitor to uncover your directional dispersion and club delivery trends."
+        desc: "Hit a series of shots on the launch monitor to uncover your directional dispersion and club delivery trends.",
+        isIssue: false
       }
     ];
   }
 
-  const { recent, baseline, offline, face, path, faceToPath, smash, impact } = analytics;
+  const { recent, offline, face, path, faceToPath, smash, impact } = analytics;
   const insights = [];
 
   // 1. Offline & Directional Accuracy
@@ -862,20 +948,25 @@ export function generateCoachingInsights(analytics) {
     insights.push({
       icon: "🎯",
       title: "Dispersion Tightening Towards Target Centerline",
-      desc: `Great progress! Your lateral dispersion improved by ${Math.abs(offline.delta).toFixed(1)} yards. Your recent shots are averaging ${recent.avgAbsOffline.toFixed(1)} yards from target center (with ${recent.pctInFairway}% landing in the fairway corridor).`
+      desc: `Great progress! Your lateral dispersion improved by ${Math.abs(offline.delta).toFixed(1)} yards. Your recent shots are averaging ${recent.avgAbsOffline.toFixed(1)} yards from target center (with ${recent.pctInFairway}% landing in the fairway corridor).`,
+      isIssue: false
     });
   } else if (offline.status === "expanding") {
     const missSide = recent.avgSignedOffline < 0 ? "left" : "right";
     insights.push({
       icon: "⚠️",
       title: "Dispersion Expanding Off-Centerline",
-      desc: `Your recent shots are drifting further offline (+${offline.delta.toFixed(1)} yds), primarily missing to the ${missSide} (${Math.abs(recent.avgSignedOffline).toFixed(1)} yds avg). Review your address alignment and takeaway path.`
+      desc: `Your recent shots are drifting further offline (+${offline.delta.toFixed(1)} yds), primarily missing to the ${missSide} (${Math.abs(recent.avgSignedOffline).toFixed(1)} yds avg). Review your address alignment and start-line control.`,
+      isIssue: true,
+      issueKey: "offline_expanding"
     });
   } else {
     insights.push({
       icon: "🎯",
       title: "Solid, Repeatable Dispersion",
-      desc: `Your lateral dispersion has remained very consistent, averaging ±${recent.avgAbsOffline.toFixed(1)} yards from the target line with a ${recent.pctInFairway}% fairway hold rate.`
+      desc: `Your lateral dispersion has remained very consistent, averaging ±${recent.avgAbsOffline.toFixed(1)} yards from the target line with a ${recent.pctInFairway}% fairway hold rate.`,
+      isIssue: recent.pctInFairway < 50,
+      issueKey: recent.pctInFairway < 50 ? "offline_expanding" : undefined
     });
   }
 
@@ -884,14 +975,17 @@ export function generateCoachingInsights(analytics) {
     insights.push({
       icon: "🏌️",
       title: "Club Face Squaring Up to Target",
-      desc: `Your club face angle is nearing 0.0° square at impact (${Math.abs(face.delta).toFixed(1)}° closer to 0° than baseline). This squaring trend directly reduces unwanted curve and slice misses.`
+      desc: `Your club face angle is nearing 0.0° square at impact (${Math.abs(face.delta).toFixed(1)}° closer to 0° than baseline). This squaring trend directly reduces unwanted curve and slice misses.`,
+      isIssue: false
     });
-  } else if (face.status === "expanding") {
-    const faceTendency = recent.avgSignedFace > 0 ? "open" : "closed";
+  } else if (face.status === "expanding" || (recent.avgAbsFace != null && recent.avgAbsFace >= 2.5)) {
+    const faceTendency = (recent.avgSignedFace ?? 0) >= 0 ? "open" : "closed";
     insights.push({
       icon: "🔄",
       title: `Club Face Drifting ${faceTendency.toUpperCase()} at Impact`,
-      desc: `Your club face is averaging ${Math.abs(recent.avgSignedFace).toFixed(1)}° ${faceTendency} relative to the target line. Focus on maintaining a neutral lead wrist through impact to square the club face.`
+      desc: `Your club face is averaging ${Math.abs(recent.avgSignedFace ?? 0).toFixed(1)}° ${faceTendency} relative to the target line. Focus on maintaining a neutral lead wrist through impact to square the club face.`,
+      isIssue: true,
+      issueKey: faceTendency === "open" ? "face_open" : "face_closed"
     });
   }
 
@@ -900,14 +994,17 @@ export function generateCoachingInsights(analytics) {
     insights.push({
       icon: "📐",
       title: "Swing Path Straightening Down Target Line",
-      desc: `Your swing path delivery has improved by ${Math.abs(path.delta).toFixed(1)}° closer to neutral (0.0°). You are swinging much straighter down your target line.`
+      desc: `Your swing path delivery has improved by ${Math.abs(path.delta).toFixed(1)}° closer to neutral (0.0°). You are swinging much straighter down your target line.`,
+      isIssue: false
     });
-  } else if (path.status === "expanding") {
-    const pathTendency = recent.avgSignedPath > 0 ? "in-to-out" : "out-to-in";
+  } else if (path.status === "expanding" || (recent.avgAbsPath != null && recent.avgAbsPath >= 3.0)) {
+    const pathTendency = (recent.avgSignedPath ?? 0) > 0 ? "in-to-out" : "out-to-in";
     insights.push({
       icon: "📐",
       title: `Prominent ${pathTendency.toUpperCase()} Swing Path`,
-      desc: `Your path is averaging ${Math.abs(recent.avgSignedPath).toFixed(1)}° ${pathTendency}. ${pathTendency === 'out-to-in' ? 'Work on dropping the club into the slot from the inside to eliminate the over-the-top pull/slice.' : 'Work on turning the chest through the strike to prevent getting stuck too far inside.'}`
+      desc: `Your path is averaging ${Math.abs(recent.avgSignedPath ?? 0).toFixed(1)}° ${pathTendency}. ${pathTendency === "out-to-in" ? "Work on dropping the club into the slot from the inside to eliminate the over-the-top pull/slice." : "Work on turning the chest through the strike to prevent getting stuck too far inside."}`,
+      isIssue: true,
+      issueKey: pathTendency === "out-to-in" ? "path_out_to_in" : "path_in_to_out"
     });
   }
 
@@ -916,22 +1013,64 @@ export function generateCoachingInsights(analytics) {
     insights.push({
       icon: "✨",
       title: "Tighter Face-to-Path Alignment",
-      desc: `Your face-to-path differential narrowed to ${recent.avgAbsFtp.toFixed(1)}°, producing straighter ball flights with dramatically reduced sidespin curvature.`
+      desc: `Your face-to-path differential narrowed to ${recent.avgAbsFtp.toFixed(1)}°, producing straighter ball flights with dramatically reduced sidespin curvature.`,
+      isIssue: false
+    });
+  } else if (faceToPath.status === "expanding" || (recent.avgAbsFtp != null && recent.avgAbsFtp >= 3.0)) {
+    insights.push({
+      icon: "🌀",
+      title: "Elevated Face-to-Path Curvature",
+      desc: `Your face-to-path gap is averaging ${recent.avgAbsFtp.toFixed(1)}°, creating noticeable side-spin curvature. Synchronizing face release with your swing path will straighten your ball flight.`,
+      isIssue: true,
+      issueKey: "face_to_path_curve"
     });
   }
 
-  // 5. Strike Quality / Smash Factor
+  // 5. Strike Quality / Smash Factor & Face Impact Location
   if (smash.status === "improving") {
     insights.push({
       icon: "⚡",
       title: "Cleaner Ball Strike & Energy Transfer",
-      desc: `Your smash factor has increased to ${recent.avgSmash.toFixed(2)}, demonstrating more efficient energy transfer and compression at impact.`
+      desc: `Your smash factor has increased to ${recent.avgSmash.toFixed(2)}, demonstrating more efficient energy transfer and compression at impact.`,
+      isIssue: false
     });
-  } else if (impact.status === "improving") {
+  } else if (smash.status === "declining") {
+    insights.push({
+      icon: "⚡",
+      title: "Smash Factor & Compression Dip",
+      desc: `Your smash factor dipped to ${recent.avgSmash.toFixed(2)} (${smash.delta.toFixed(2)} vs baseline). Prioritize centered sweet-spot strikes at 80% tempo.`,
+      isIssue: true,
+      issueKey: "low_smash"
+    });
+  }
+
+  if (impact.status === "improving") {
     insights.push({
       icon: "🎯",
       title: "Contact Centered on Sweet Spot",
-      desc: `Your strike location has converged ${Math.abs(impact.delta).toFixed(1)} mm closer to the sweet spot (averaging only ${recent.avgImpactOffsetMm.toFixed(1)} mm off dead-center).`
+      desc: `Your strike location has converged ${Math.abs(impact.delta).toFixed(1)} mm closer to the sweet spot (averaging only ${recent.avgImpactOffsetMm.toFixed(1)} mm off dead-center).`,
+      isIssue: false
+    });
+  } else if (recent.avgImpactOffsetMm != null && recent.avgImpactOffsetMm >= 8.0) {
+    const horizBias = recent.avgHi != null ? (recent.avgHi > 1.0 ? "toe-side" : (recent.avgHi < -1.0 ? "heel-side" : "centered")) : "off-center";
+    const vertBias = recent.avgVi != null ? (recent.avgVi > 1.0 ? "high-face" : (recent.avgVi < -1.0 ? "low-face" : "mid-face")) : "";
+    insights.push({
+      icon: "📍",
+      title: "Off-Center Face Strike Pattern",
+      desc: `Average contact is ${recent.avgImpactOffsetMm.toFixed(1)} mm from dead-center (${horizBias}${vertBias ? ", " + vertBias : ""}). Centering impact will immediately boost ball speed and tighten dispersion.`,
+      isIssue: true,
+      issueKey: "off_center_strike"
+    });
+  }
+
+  // 6. Launch & Spin Profile Observation
+  if (recent.avgSpin != null && recent.avgSpin > 3600 && recent.avgVla != null && recent.avgVla < 12) {
+    insights.push({
+      icon: "🚀",
+      title: "High Spin / Low Launch Window",
+      desc: `Averaging ${recent.avgSpin.toLocaleString()} rpm spin at ${recent.avgVla.toFixed(1)}° launch. A slightly shallower or upward strike can optimize carry distance.`,
+      isIssue: true,
+      issueKey: "high_spin"
     });
   }
 

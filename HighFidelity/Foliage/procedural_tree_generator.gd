@@ -1365,8 +1365,15 @@ static func sync_consolidated_foliage_collision(scene_root: Node, mm_container: 
 		static_col_body.remove_child(rc)
 		rc.free()
 
+	var canopy_area := scene_root.get_node_or_null("ConsolidatedCanopyArea") as Area3D
+	var canopy_needs_sync := false
+	if canopy_area != null:
+		var canopy_children := canopy_area.get_children()
+		if canopy_children.is_empty() or not (canopy_children[0] is CollisionShape3D) or not canopy_children[0].has_meta("foliage_tier"):
+			canopy_needs_sync = true
+
 	# Only skip if already at trunk_collision_version 4 AND existing cylinders have foliage_tier and uniform scale
-	if not persist_for_save and int(static_col_body.get_meta("trunk_collision_version", 0)) >= 4 and not old_trunk_cols.is_empty():
+	if not persist_for_save and not canopy_needs_sync and int(static_col_body.get_meta("trunk_collision_version", 0)) >= 4 and not old_trunk_cols.is_empty():
 		var first_cs := old_trunk_cols[0] as CollisionShape3D
 		if first_cs.scale.is_equal_approx(Vector3.ONE) and first_cs.has_meta("foliage_tier"):
 			return 0
@@ -1374,6 +1381,15 @@ static func sync_consolidated_foliage_collision(scene_root: Node, mm_container: 
 	for old_c in old_trunk_cols:
 		static_col_body.remove_child(old_c)
 		old_c.free()
+
+	var shared_canopy_shape: SphereShape3D = null
+	if canopy_area != null and (canopy_needs_sync or persist_for_save or int(static_col_body.get_meta("trunk_collision_version", 0)) < 4):
+		canopy_needs_sync = true
+		for old_cc in canopy_area.get_children().duplicate():
+			canopy_area.remove_child(old_cc)
+			old_cc.free()
+		shared_canopy_shape = SphereShape3D.new()
+		shared_canopy_shape.radius = 2.2
 
 	var shared_shape_cache: Dictionary = {}
 	var rebuilt_count := 0
@@ -1409,6 +1425,16 @@ static func sync_consolidated_foliage_collision(scene_root: Node, mm_container: 
 			static_col_body.add_child(trunk_col)
 			if persist_for_save:
 				trunk_col.owner = scene_root
+			if canopy_needs_sync and canopy_area != null and shared_canopy_shape != null:
+				var i_scale := inst_xf.basis.get_scale()
+				var canopy_col := CollisionShape3D.new()
+				canopy_col.set_meta("foliage_tier", tier)
+				canopy_col.shape = shared_canopy_shape
+				canopy_col.position = inst_xf.origin + Vector3(0.0, 3.8 * i_scale.y, 0.0)
+				canopy_col.scale = i_scale
+				canopy_area.add_child(canopy_col)
+				if persist_for_save:
+					canopy_col.owner = scene_root
 			rebuilt_count += 1
 
 	static_col_body.set_meta("trunk_collision_version", 4)

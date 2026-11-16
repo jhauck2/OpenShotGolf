@@ -247,15 +247,18 @@ func _create_procedural_glass_shatter_stream() -> AudioStreamWAV:
 # ==============================================================================
 
 func _init_materials() -> void:
-	# Intact Glass: Semi-transparent tinted cyan/blue with crisp specular reflections
+	# Intact Glass: Glossy sky-reflective tinted blue glass
 	glass_mat_intact = StandardMaterial3D.new()
-	glass_mat_intact.albedo_color = Color(0.22, 0.60, 0.85, 0.38)
+	glass_mat_intact.albedo_color = Color(0.28, 0.56, 0.78, 0.44)
 	glass_mat_intact.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glass_mat_intact.roughness = 0.06
+	glass_mat_intact.roughness = 0.04
 	glass_mat_intact.metallic = 0.88
+	glass_mat_intact.clearcoat_enabled = true
+	glass_mat_intact.clearcoat = 1.0
+	glass_mat_intact.clearcoat_roughness = 0.04
 	glass_mat_intact.emission_enabled = true
-	glass_mat_intact.emission = Color(0.10, 0.42, 0.65)
-	glass_mat_intact.emission_energy_multiplier = 0.25
+	glass_mat_intact.emission = Color(0.12, 0.36, 0.55)
+	glass_mat_intact.emission_energy_multiplier = 0.18
 	glass_mat_intact.cull_mode = BaseMaterial3D.CULL_DISABLED
 	
 	# Broken Glass Edge Rim: Glowing green fractured remnant frame
@@ -267,29 +270,34 @@ func _init_materials() -> void:
 	glass_mat_broken_rim.emission = Color(0.2, 0.9, 0.4)
 	glass_mat_broken_rim.emission_energy_multiplier = 0.6
 	
-	# Structural Steel Truss Frame: Gunmetal gray with metallic sheen
+	# Structural Steel Truss Frame: Dark gunmetal architectural steel
 	frame_mat_steel = StandardMaterial3D.new()
-	frame_mat_steel.albedo_color = Color(0.16, 0.20, 0.26)
-	frame_mat_steel.metallic = 0.92
-	frame_mat_steel.roughness = 0.35
+	frame_mat_steel.albedo_color = Color(0.18, 0.21, 0.25)
+	frame_mat_steel.metallic = 0.86
+	frame_mat_steel.roughness = 0.32
 	
-	# Concrete Base Pillars
+	# Concrete / Heavy Steel Base Pads
 	frame_mat_concrete = StandardMaterial3D.new()
-	if ResourceLoader.exists("res://Courses/Environments/dry-rocky-ground-bl/dry-rocky-ground_albedo.png"):
-		frame_mat_concrete.albedo_texture = load("res://Courses/Environments/dry-rocky-ground-bl/dry-rocky-ground_albedo.png")
-		frame_mat_concrete.uv1_scale = Vector3(0.3, 0.3, 0.3)
-	else:
-		frame_mat_concrete.albedo_color = Color(0.35, 0.38, 0.42)
-	frame_mat_concrete.roughness = 0.9
+	frame_mat_concrete.albedo_color = Color(0.24, 0.26, 0.29)
+	frame_mat_concrete.metallic = 0.25
+	frame_mat_concrete.roughness = 0.75
 	
-	# Tee box green turf
+	# Tee box green turf (High-resolution PBR textures)
 	turf_mat = StandardMaterial3D.new()
-	if ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
+	if ResourceLoader.exists("res://Courses/Environments/high/grass_green_albedo.png"):
+		turf_mat.albedo_texture = load("res://Courses/Environments/high/grass_green_albedo.png")
+		if ResourceLoader.exists("res://Courses/Environments/high/grass_green_normal.png"):
+			turf_mat.normal_enabled = true
+			turf_mat.normal_texture = load("res://Courses/Environments/high/grass_green_normal.png")
+		if ResourceLoader.exists("res://Courses/Environments/high/grass_green_roughness.png"):
+			turf_mat.roughness_texture = load("res://Courses/Environments/high/grass_green_roughness.png")
+		turf_mat.uv1_scale = Vector3(0.45, 0.45, 0.45)
+	elif ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
 		turf_mat.albedo_texture = load("res://Courses/Environments/grass-green/albedo.png")
 		turf_mat.uv1_scale = Vector3(0.2, 0.2, 0.2)
 	else:
 		turf_mat.albedo_color = Color(0.18, 0.65, 0.24)
-	turf_mat.roughness = 0.9
+	turf_mat.roughness = 0.88
 	
 	# Fairway grass
 	fairway_mat = StandardMaterial3D.new()
@@ -346,25 +354,17 @@ func _init_player_names() -> void:
 # ==============================================================================
 
 func _setup_environment() -> void:
-	var is_mobile := MobilePerformance.is_mobile()
-
 	var sun = DirectionalLight3D.new()
 	sun.name = "SunLight"
-	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-48)).rotated(Vector3.UP, deg_to_rad(30))
+	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-38)).rotated(Vector3.UP, deg_to_rad(38))
 	sun.shadow_enabled = true
-	sun.light_energy = 1.2
-	if is_mobile:
-		sun.directional_shadow_max_distance = 200.0
-		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-		sun.directional_shadow_blend_splits = true
-		sun.directional_shadow_split_1 = 0.1
-	else:
-		sun.directional_shadow_max_distance = 500.0
-		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-		sun.directional_shadow_blend_splits = true
-		sun.directional_shadow_split_1 = 0.05
-		sun.directional_shadow_split_2 = 0.15
-		sun.directional_shadow_split_3 = 0.40
+	sun.light_energy = 1.25
+	sun.directional_shadow_max_distance = 500.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_blend_splits = true
+	sun.directional_shadow_split_1 = 0.05
+	sun.directional_shadow_split_2 = 0.15
+	sun.directional_shadow_split_3 = 0.40
 	sun.shadow_bias = 0.03
 	sun.shadow_normal_bias = 2.0
 	add_child(sun)
@@ -377,7 +377,7 @@ func _setup_environment() -> void:
 	
 	var sky = Sky.new()
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
-	sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
+	sky.radiance_size = Sky.RADIANCE_SIZE_256
 	var sky_mat = ProceduralSkyMaterial.new()
 	sky_mat.sky_top_color = Color(0.20, 0.48, 0.82)
 	sky_mat.sky_horizon_color = Color(0.55, 0.74, 0.90)
@@ -393,20 +393,18 @@ func _setup_environment() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_white = 5.0
 	env.tonemap_exposure = 1.0
-	if is_mobile:
-		env.ssao_enabled = false
-	else:
-		env.ssao_enabled = true
-		env.ssao_radius = 2.0
-		env.ssao_intensity = 1.2
-		env.ssao_power = 1.5
-		env.ssao_detail = 0.2
-		env.ssao_horizon = 0.06
-		env.ssao_ao_channel_affect = 0.5
+	env.ssao_enabled = true
+	env.ssao_radius = 2.0
+	env.ssao_intensity = 1.2
+	env.ssao_power = 1.5
+	env.ssao_detail = 0.2
+	env.ssao_horizon = 0.06
+	env.ssao_ao_channel_affect = 0.5
 	
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.65, 0.78, 0.88)
-	env.fog_density = 0.0010
+	env.fog_density = 0.0014
+	env.fog_sky_affect = 0.25
 	
 	world_env.environment = env
 	add_child(world_env)
@@ -415,6 +413,8 @@ func _setup_environment() -> void:
 	camera = Camera3D.new()
 	camera.name = "Camera3D"
 	camera.current = true
+	camera.near = 0.05
+	camera.far = 4000.0
 	add_child(camera)
 	if has_node("/root/TensionManager"):
 		TensionManager.register_camera(camera, 55.0)
@@ -463,54 +463,288 @@ func _toggle_camera_view() -> void:
 # RANGE TERRAIN & DISTANCE MARKERS
 # ==============================================================================
 
+func _get_terrain_height(x: float, z: float) -> float:
+	# Keep the central hitting corridor and tee box flat at y = 0.0
+	var lat_dist = maxf(0.0, absf(z) - 26.0)
+	var lat_blend = smoothstep(0.0, 48.0, lat_dist)
+	var far_blend = smoothstep(135.0, 280.0, x)
+	var back_blend = smoothstep(-16.0, -70.0, x)
+	var hill_blend = maxf(lat_blend, maxf(far_blend, back_blend))
+	if hill_blend <= 0.001:
+		return 0.0
+	var wave_1 = sin(x * 0.018 + 0.4) * cos(z * 0.022) * 3.2
+	var wave_2 = sin(x * 0.041 - z * 0.031) * 1.6
+	var far_ridge = smoothstep(170.0, 380.0, x) * (10.0 + sin(z * 0.017) * 5.0)
+	var base_rise = 5.5 + wave_1 + wave_2 + far_ridge
+	return maxf(0.0, base_rise) * hill_blend
+
+
 func _setup_range_ground() -> void:
-	# 1. Main Range Fairway Ground (extends 400m past tee so balls never fall off)
-	var ground = StaticBody3D.new()
-	ground.name = "RangeFairwayGround"
+	# 1. Sculpted Rolling Range Terrain (Always High Quality realistic turf shader)
+	var min_x := -120.0
+	var max_x := 460.0
+	var min_z := -360.0
+	var max_z := 360.0
+	var subdiv_x := 160
+	var subdiv_z := 120
+	var cell_w := (max_x - min_x) / subdiv_x
+	var cell_d := (max_z - min_z) / subdiv_z
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var ground_mat: Material = fairway_mat
+	var shader = load("res://Courses/Environments/shaders/driving_range_turf_realistic.gdshader")
+	if shader == null:
+		shader = load("res://Courses/Environments/shaders/driving_range_turf.gdshader")
+	if shader != null and ResourceLoader.exists("res://Courses/Environments/grass-fairway/albedo.png") and ResourceLoader.exists("res://Courses/Environments/grass-rough/albedo.png"):
+		var sm := ShaderMaterial.new()
+		sm.shader = shader
+		sm.set_shader_parameter("tex_fairway", load("res://Courses/Environments/grass-fairway/albedo.png"))
+		sm.set_shader_parameter("normal_fairway", load("res://Courses/Environments/grass-fairway/normal.png"))
+		sm.set_shader_parameter("ao_fairway", load("res://Courses/Environments/grass-fairway/ao.png"))
+		sm.set_shader_parameter("roughness_fairway", load("res://Courses/Environments/grass-fairway/roughness.png"))
+		sm.set_shader_parameter("tex_rough", load("res://Courses/Environments/grass-rough/albedo.png"))
+		sm.set_shader_parameter("normal_rough", load("res://Courses/Environments/grass-rough/normal.png"))
+		sm.set_shader_parameter("ao_rough", load("res://Courses/Environments/grass-rough/ao.png"))
+		sm.set_shader_parameter("roughness_rough", load("res://Courses/Environments/grass-rough/roughness.png"))
+		sm.set_shader_parameter("corridor_half_width", 24.0)
+		sm.set_shader_parameter("blend_margin", 2.5)
+		sm.set_shader_parameter("tee_start_x", -10.0)
+		sm.set_shader_parameter("tee_blend_x", 4.0)
+		sm.set_shader_parameter("max_range_dist", 260.0)
+		sm.set_shader_parameter("uv_scale_fairway", 0.40)
+		sm.set_shader_parameter("uv_scale_rough", 0.34)
+		sm.set_shader_parameter("normal_depth", 0.85)
+		sm.set_shader_parameter("stripe_strength", 0.65)
+		ground_mat = sm
+	st.set_material(ground_mat)
+
+	for zi in range(subdiv_z):
+		for xi in range(subdiv_x):
+			var x0 := min_x + xi * cell_w
+			var x1 := x0 + cell_w
+			var z0 := min_z + zi * cell_d
+			var z1 := z0 + cell_d
+
+			var p00 := Vector3(x0, _get_terrain_height(x0, z0), z0)
+			var p10 := Vector3(x1, _get_terrain_height(x1, z0), z0)
+			var p01 := Vector3(x0, _get_terrain_height(x0, z1), z1)
+			var p11 := Vector3(x1, _get_terrain_height(x1, z1), z1)
+
+			var uv00 := Vector2(x0, z0) * 0.05
+			var uv10 := Vector2(x1, z0) * 0.05
+			var uv01 := Vector2(x0, z1) * 0.05
+			var uv11 := Vector2(x1, z1) * 0.05
+
+			st.set_uv(uv00)
+			st.add_vertex(p00)
+			st.set_uv(uv10)
+			st.add_vertex(p10)
+			st.set_uv(uv01)
+			st.add_vertex(p01)
+
+			st.set_uv(uv10)
+			st.add_vertex(p10)
+			st.set_uv(uv11)
+			st.add_vertex(p11)
+			st.set_uv(uv01)
+			st.add_vertex(p01)
+
+	st.generate_normals()
+	st.generate_tangents()
+
+	var terrain_mesh := st.commit()
+	var ground_mesh_inst := MeshInstance3D.new()
+	ground_mesh_inst.name = "RangeFairwayGround"
+	ground_mesh_inst.mesh = terrain_mesh
+	ground_mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ground_mesh_inst)
+
+	var ground := StaticBody3D.new()
+	ground.name = "RangeGroundBody"
 	ground.set_meta("surface_type", 1) # FAIRWAY
-	add_child(ground)
-	
-	var col = CollisionShape3D.new()
-	var box = BoxShape3D.new()
-	box.size = Vector3(450.0, 1.0, 160.0)
-	col.shape = box
-	col.position = Vector3(180.0, -0.5, 0.0)
-	ground.add_child(col)
-	
-	var ground_mesh = MeshInstance3D.new()
-	var plane_mesh = BoxMesh.new()
-	plane_mesh.size = Vector3(450.0, 1.0, 160.0)
-	ground_mesh.mesh = plane_mesh
-	ground_mesh.material_override = fairway_mat
-	ground_mesh.position = Vector3(180.0, -0.5, 0.0)
-	ground.add_child(ground_mesh)
-	
-	# 2. Tee Box Platform
-	var tee = StaticBody3D.new()
+	ground_mesh_inst.add_child(ground)
+
+	var ground_col := CollisionShape3D.new()
+	ground_col.shape = terrain_mesh.create_trimesh_shape()
+	ground.add_child(ground_col)
+
+	# 2. Tee Box Hitting Mat & Frame
+	var tee := StaticBody3D.new()
 	tee.name = "TeeBox"
 	tee.set_meta("surface_type", 3) # TEE
 	add_child(tee)
-	
-	var tee_col = CollisionShape3D.new()
-	var tee_box_shape = BoxShape3D.new()
+
+	var tee_col := CollisionShape3D.new()
+	var tee_box_shape := BoxShape3D.new()
 	tee_box_shape.size = Vector3(6.0, 0.2, 6.0)
 	tee_col.shape = tee_box_shape
 	tee_col.position = Vector3(0.0, -0.1, 0.0)
 	tee.add_child(tee_col)
-	
-	var tee_mesh_inst = MeshInstance3D.new()
-	var tee_mesh = BoxMesh.new()
+
+	var tee_border_inst := MeshInstance3D.new()
+	tee_border_inst.name = "TeeMatBorder"
+	var tee_border_mesh := BoxMesh.new()
+	tee_border_mesh.size = Vector3(6.5, 0.16, 6.5)
+	tee_border_inst.mesh = tee_border_mesh
+	var border_mat := StandardMaterial3D.new()
+	border_mat.albedo_color = Color(0.11, 0.15, 0.12)
+	border_mat.roughness = 0.92
+	tee_border_inst.material_override = border_mat
+	tee_border_inst.position = Vector3(0.0, -0.09, 0.0)
+	tee.add_child(tee_border_inst)
+
+	var tee_mesh_inst := MeshInstance3D.new()
+	tee_mesh_inst.name = "TeeMatTurf"
+	var tee_mesh := BoxMesh.new()
 	tee_mesh.size = Vector3(6.0, 0.2, 6.0)
 	tee_mesh_inst.mesh = tee_mesh
 	tee_mesh_inst.material_override = turf_mat
-	tee_mesh_inst.position = Vector3(0.0, -0.1, 0.0)
+	tee_mesh_inst.position = Vector3(0.0, -0.095, 0.0)
 	tee.add_child(tee_mesh_inst)
-	
-	# 3. Clean Fairway Distance Stripe Lines (25, 50, 75 Yards) - Purely visual clean grass lines
-	var distances_yards = [25, 50, 75]
+
+	for marker_z in [-1.8, 1.8]:
+		var tm := MeshInstance3D.new()
+		var tm_mesh := CylinderMesh.new()
+		tm_mesh.top_radius = 0.09
+		tm_mesh.bottom_radius = 0.11
+		tm_mesh.height = 0.14
+		tm.mesh = tm_mesh
+		var tm_mat := StandardMaterial3D.new()
+		tm_mat.albedo_color = Color(0.92, 0.94, 0.96)
+		tm_mat.roughness = 0.4
+		tm.material_override = tm_mat
+		tm.position = Vector3(-0.4, 0.06, marker_z)
+		tee.add_child(tm)
+
+	# 3. Clean Fairway Distance Stripe Lines (25, 50, 75, 100, 125 Yards)
+	var distances_yards = [25, 50, 75, 100, 125]
 	for yard in distances_yards:
 		var dist_m = yard * 0.9144
 		_create_yardage_stripe(dist_m)
+
+	# 4. High-Quality 3D Grass Blades Collar, Volumetric 3D Trees & Distant Mountain Horizon
+	_build_tee_grass_collar(tee)
+	_spawn_range_trees()
+	_spawn_mountain_backdrop()
+
+
+func _build_tee_grass_collar(parent_node: Node3D) -> void:
+	var shader := load("res://Courses/Environments/shaders/grass_blades_high.gdshader") as Shader
+	if shader == null:
+		return
+
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("root_color", Color(0.11, 0.22, 0.09))
+	mat.set_shader_parameter("tip_color", Color(0.35, 0.52, 0.20))
+	mat.set_shader_parameter("dry_tip_color", Color(0.52, 0.50, 0.28))
+	mat.set_shader_parameter("dry_tip_ratio", 0.16)
+	mat.set_shader_parameter("wind_strength", 0.045)
+	mat.set_shader_parameter("max_render_distance", 28.0)
+	mat.set_shader_parameter("fade_start_distance", 18.0)
+
+	var clump_mesh := _create_tee_grass_clump_mesh(12, 0.19, 0.036, 0.075)
+	clump_mesh.surface_set_material(0, mat)
+
+	var count := 1400
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	mm.mesh = clump_mesh
+	mm.instance_count = count
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9031
+	var placed := 0
+	var attempts := 0
+	while placed < count and attempts < count * 8:
+		attempts += 1
+		var gx := rng.randf_range(-6.5, 9.5)
+		var gz := rng.randf_range(-6.5, 6.5)
+		if absf(gx) < 3.25 and absf(gz) < 3.25:
+			continue
+		var edge_dx := maxf(0.0, absf(gx) - 3.25)
+		var edge_dz := maxf(0.0, absf(gz) - 3.25)
+		var edge_dist := sqrt(edge_dx * edge_dx + edge_dz * edge_dz)
+		if edge_dist > 1.8 and rng.randf() > exp(-(edge_dist - 1.8) * 0.65):
+			continue
+
+		var yaw := rng.randf_range(0.0, TAU)
+		var sc := rng.randf_range(0.75, 1.35)
+		var h_sc := sc * lerpf(0.70, 1.25, clampf(edge_dist / 1.5, 0.0, 1.0))
+		var basis := Basis(Vector3.UP, yaw).scaled(Vector3(sc, h_sc, sc))
+		mm.set_instance_transform(placed, Transform3D(basis, Vector3(gx, 0.0, gz)))
+		var tint := rng.randf_range(0.86, 1.12)
+		mm.set_instance_custom_data(placed, Color(tint, tint * rng.randf_range(0.95, 1.05), tint * 0.92, rng.randf_range(0.05, 1.0)))
+		placed += 1
+	mm.visible_instance_count = placed
+
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "TeeGrassCollar"
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent_node.add_child(mmi)
+
+
+func _create_tee_grass_clump_mesh(blades_per_clump: int, height: float, width: float, spread: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1337
+	for i in range(blades_per_clump):
+		var angle := (float(i) / float(blades_per_clump)) * TAU + rng.randf_range(-0.3, 0.3)
+		var r := rng.randf_range(0.0, spread)
+		var cx := cos(angle) * r
+		var cz := sin(angle) * r
+		var h := height * rng.randf_range(0.65, 1.25)
+		var w := width * rng.randf_range(0.75, 1.2)
+		var yaw := rng.randf_range(0.0, TAU)
+		var lean := rng.randf_range(0.04, 0.14)
+		var dx := cos(yaw) * w * 0.5
+		var dz := sin(yaw) * w * 0.5
+		var lx := -sin(yaw) * lean
+		var lz := cos(yaw) * lean
+
+		var b0 := Vector3(cx - dx, 0.0, cz - dz)
+		var b1 := Vector3(cx + dx, 0.0, cz + dz)
+		var m0 := Vector3(cx - dx * 0.55 + lx * 0.45, h * 0.55, cz - dz * 0.55 + lz * 0.45)
+		var m1 := Vector3(cx + dx * 0.55 + lx * 0.45, h * 0.55, cz + dz * 0.55 + lz * 0.45)
+		var tip := Vector3(cx + lx, h, cz + lz)
+		var n := Vector3(lx, 0.6, lz).normalized()
+
+		st.set_normal(n)
+		st.set_uv(Vector2(0.0, 1.0))
+		st.add_vertex(b0)
+		st.set_normal(n)
+		st.set_uv(Vector2(1.0, 1.0))
+		st.add_vertex(b1)
+		st.set_normal(n)
+		st.set_uv(Vector2(0.0, 0.45))
+		st.add_vertex(m0)
+
+		st.set_normal(n)
+		st.set_uv(Vector2(1.0, 1.0))
+		st.add_vertex(b1)
+		st.set_normal(n)
+		st.set_uv(Vector2(1.0, 0.45))
+		st.add_vertex(m1)
+		st.set_normal(n)
+		st.set_uv(Vector2(0.0, 0.45))
+		st.add_vertex(m0)
+
+		st.set_normal(n)
+		st.set_uv(Vector2(0.0, 0.45))
+		st.add_vertex(m0)
+		st.set_normal(n)
+		st.set_uv(Vector2(1.0, 0.45))
+		st.add_vertex(m1)
+		st.set_normal(n)
+		st.set_uv(Vector2(0.5, 0.0))
+		st.add_vertex(tip)
+
+	return st.commit()
 
 
 func _create_yardage_stripe(dist_x: float) -> void:
@@ -518,18 +752,183 @@ func _create_yardage_stripe(dist_x: float) -> void:
 	marker_node.name = "Stripe_%.1fm" % dist_x
 	marker_node.position = Vector3(dist_x, 0.0, 0.0)
 	add_child(marker_node)
-	
-	# Striped lawn yardage line across fairway
+
 	var line_mesh = MeshInstance3D.new()
-	var box = BoxMesh.new()
-	box.size = Vector3(0.6, 0.02, 46.0)
-	line_mesh.mesh = box
+	var plane = PlaneMesh.new()
+	plane.size = Vector2(0.24, 46.0)
+	line_mesh.mesh = plane
 	var line_mat = StandardMaterial3D.new()
-	line_mat.albedo_color = Color(1.0, 1.0, 1.0, 0.35)
-	line_mat.roughness = 0.9
+	line_mat.albedo_color = Color(0.96, 0.97, 0.98, 0.55)
+	line_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	line_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	line_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	line_mat.render_priority = 2
 	line_mesh.material_override = line_mat
-	line_mesh.position = Vector3(0.0, 0.01, 0.0)
+	line_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	line_mesh.position = Vector3(0.0, 0.015, 0.0)
 	marker_node.add_child(line_mesh)
+
+
+func _spawn_range_trees() -> void:
+	var trees_root = Node3D.new()
+	trees_root.name = "RangeTrees"
+	add_child(trees_root)
+
+	var tree_paths: Array[String] = [
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-01-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-01-2-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-02-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-02-2-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-03-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-03-2-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-birch-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-pine-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-willow-2-staticbody.tscn",
+	]
+	var tree_scenes: Array[PackedScene] = []
+	for p in tree_paths:
+		if ResourceLoader.exists(p):
+			var sc = load(p) as PackedScene
+			if sc:
+				tree_scenes.append(sc)
+	if tree_scenes.is_empty():
+		return
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4075
+	var step_x := 11.0
+	var tree_idx := 0
+
+	# Left and right hillside tree belts
+	for side: float in [-1.0, 1.0]:
+		var cx := -15.0
+		while cx <= 255.0:
+			var z_inner: float = side * rng.randf_range(38.0, 52.0)
+			var z_outer: float = side * rng.randf_range(58.0, 88.0)
+			for tz in [z_inner, z_outer]:
+				var tx := cx + rng.randf_range(-4.0, 4.0)
+				var ty := _get_terrain_height(tx, tz) - 0.15
+				var inst := tree_scenes[rng.randi() % tree_scenes.size()].instantiate() as Node3D
+				if inst:
+					inst.name = "Tree_%d" % tree_idx
+					inst.position = Vector3(tx, ty, tz)
+					inst.rotation.y = rng.randf_range(0.0, TAU)
+					var s := rng.randf_range(1.25, 2.15)
+					inst.scale = Vector3(s, s, s)
+					trees_root.add_child(inst)
+					tree_idx += 1
+			cx += step_x
+
+	# Far hillside treeline behind the target wall
+	var step_z := 11.0
+	var cz := -120.0
+	while cz <= 120.0:
+		var tx := rng.randf_range(185.0, 265.0)
+		var tz := cz + rng.randf_range(-3.5, 3.5)
+		var ty := _get_terrain_height(tx, tz) - 0.15
+		var inst := tree_scenes[rng.randi() % tree_scenes.size()].instantiate() as Node3D
+		if inst:
+			inst.name = "RangeTree_%d" % tree_idx
+			inst.position = Vector3(tx, ty, tz)
+			inst.rotation.y = rng.randf_range(0.0, TAU)
+			var s := rng.randf_range(1.4, 2.35)
+			inst.scale = Vector3(s, s, s)
+			trees_root.add_child(inst)
+			tree_idx += 1
+		cz += step_z
+
+	# Convert trees into spatial-chunked MultiMeshInstance3D and upgrade to HighFidelity volumetric 3D trees
+	if ResourceLoader.exists("res://HighFidelity/Foliage/procedural_tree_generator.gd"):
+		var ptg = load("res://HighFidelity/Foliage/procedural_tree_generator.gd")
+		if ptg != null:
+			ptg.convert_scene_foliage_to_multimesh(trees_root, false)
+			var mm_container = trees_root.get_node_or_null("MultiMeshFoliageContainer")
+			if mm_container != null:
+				ptg.upgrade_existing_multimesh_trees(mm_container)
+
+
+func _spawn_mountain_backdrop() -> void:
+	var tex_path := "res://Courses/Environments/mountain_backdrop_seamless.png"
+	if not ResourceLoader.exists(tex_path):
+		return
+	var tex = load(tex_path)
+	if tex == null:
+		return
+
+	var mountain_root = Node3D.new()
+	mountain_root.name = "MountainBackdrop"
+	add_child(mountain_root)
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.albedo_color = Color(0.88, 0.93, 0.98)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.45
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(mat)
+
+	var center_x := 30.0
+	var radius := 420.0
+	var y_bottom := -6.0
+	var y_top := 135.0
+	var segments := 72
+	var angle_start := deg_to_rad(-130.0)
+	var angle_end := deg_to_rad(130.0)
+	var angle_span := angle_end - angle_start
+	var u_start := -0.75
+	var u_end := 1.75
+
+	for i in range(segments):
+		var t0 := float(i) / segments
+		var t1 := float(i + 1) / segments
+		var a0 := angle_start + t0 * angle_span
+		var a1 := angle_start + t1 * angle_span
+		var x0 := center_x + radius * cos(a0)
+		var z0 := radius * sin(a0)
+		var x1 := center_x + radius * cos(a1)
+		var z1 := radius * sin(a1)
+		var u0 := lerpf(u_start, u_end, t0)
+		var u1 := lerpf(u_start, u_end, t1)
+
+		var p_b0 := Vector3(x0, y_bottom, z0)
+		var p_t0 := Vector3(x0, y_top, z0)
+		var p_b1 := Vector3(x1, y_bottom, z1)
+		var p_t1 := Vector3(x1, y_top, z1)
+
+		var n0 := Vector3(center_x - x0, 0.0, -z0).normalized()
+		var n1 := Vector3(center_x - x1, 0.0, -z1).normalized()
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 0.0))
+		st.add_vertex(p_t0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 1.0))
+		st.add_vertex(p_b1)
+
+	var mesh_inst = MeshInstance3D.new()
+	mesh_inst.name = "MountainMesh"
+	mesh_inst.mesh = st.commit()
+	mesh_inst.material_override = mat
+	mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mountain_root.add_child(mesh_inst)
 
 
 # ==============================================================================
@@ -549,40 +948,50 @@ func _setup_glass_wall_and_panes() -> void:
 	for i in range(9):
 		symbol_3d_nodes.append(null)
 	
-	# Total width: 3 columns x 8.5m + 4 mullions/pillars x 0.8m = 28.7m wide (Z from -14.4 to +14.4)
-	# Total height: 3 rows x 8.5m + 4 mullions/beams x 0.8m = 28.7m tall (Y from 0.8 to 29.5)
-	
-	# 1. Structural Concrete Foundation Pillars (Solid bounce StaticBody3D)
-	var left_pillar = _create_concrete_pillar(Vector3(0.0, 15.0, -14.4), Vector3(1.6, 30.0, 1.6))
-	wall_root.add_child(left_pillar)
-	
-	var right_pillar = _create_concrete_pillar(Vector3(0.0, 15.0, 14.4), Vector3(1.6, 30.0, 1.6))
-	wall_root.add_child(right_pillar)
-	
-	# Top & Bottom Concrete Header Beams
-	var bot_beam = _create_concrete_pillar(Vector3(0.0, 0.8, 0.0), Vector3(1.6, 1.6, 30.0))
+	# 1. Outer Structural Steel Columns & Header Beams (dark gunmetal architectural frame)
+	for cz in [-14.2, 14.2]:
+		var outer_col = _create_steel_beam(Vector3(0.0, 15.0, cz), Vector3(1.3, 30.0, 1.3))
+		wall_root.add_child(outer_col)
+		# Flanged front/back steel plates for I-beam depth
+		var flange = _create_steel_beam(Vector3(0.0, 15.0, cz), Vector3(1.65, 30.0, 0.45))
+		wall_root.add_child(flange)
+
+	# Top & Bottom Structural Steel Header Beams
+	var bot_beam = _create_steel_beam(Vector3(0.0, 0.9, 0.0), Vector3(1.3, 1.3, 29.7))
 	wall_root.add_child(bot_beam)
-	
-	var top_beam = _create_concrete_pillar(Vector3(0.0, 29.5, 0.0), Vector3(1.6, 1.6, 30.0))
+
+	var top_beam = _create_steel_beam(Vector3(0.0, 29.5, 0.0), Vector3(1.5, 1.4, 30.2))
 	wall_root.add_child(top_beam)
 	
 	# 2. Steel Divider Mullions between 3x3 square cells (Solid bounce StaticBody3D)
 	# Vertical mullions (at Z = -4.65m and Z = +4.65m)
 	for vz in [-4.65, 4.65]:
-		var v_mullion = _create_steel_beam(Vector3(0.0, 15.0, vz), Vector3(0.6, 28.0, 0.6))
+		var v_mullion = _create_steel_beam(Vector3(0.0, 15.0, vz), Vector3(0.85, 28.4, 0.75))
 		wall_root.add_child(v_mullion)
 		
 	# Horizontal mullions (between rows at Y = 10.65m and Y = 19.95m)
 	for hy in [10.65, 19.95]:
-		var h_mullion = _create_steel_beam(Vector3(0.0, hy, 0.0), Vector3(0.6, 0.6, 28.0))
+		var h_mullion = _create_steel_beam(Vector3(0.0, hy, 0.0), Vector3(0.85, 0.75, 28.4))
 		wall_root.add_child(h_mullion)
 		
-	# 3. Rear Support Buttress Trusses (Angled steel struts extending behind wall)
-	for z_truss in [-14.0, -4.65, 4.65, 14.0]:
-		var strut = _create_steel_beam(Vector3(8.0, 10.0, z_truss), Vector3(0.4, 0.4, 0.4))
-		wall_root.add_child(strut)
+	# 3. Structural Base Anchor Feet, Gussets & Rear Diagonal Support Struts
+	for z_col in [-14.2, -4.65, 4.65, 14.2]:
+		# Ground anchor footplate extending forward and backward
+		var foot_pad = _create_concrete_pillar(Vector3(0.4, 0.18, z_col), Vector3(3.8, 0.36, 1.85))
+		wall_root.add_child(foot_pad)
+		# Front & rear angled gusset brackets
+		var front_gusset = _create_steel_beam(Vector3(-0.9, 0.85, z_col), Vector3(0.95, 1.1, 0.45))
+		wall_root.add_child(front_gusset)
+		var rear_gusset = _create_steel_beam(Vector3(1.1, 0.85, z_col), Vector3(1.1, 1.1, 0.45))
+		wall_root.add_child(rear_gusset)
+		# Angled rear steel brace from y=8.5 down to ground anchor at x=6.0
+		var rear_strut = _create_steel_beam(Vector3(3.2, 4.4, z_col), Vector3(0.35, 10.2, 0.35))
+		rear_strut.rotation.z = deg_to_rad(34.0)
+		wall_root.add_child(rear_strut)
+		var rear_anchor = _create_concrete_pillar(Vector3(5.8, 0.18, z_col), Vector3(1.6, 0.36, 1.4))
+		wall_root.add_child(rear_anchor)
 		
-	# 4. Generate 9 Clean SQUARE Glass Panes in 3x3 Grid (No text, pure glass with neon rim + Area3D trigger)
+	# 4. Generate 9 Clean SQUARE Glass Panes in 3x3 Grid
 	for row in range(GRID_ROWS):
 		for col in range(GRID_COLS):
 			var idx = row * GRID_COLS + col
@@ -609,20 +1018,24 @@ func _create_glass_pane_node(idx: int, py: float, pz: float) -> Node3D:
 	pane_root.add_child(mesh_inst)
 	pane_mesh_instances.append(mesh_inst)
 	
-	# Surrounding Glowing Neon Frame Border
-	var border_inst = MeshInstance3D.new()
-	border_inst.name = "GlassBorderGlow"
-	var border_mesh = BoxMesh.new()
-	border_mesh.size = Vector3(PANE_DEPTH + 0.05, PANE_SIZE, PANE_SIZE)
-	border_inst.mesh = border_mesh
-	var border_mat = StandardMaterial3D.new()
-	border_mat.albedo_color = Color(PANE_COLORS[idx].r, PANE_COLORS[idx].g, PANE_COLORS[idx].b, 0.25)
-	border_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	border_mat.emission_enabled = true
-	border_mat.emission = PANE_COLORS[idx]
-	border_mat.emission_energy_multiplier = 0.5
-	border_inst.material_override = border_mat
-	pane_root.add_child(border_inst)
+	# Crisp Dark Inner Window Gasket Frame (4 perimeter strips, leaving glass face clear)
+	var trim_half := (PANE_SIZE - 0.25) * 0.5
+	var trim_thick := 0.24
+	var trim_depth := PANE_DEPTH + 0.14
+	var trim_specs = [
+		[Vector3(0.0, trim_half, 0.0), Vector3(trim_depth, trim_thick, PANE_SIZE)],
+		[Vector3(0.0, -trim_half, 0.0), Vector3(trim_depth, trim_thick, PANE_SIZE)],
+		[Vector3(0.0, 0.0, -trim_half), Vector3(trim_depth, PANE_SIZE, trim_thick)],
+		[Vector3(0.0, 0.0, trim_half), Vector3(trim_depth, PANE_SIZE, trim_thick)],
+	]
+	for spec in trim_specs:
+		var trim_inst := MeshInstance3D.new()
+		var trim_mesh := BoxMesh.new()
+		trim_mesh.size = spec[1]
+		trim_inst.mesh = trim_mesh
+		trim_inst.position = spec[0]
+		trim_inst.material_override = frame_mat_steel
+		pane_root.add_child(trim_inst)
 	
 	# Area3D Trigger Volume sized inside the cell bounds
 	var area = Area3D.new()
@@ -745,7 +1158,9 @@ func _create_concrete_pillar(pos: Vector3, size: Vector3) -> StaticBody3D:
 	sb.add_child(col)
 	
 	var mi = MeshInstance3D.new()
-	mi.mesh = box
+	var mesh_box = BoxMesh.new()
+	mesh_box.size = size
+	mi.mesh = mesh_box
 	mi.material_override = frame_mat_concrete
 	sb.add_child(mi)
 	return sb
@@ -763,7 +1178,9 @@ func _create_steel_beam(pos: Vector3, size: Vector3) -> StaticBody3D:
 	sb.add_child(col)
 	
 	var mi = MeshInstance3D.new()
-	mi.mesh = box
+	var mesh_box = BoxMesh.new()
+	mesh_box.size = size
+	mi.mesh = mesh_box
 	mi.material_override = frame_mat_steel
 	sb.add_child(mi)
 	return sb
@@ -783,6 +1200,10 @@ func _setup_player() -> void:
 	player.rest.connect(_on_ball_rest)
 	
 	player.ball.spawn_position = start_pos
+	if player.has_method("set_profile"):
+		var active_prof = (player_x_name if current_turn_symbol == "X" else player_o_name) if tic_tac_toe_mode else (MultiplayerManager.get_default_range_profile_name() if has_node("/root/MultiplayerManager") and MultiplayerManager.has_method("get_default_range_profile_name") else "")
+		if not active_prof.is_empty():
+			player.set_profile(active_prof)
 	player.ball.reset()
 	prev_ball_pos = start_pos
 
@@ -818,6 +1239,7 @@ func _on_launch_monitor_hit_ball(data: Dictionary) -> void:
 		return
 
 	FoamBallBoost.apply_boost(data)
+	PowerCalibration.apply_calibration(data)
 
 	if has_node("/root/TensionManager"):
 		TensionManager.stop_tension()
@@ -1144,6 +1566,10 @@ func _reset_ball_only() -> void:
 		var start_pos = Vector3(0.0, 0.05, 0.0)
 		player.global_position = start_pos
 		player.ball.spawn_position = start_pos
+		if player.has_method("set_profile"):
+			var active_prof = (player_x_name if current_turn_symbol == "X" else player_o_name) if tic_tac_toe_mode else (MultiplayerManager.get_default_range_profile_name() if has_node("/root/MultiplayerManager") and MultiplayerManager.has_method("get_default_range_profile_name") else "")
+			if not active_prof.is_empty():
+				player.set_profile(active_prof)
 		player.ball.reset()
 		player.reset_ball()
 		player.ball.aim_yaw_offset_deg = 0.0
@@ -1878,7 +2304,9 @@ func _exit_tree() -> void:
 func _sync_launch_monitor_player() -> void:
 	if not tic_tac_toe_mode:
 		return
+	var cur_name = player_x_name if current_turn_symbol == "X" else player_o_name
+	if player != null and player.has_method("set_profile"):
+		player.set_profile(cur_name)
 	if has_node("/root/LaunchMonitorManager") and has_node("/root/MultiplayerManager"):
-		var cur_name = player_x_name if current_turn_symbol == "X" else player_o_name
 		var hand = MultiplayerManager.get_player_handedness(cur_name)
 		get_node("/root/LaunchMonitorManager").set_handedness(hand)

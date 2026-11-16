@@ -74,6 +74,16 @@ func _initialize() -> void:
 	assert(f_5 > f_10 and f_10 > f_15, "Friction order must be 5.0 > 10.0 > 15.0")
 	print("PASS: Physical rolling friction matches speed shifting requirements.")
 
+	# Verify Fairway friction at default 10.0 uses raw 10.0 baseline (0.165) and stays below Rough (0.175)
+	setting.set_value(10.0)
+	ball.set_surface(PhysicsEnums.SurfaceType.FAIRWAY)
+	var fw_10 = ball._rolling_friction
+	ball.set_surface(PhysicsEnums.SurfaceType.ROUGH)
+	var rough_10 = ball._rolling_friction
+	print("Fairway vs Rough Rolling Friction at 10.0: FW=%.4f, Rough=%.4f" % [fw_10, rough_10])
+	assert(is_equal_approx(fw_10, 0.165), "Fairway rolling friction at default 10.0 should be 0.165")
+	assert(fw_10 < rough_10, "Fairway rolling friction must be lower than Rough rolling friction")
+
 	# Test 4: TensionManager Deceleration
 	print("\n--- Test 4: TensionManager Deceleration ---")
 	var tm = root.get_node_or_null("TensionManager")

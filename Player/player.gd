@@ -1,6 +1,7 @@
 extends Node3D
 
 const RainPhysics = preload("res://Utils/rain_physics.gd")
+const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
 
 var track_points : bool = false
 # TODO: move trail stuff into trail script
@@ -61,6 +62,8 @@ func _ready() -> void:
 	# Set initial value and connect to setting changes
 	max_tracers = GlobalSettings.range_settings.shot_tracer_count.value
 	GlobalSettings.range_settings.shot_tracer_count.setting_changed.connect(_on_tracer_count_changed)
+	if "ball_type" in GlobalSettings.range_settings:
+		GlobalSettings.range_settings.ball_type.setting_changed.connect(_on_range_ball_type_setting_changed)
 
 	if has_node("/root/MultiplayerManager"):
 		var mp_mgr = get_node("/root/MultiplayerManager")
@@ -76,6 +79,8 @@ func _ready() -> void:
 			mp_mgr.active_player_changed.connect(_on_active_player_changed)
 		if not mp_mgr.player_ball_graphic_changed.is_connected(_on_player_ball_graphic_changed):
 			mp_mgr.player_ball_graphic_changed.connect(_on_player_ball_graphic_changed)
+		if mp_mgr.has_signal("player_ball_type_changed") and not mp_mgr.player_ball_type_changed.is_connected(_on_player_ball_type_changed):
+			mp_mgr.player_ball_type_changed.connect(_on_player_ball_type_changed)
 
 	_apply_profile_to_ball(current_profile_name)
 
@@ -118,10 +123,18 @@ func _on_player_ball_graphic_changed(player_name: String, _ball_graphic: String)
 	if player_name.to_lower() == current_profile_name.to_lower():
 		_apply_profile_to_ball(current_profile_name)
 
+func _on_player_ball_type_changed(player_name: String, _ball_type: String) -> void:
+	if player_name.to_lower() == current_profile_name.to_lower():
+		_apply_profile_to_ball(current_profile_name)
+
+func _on_range_ball_type_setting_changed(_value) -> void:
+	_apply_profile_to_ball(current_profile_name)
+
 func _apply_profile_to_ball(player_name: String) -> void:
-	if ball == null or not is_instance_valid(ball) or not ball.has_method("apply_ball_graphic"):
+	if ball == null or not is_instance_valid(ball):
 		return
 	var graphic_id = "single_line"
+	var ball_type_id = BallTypePhysics.TYPE_STANDARD
 	var avatar_path = ""
 	var p_color = Color(0.24, 0.46, 0.72)
 	if has_node("/root/MultiplayerManager"):
@@ -133,9 +146,25 @@ func _apply_profile_to_ball(player_name: String) -> void:
 			graphic_id = mp_mgr.get_player_ball_graphic(player_name)
 		else:
 			graphic_id = reg.get("ball_graphic", "single_line")
+		if not reg.is_empty():
+			if mp_mgr.has_method("get_player_ball_type"):
+				ball_type_id = mp_mgr.get_player_ball_type(player_name)
+			else:
+				ball_type_id = BallTypePhysics.normalize_ball_type(reg.get("ball_type", BallTypePhysics.TYPE_STANDARD))
+		elif has_node("/root/GlobalSettings"):
+			var gs = get_node("/root/GlobalSettings")
+			if gs != null and "range_settings" in gs and gs.range_settings != null and "ball_type" in gs.range_settings:
+				ball_type_id = BallTypePhysics.index_to_id(int(gs.range_settings.ball_type.value))
 		avatar_path = mp_mgr.get_player_avatar(player_name) if mp_mgr.has_method("get_player_avatar") else reg.get("avatar", "")
 		p_color = mp_mgr.get_player_color(reg) if mp_mgr.has_method("get_player_color") else p_color
-	ball.apply_ball_graphic(graphic_id, avatar_path, player_name, p_color)
+	elif has_node("/root/GlobalSettings"):
+		var gs = get_node("/root/GlobalSettings")
+		if gs != null and "range_settings" in gs and gs.range_settings != null and "ball_type" in gs.range_settings:
+			ball_type_id = BallTypePhysics.index_to_id(int(gs.range_settings.ball_type.value))
+	if ball.has_method("apply_ball_graphic"):
+		ball.apply_ball_graphic(graphic_id, avatar_path, player_name, p_color)
+	if ball.has_method("apply_ball_type"):
+		ball.apply_ball_type(ball_type_id)
 
 var _last_club_selected_time: float = -999.0
 
@@ -386,7 +415,9 @@ func get_ball_state():
 
 func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 	RainPhysics.apply_rain_shot_reduction(data)
+	BallTypePhysics.apply_ball_type_to_shot_data(data, ball.get_ball_type() if ball != null and ball.has_method("get_ball_type") else "", ball.current_selected_club if ball != null else "")
 	FoamBallBoost.apply_boost(data, ball.current_selected_club if ball != null else "")
+	PowerCalibration.apply_calibration(data)
 	var success : bool = validate_data(data)
 	if success:
 		emit_signal("good_data")
@@ -434,7 +465,9 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 func _on_range_ui_hit_shot(data: Variant) -> void:
 	if data is Dictionary:
 		RainPhysics.apply_rain_shot_reduction(data)
+		BallTypePhysics.apply_ball_type_to_shot_data(data, ball.get_ball_type() if ball != null and ball.has_method("get_ball_type") else "", ball.current_selected_club if ball != null else "")
 		FoamBallBoost.apply_boost(data, ball.current_selected_club if ball != null else "")
+		PowerCalibration.apply_calibration(data)
 	var target_dist := 0.0
 	var parent_scene = get_parent()
 	if parent_scene != null and "aim_target_pos" in parent_scene:

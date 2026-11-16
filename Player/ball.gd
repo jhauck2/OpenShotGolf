@@ -2,6 +2,7 @@ extends CharacterBody3D
 class_name GolfBall
 
 const RainPhysics = preload("res://Utils/rain_physics.gd")
+const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
 
 signal rest
 
@@ -34,6 +35,9 @@ var _shot_duration: float = 0.0
 var ball_model : PackedScene = preload("res://assets/models/balls/golf_ball.glb")
 var _ball_mesh: Node3D = null
 var _current_ball_graphic_id: String = "single_line"
+var _current_ball_type_id: String = BallTypePhysics.TYPE_STANDARD
+var _ball_type_bounce_retention: float = 1.0
+var _ball_type_spinback_mult: float = 1.0
 static var _ball_material_cache: Dictionary = {}
 var _tee_mesh: Node3D = null
 var current_selected_club: String = "Dr"
@@ -603,7 +607,7 @@ func _get_nearby_trees(pos: Vector3, max_dist: float) -> Array:
 		var group_trees := get_tree().get_nodes_in_group("trees")
 		for t in group_trees:
 			if t is Node3D and not trees.has(t):
-				if t.name == "ConsolidatedFoliageCollision":
+				if t.name == "ConsolidatedFoliageCollision" or not t.is_visible_in_tree():
 					continue
 				var t_scale: float = 1.0
 				if "scale" in t:
@@ -964,6 +968,7 @@ func _create_physics_params():
 		if created_params != null:
 			params = created_params
 			_set_openfairway_property(params, &"slope_force_scale", &"SlopeForceScale", slope_force_scale)
+			_apply_surface_params()
 			return
 
 	var _params = _new_openfairway(&"PhysicsParams")
@@ -1066,8 +1071,13 @@ func _apply_surface_params() -> void:
 	_kinetic_friction = float(surface_params.get("u_k", 0.30)) * _kinetic_mult
 	_rolling_friction = float(surface_params.get("u_kr", 0.085)) * _rolling_mult
 	
-	# Determine green speed scaling exponent based on surface type
+	# Determine green speed scaling exponent based on surface type.
+	# Only GREEN uses the shifted effective green speed (where default 10.0 -> 5.0);
+	# fairway/rough/other surfaces scale around the raw 10.0 baseline so default fairway
+	# friction matches SurfacePhysicsCatalog (0.165) instead of exceeding rough (0.175).
 	var green_speed = float(GlobalSettings.get_effective_green_speed())
+	if surface_type != PhysicsEnums.SurfaceType.GREEN and GlobalSettings.range_settings != null and "green_speed" in GlobalSettings.range_settings:
+		green_speed = float(GlobalSettings.range_settings.green_speed.value)
 	var exponent := 0.0
 	if is_in_sand or surface_type == PhysicsEnums.SurfaceType.BUNKER:
 		exponent = 0.0
@@ -1095,7 +1105,7 @@ func _apply_surface_params() -> void:
 		_rolling_friction *= RainPhysics.RAIN_FRICTION_MULTIPLIER
 		_grass_viscosity *= RainPhysics.RAIN_FRICTION_MULTIPLIER
 	_critical_angle = float(surface_params.get("theta_c", 0.25)) * _critical_mult
-	_spinback_response_scale = float(surface_params.get("spinback_response_scale", 0.69))
+	_spinback_response_scale = float(surface_params.get("spinback_response_scale", 0.69)) * _ball_type_spinback_mult
 	_spinback_theta_boost_max = float(surface_params.get("spinback_theta_boost_max", 0.0))
 	_spinback_spin_start_rpm = float(surface_params.get("spinback_spin_start_rpm", 0.0))
 	_spinback_spin_end_rpm = float(surface_params.get("spinback_spin_end_rpm", 0.0))
@@ -1103,6 +1113,10 @@ func _apply_surface_params() -> void:
 	_spinback_speed_end_mps = float(surface_params.get("spinback_speed_end_mps", 0.0))
 
 	if params != null:
+		_set_openfairway_property(params, &"kinetic_friction", &"KineticFriction", _kinetic_friction)
+		_set_openfairway_property(params, &"rolling_friction", &"RollingFriction", _rolling_friction)
+		_set_openfairway_property(params, &"grass_viscosity", &"GrassViscosity", _grass_viscosity)
+		_set_openfairway_property(params, &"critical_angle", &"CriticalAngle", _critical_angle)
 		_set_openfairway_property(params, &"spinback_response_scale", &"SpinbackResponseScale", _spinback_response_scale)
 		_set_openfairway_property(params, &"spinback_theta_boost_max", &"SpinbackThetaBoostMax", _spinback_theta_boost_max)
 		_set_openfairway_property(params, &"spinback_spin_start_rpm", &"SpinbackSpinStartRpm", _spinback_spin_start_rpm)
@@ -1618,7 +1632,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _check_out_of_bounds() -> bool:
-	if absf(position.x) > 3000.0 or absf(position.z) > 3000.0:
+	if absf(position.x - shot_start_pos.x) > 3000.0 or absf(position.z - shot_start_pos.z) > 3000.0:
 		print("WARNING: Ball out of bounds at: ", position)
 		_enter_rest_state()
 		return true
@@ -1829,6 +1843,12 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 						var b_norm := velocity.dot(normal)
 						var b_tang := velocity - (normal * b_norm)
 						velocity = (normal * b_norm * RainPhysics.RAIN_BOUNCE_RETENTION) + (b_tang * RainPhysics.RAIN_BOUNCE_RETENTION)
+
+					# Ball type bounce retention (Soft dampens bounce/rollout, Distance livens bounce/rollout)
+					if not is_putt and absf(_ball_type_bounce_retention - 1.0) > 0.0001:
+						var bt_norm := velocity.dot(normal)
+						var bt_tang := velocity - (normal * bt_norm)
+						velocity = (normal * bt_norm * _ball_type_bounce_retention) + (bt_tang * _ball_type_bounce_retention)
 
 				print("  Velocity after bounce: ", velocity, " (%.2f m/s)" % velocity.length())
 				var normal_velocity := velocity.dot(normal)
@@ -2628,6 +2648,8 @@ func hit_from_data(data: Dictionary) -> void:
 	shot_was_from_teebox = _check_is_on_teebox()
 	
 	RainPhysics.apply_rain_shot_reduction(data)
+	BallTypePhysics.apply_ball_type_to_shot_data(data, _current_ball_type_id, str(data.get("Club", data.get("club", current_selected_club))))
+	PowerCalibration.apply_calibration(data)
 	var speed_mph: float = float(data.get("BallSpeed", data.get("Speed", 0.0)))
 	var raw_ball_speed := speed_mph
 	data["RawBallSpeed"] = raw_ball_speed
@@ -2852,6 +2874,8 @@ func hit_from_data(data: Dictionary) -> void:
 				[params, _air_density, _air_viscosity, _drag_scale, _lift_scale, vla_deg, speed_mph, total_spin, is_putt, lateral_curve_scale]
 			)
 		else:
+			_set_openfairway_property(params, &"drag_scale", &"DragScale", _drag_scale)
+			_set_openfairway_property(params, &"lift_scale", &"LiftScale", _lift_scale)
 			_set_openfairway_property(params, &"initial_launch_angle_deg", &"InitialLaunchAngleDeg", vla_deg)
 			_set_openfairway_property(params, &"is_putt", &"IsPutt", is_putt)
 			_set_openfairway_property(params, &"lateral_curve_scale", &"LateralCurveScale", lateral_curve_scale)
@@ -3291,6 +3315,31 @@ func _orient_ball_to_aim() -> void:
 		t.basis = target_basis
 		_ball_mesh.global_transform = t
 
+
+
+func apply_ball_type(ball_type_id: String) -> void:
+	var prev_drag := _drag_scale
+	var prev_lift := _lift_scale
+	_current_ball_type_id = BallTypePhysics.normalize_ball_type(ball_type_id)
+	_drag_scale = BallTypePhysics.get_drag_scale_multiplier(_current_ball_type_id)
+	_lift_scale = BallTypePhysics.get_lift_scale_multiplier(_current_ball_type_id)
+	var friction_mult := BallTypePhysics.get_friction_multiplier(_current_ball_type_id)
+	_kinetic_mult = friction_mult
+	_rolling_mult = friction_mult
+	_ball_type_bounce_retention = BallTypePhysics.get_bounce_retention_multiplier(_current_ball_type_id)
+	_ball_type_spinback_mult = BallTypePhysics.get_spinback_multiplier(_current_ball_type_id)
+	_apply_surface_params()
+	if params != null:
+		if absf(prev_drag) > 0.0001:
+			var cur_p_drag := float(_get_openfairway_property(params, &"drag_scale", &"DragScale", prev_drag))
+			_set_openfairway_property(params, &"drag_scale", &"DragScale", cur_p_drag * (_drag_scale / prev_drag))
+		if absf(prev_lift) > 0.0001:
+			var cur_p_lift := float(_get_openfairway_property(params, &"lift_scale", &"LiftScale", prev_lift))
+			_set_openfairway_property(params, &"lift_scale", &"LiftScale", cur_p_lift * (_lift_scale / prev_lift))
+
+
+func get_ball_type() -> String:
+	return _current_ball_type_id
 
 
 func apply_ball_graphic(graphic_id: String, avatar_path: String = "", player_name: String = "", player_color: Color = Color(0.24, 0.46, 0.72)) -> void:

@@ -1,5 +1,7 @@
 extends Node
 
+const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
+
 signal active_player_changed(player: Dictionary)
 signal hole_completed(scores: Array)
 signal game_over(scores: Array)
@@ -10,6 +12,7 @@ signal distance_queue_updated()
 signal shot_recorded(player: Dictionary, shot_data: Dictionary)
 signal club_averages_tracking_toggled(enabled: bool)
 signal player_ball_graphic_changed(player_name: String, ball_graphic: String)
+signal player_ball_type_changed(player_name: String, ball_type: String)
 signal player_tee_changed(player_index: int, player_name: String, new_tee: String)
 
 var last_gimme_strokes: int = 0
@@ -157,6 +160,7 @@ func setup_game(player_configs: Array, config_data: Dictionary, p_scene_path: St
 		var p_skill = config.get("skill_level", reg.get("skill_level", "mid_handicap"))
 		var p_handedness = int(config.get("handedness", reg.get("handedness", 0)))
 		var p_ball_graphic = config.get("ball_graphic", reg.get("ball_graphic", "single_line"))
+		var p_ball_type = BallTypePhysics.normalize_ball_type(config.get("ball_type", reg.get("ball_type", BallTypePhysics.TYPE_STANDARD)))
 
 		var p_owner_uid: String = str(config.get("owner_uid", ""))
 		var p_cloud_uid: String = str(config.get("cloud_uid", ""))
@@ -175,6 +179,7 @@ func setup_game(player_configs: Array, config_data: Dictionary, p_scene_path: St
 			"email": p_email,
 			"avatar": p_avatar,
 			"ball_graphic": p_ball_graphic,
+			"ball_type": p_ball_type,
 			"bag": p_bag,
 			"skill_level": p_skill,
 			"handedness": p_handedness,
@@ -208,7 +213,7 @@ func setup_game(player_configs: Array, config_data: Dictionary, p_scene_path: St
 		}
 		players.append(p)
 		if not p.get("is_remote", false):
-			register_player(p_name, p_email, p_avatar, p_bag, config.get("tee", "Blue"), p_skill, p_handedness, p_ball_graphic)
+			register_player(p_name, p_email, p_avatar, p_bag, config.get("tee", "Blue"), p_skill, p_handedness, p_ball_graphic, p_ball_type)
 		skins_won[p_name] = 0
 		
 	course_title = config_data.get("Title", "")
@@ -2062,6 +2067,8 @@ func add_new_player_with_mode(player_name: String, tee_color: String, mode: Stri
 	var p_email = reg.get("email", "")
 	var p_avatar = reg.get("avatar", "")
 	var p_handedness = int(reg.get("handedness", 0))
+	var p_ball_graphic = str(reg.get("ball_graphic", "single_line"))
+	var p_ball_type = get_player_ball_type(player_name)
 
 	var p := {
 		"name": player_name,
@@ -2083,6 +2090,8 @@ func add_new_player_with_mode(player_name: String, tee_color: String, mode: Stri
 		"email": p_email,
 		"avatar": p_avatar,
 		"handedness": p_handedness,
+		"ball_graphic": p_ball_graphic,
+		"ball_type": p_ball_type,
 		"color": player_colors[players.size() % player_colors.size()],
 		"mulligan_history": {},
 		"last_shot_tracer_points": [],
@@ -2096,7 +2105,7 @@ func add_new_player_with_mode(player_name: String, tee_color: String, mode: Stri
 	
 	if mode == "catch_up" and current_hole_index > 0:
 		players.append(p)
-		register_player(player_name, p_email, p_avatar, [], "", "mid_handicap", p_handedness)
+		register_player(player_name, p_email, p_avatar, [], "", "mid_handicap", p_handedness, p_ball_graphic, p_ball_type)
 		print("[MultiplayerManager] Added player %s mid-game in catch-up mode." % player_name)
 		start_catch_up_mode(p, 0, current_hole_index, false)
 		recalculate_turn_order()
@@ -2118,7 +2127,7 @@ func add_new_player_with_mode(player_name: String, tee_color: String, mode: Stri
 			p["last_starting_pos"] = p["position"]
 			
 		players.append(p)
-		register_player(player_name, p_email, p_avatar, [], "", "mid_handicap", p_handedness)
+		register_player(player_name, p_email, p_avatar, [], "", "mid_handicap", p_handedness, p_ball_graphic, p_ball_type)
 		print("[MultiplayerManager] Added new player mid-game: %s on hole %d" % [player_name, get_current_hole_number()])
 		save_current_match()
 		recalculate_turn_order()
@@ -2617,6 +2626,12 @@ const AVAILABLE_BALL_GRAPHICS: Array[Dictionary] = [
 	{"id": "player_icon", "name": "Match Player Icon", "desc": "Stamps your selected player avatar/icon on the ball"}
 ]
 
+const AVAILABLE_BALL_TYPES: Array[Dictionary] = [
+	{"id": "standard", "name": "Standard Ball", "short_name": "Standard", "desc": "Balanced flight, spin, and rollout (Default)"},
+	{"id": "soft", "name": "Soft Ball", "short_name": "Soft", "desc": "Higher spin and greenside bite with less rollout and slightly less distance"},
+	{"id": "distance", "name": "Distance Ball", "short_name": "Distance", "desc": "Firmer construction for extra carry distance and rollout with lower spin"}
+]
+
 const PREFERRED_TEE_OPTIONS: Array[String] = ["Blue", "Red", "White", "Black", "Gold"]
 
 static func get_tee_position_from_boxes(tee_boxes: Dictionary, tee_color: String) -> Array:
@@ -2814,6 +2829,7 @@ static func _recover_orphaned_stats_profiles(result: Array[Dictionary]) -> bool:
 			"avatar": "",
 			"handedness": 0,
 			"ball_graphic": "single_line",
+			"ball_type": BallTypePhysics.TYPE_STANDARD,
 			"bag": bag,
 			"cloud_uid": "",
 			"link_role": "none",
@@ -3092,7 +3108,7 @@ static func get_registered_player(player_name: String) -> Dictionary:
 			return p
 	return {}
 
-func update_player_profile(player_name: String, email: String, avatar: String, preferred_tee: String = "", skill_level: String = "mid_handicap", handedness: int = 0, ball_graphic: String = "single_line") -> bool:
+func update_player_profile(player_name: String, email: String, avatar: String, preferred_tee: String = "", skill_level: String = "mid_handicap", handedness: int = 0, ball_graphic: String = "single_line", ball_type: String = "") -> bool:
 	var registered = get_registered_players()
 	for p in registered:
 		if p.get("name", "").to_lower() == player_name.to_lower():
@@ -3102,6 +3118,10 @@ func update_player_profile(player_name: String, email: String, avatar: String, p
 			p["skill_level"] = skill_level.strip_edges() if not skill_level.is_empty() else "mid_handicap"
 			p["handedness"] = handedness
 			p["ball_graphic"] = ball_graphic.strip_edges() if not ball_graphic.is_empty() else "single_line"
+			if not ball_type.is_empty():
+				p["ball_type"] = BallTypePhysics.normalize_ball_type(ball_type)
+			else:
+				p["ball_type"] = BallTypePhysics.normalize_ball_type(p.get("ball_type", BallTypePhysics.TYPE_STANDARD))
 			save_registered_players(registered)
 			# Update actively playing participants if this player is in match
 			for pl in players:
@@ -3111,10 +3131,12 @@ func update_player_profile(player_name: String, email: String, avatar: String, p
 					pl["skill_level"] = p["skill_level"]
 					pl["handedness"] = handedness
 					pl["ball_graphic"] = p["ball_graphic"]
+					pl["ball_type"] = p["ball_type"]
 			var cur_p = get_active_player()
 			if not cur_p.is_empty() and cur_p.get("name", "").to_lower() == player_name.to_lower():
 				_sync_launch_monitor_for_player(cur_p)
 			emit_signal("player_ball_graphic_changed", player_name, p["ball_graphic"])
+			emit_signal("player_ball_type_changed", player_name, p["ball_type"])
 			if has_node("/root/CloudSync"):
 				get_node("/root/CloudSync").call("mark_profile_dirty", player_name)
 			return true
@@ -3128,6 +3150,37 @@ func get_player_ball_graphic(player_name: String) -> String:
 	if bg.is_empty() or bg == "osg_pro" or bg == "classic_white" or bg == "tour_yellow" or bg == "neon_orange":
 		bg = "single_line"
 	return bg
+
+func get_player_ball_type(player_name: String) -> String:
+	var p = get_registered_player(player_name)
+	if p.is_empty():
+		p = get_player_by_name(player_name)
+	return BallTypePhysics.normalize_ball_type(p.get("ball_type", BallTypePhysics.TYPE_STANDARD))
+
+func get_player_ball_type_name(player_name: String) -> String:
+	return BallTypePhysics.id_to_display_name(get_player_ball_type(player_name))
+
+func set_player_ball_type(player_name: String, ball_type: String) -> bool:
+	if player_name.is_empty():
+		return false
+	var normalized := BallTypePhysics.normalize_ball_type(ball_type)
+	var registered = get_registered_players()
+	var found := false
+	for p in registered:
+		if p.get("name", "").to_lower() == player_name.to_lower():
+			p["ball_type"] = normalized
+			save_registered_players(registered)
+			found = true
+			break
+	for pl in players:
+		if pl.get("name", "").to_lower() == player_name.to_lower():
+			pl["ball_type"] = normalized
+			break
+	if found:
+		emit_signal("player_ball_type_changed", player_name, normalized)
+		if has_node("/root/CloudSync"):
+			get_node("/root/CloudSync").call("mark_profile_dirty", player_name)
+	return found
 
 func get_player_skill_level(player_name: String) -> String:
 	var p = get_registered_player(player_name)
@@ -3213,7 +3266,7 @@ func set_player_bag(player_name: String, bag: Array) -> bool:
 		get_node("/root/CloudSync").call("mark_profile_dirty", player_name)
 	return found
 
-func register_player(player_name: String, email: String = "", avatar: String = "", bag: Array = [], preferred_tee: String = "", skill_level: String = "mid_handicap", handedness: int = 0, ball_graphic: String = "single_line") -> void:
+func register_player(player_name: String, email: String = "", avatar: String = "", bag: Array = [], preferred_tee: String = "", skill_level: String = "mid_handicap", handedness: int = 0, ball_graphic: String = "single_line", ball_type: String = "") -> void:
 	if player_name.is_empty():
 		return
 	var registered = get_registered_players()
@@ -3241,6 +3294,11 @@ func register_player(player_name: String, email: String = "", avatar: String = "
 			if not ball_graphic.is_empty() and p.get("ball_graphic", "single_line") != ball_graphic:
 				p["ball_graphic"] = ball_graphic.strip_edges()
 				changed = true
+			if not ball_type.is_empty():
+				var normalized_bt := BallTypePhysics.normalize_ball_type(ball_type)
+				if p.get("ball_type", BallTypePhysics.TYPE_STANDARD) != normalized_bt:
+					p["ball_type"] = normalized_bt
+					changed = true
 			if changed:
 				save_registered_players(registered)
 				if has_node("/root/CloudSync"):
@@ -3257,6 +3315,7 @@ func register_player(player_name: String, email: String = "", avatar: String = "
 		"skill_level": skill_level.strip_edges() if not skill_level.is_empty() else "mid_handicap",
 		"handedness": handedness,
 		"ball_graphic": ball_graphic.strip_edges() if not ball_graphic.is_empty() else "single_line",
+		"ball_type": BallTypePhysics.normalize_ball_type(ball_type),
 		"created_at": Time.get_unix_time_from_system(),
 		"cloud_uid": "",
 		"link_role": "none",
