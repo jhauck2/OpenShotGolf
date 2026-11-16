@@ -217,6 +217,23 @@ func _process(_delta: float) -> bool:
 
 	print("  PASS: Dynamic graphics quality switching seamlessly adds/removes trees, bushes, and colliders on Low/Medium/High.")
 
+	# Test 6: Applying quality from parent root (simulating in-game Visuals Menu toggle) must also disable nested trunk & canopy colliders
+	print("\n--- Test 6: Parent Root Quality Scaling ---")
+	MobilePerformance.apply_graphics_quality(root, "Low")
+	var root_disabled_trunk := 0
+	for cs in static_col.get_children():
+		if cs is CollisionShape3D and cs.disabled:
+			root_disabled_trunk += 1
+	assert(root_disabled_trunk == disabled_low_count, "Applying Low from /root must disable higher-tier trunk colliders")
+	var canopy_area := course_scene.get_node_or_null("ConsolidatedCanopyArea")
+	assert(canopy_area != null, "ConsolidatedCanopyArea must exist")
+	var root_disabled_canopy := 0
+	for cs in canopy_area.get_children():
+		if cs is CollisionShape3D and cs.disabled:
+			root_disabled_canopy += 1
+	assert(root_disabled_canopy == disabled_low_count, "Applying Low from /root must disable higher-tier canopy colliders")
+	print("  PASS: Parent root quality scaling properly disables nested trunk & canopy colliders.")
+
 	# Cleanup
 	mock_scene.free()
 	course_scene.free()

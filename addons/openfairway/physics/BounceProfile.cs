@@ -51,10 +51,10 @@ public sealed class BounceProfile
     {
         Name = "Fairway",
         Version = "1.0",
-        FlightTangentialRetentionBase = 0.50f,
-        ShallowImpactRetentionMin = 0.55f,
-        ShallowImpactRetentionMax = 0.72f,
-        RolloutLowSpinRetention = 0.78f,
+        FlightTangentialRetentionBase = 0.64f,
+        ShallowImpactRetentionMin = 0.62f,
+        ShallowImpactRetentionMax = 0.78f,
+        RolloutLowSpinRetention = 0.85f,
         RolloutHighSpinRetention = 0.62f
     };
 

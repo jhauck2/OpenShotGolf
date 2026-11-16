@@ -406,7 +406,8 @@ func _add_player_ui(p_name: String, tee: String = "") -> void:
 			resolved_tee = "Blue"
 	var hand = MultiplayerManager.get_player_handedness(p_name)
 	var bg = MultiplayerManager.get_player_ball_graphic(p_name)
-	var player_data = {"name": p_name, "tee": resolved_tee, "avatar": avatar_path, "email": email, "handedness": hand, "ball_graphic": bg}
+	var bt = MultiplayerManager.get_player_ball_type(p_name) if MultiplayerManager.has_method("get_player_ball_type") else "standard"
+	var player_data = {"name": p_name, "tee": resolved_tee, "avatar": avatar_path, "email": email, "handedness": hand, "ball_graphic": bg, "ball_type": bt}
 	players_to_add.append(player_data)
 	
 	var row = HBoxContainer.new()

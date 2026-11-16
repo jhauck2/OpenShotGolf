@@ -5,11 +5,11 @@ public static class SurfacePhysicsCatalog
 {
     private static readonly SurfacePhysicsSettings Fairway = new(
         PhysicsEnums.SurfaceType.Fairway,
-        kineticFriction: 0.48f,
-        rollingFriction: 0.165f,
+        kineticFriction: 0.40f,
+        rollingFriction: 0.132f,
         grassViscosity: 0.0014f,
         criticalAngle: 0.285f,
-        spinbackResponseScale: 0.65f,
+        spinbackResponseScale: 0.99f,
         spinbackThetaBoostMax: 0.0f,
         spinbackSpinStartRpm: 0.0f,
         spinbackSpinEndRpm: 0.0f,

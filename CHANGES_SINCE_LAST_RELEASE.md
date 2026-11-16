@@ -1,4 +1,24 @@
 ### New Features
+- Added a **Power Calibration** slider (`-10%` to `+10%`, defaulting to `0%`) under **Settings → Gameplay** so players can fine-tune launch monitor ball speed if their monitor reads consistently high or low.
+- Added selectable **Golf Ball Type** options (`Standard Ball`, `Soft Ball`, and `Distance Ball`) in player profiles (Create Profile, Edit Profile, and Profile Details) so your chosen ball carries across courses, the driving range, minigames, and launch monitor play.
+- `Standard Ball` remains the default and preserves existing ball physics unchanged; `Soft Ball` adds a touch more spin and spinback response with slightly higher launch drag and reduced rollout for extra stopping power; `Distance Ball` delivers slightly faster ball speed, lower spin, and increased rollout for maximum yardage.
+- Expanded the **Online Player Profile Improvement Analytics** tab with deeper telemetry details (launch angle, total spin rate, ball/club head speeds, total distance and rollout, and toe/heel/high/low face strike bias) plus an interactive **"Drills to Work On"** option that surfaces targeted practice drills for the issues detected in your shot data.
+- Made **Swing Analysis & Recommendations** issues on the Online Player Profile interactive: you can now select any issue from Current Month, All-Time, Prior Months history, or the issue dropdown to view what is happening, how it affects ball flight, step-by-step fix instructions, recommended practice drills, and video tutorials.
+
+### Improvements
+- Upgraded the **Closest to Pin** minigame to match the **Driving Range** on High graphics: added dynamic **Sky3D** sky, sun lighting, and atmospheric haze; replaced the legacy tee box with the natural outdoor **driving range hitting bays**; and enabled the High-fidelity realistic turf shader, swaying 3D trees, and desktop lighting/shadows.
+- Upgraded the **Putting Practice** minigame to use High-fidelity graphics: dynamic **Sky3D** sky and lighting, realistic volumetric **3D trees**, championship bentgrass green mowing stripes with full PBR textures, lush rough grass shading, and a 360° distant mountain backdrop with extended surrounding terrain.
+- Updated **Putting Practice** hole markers so flags appear in all non-target holes while the active hole you are putting toward has its flag removed and is highlighted by the glowing target ring.
+- Refreshed the **Chipping Practice** minigame with a distant-horizon 360° lakeside golf course panorama backdrop, dynamic **Sky3D** sky and clouds, animated reflective lake water, an organic grassy teeing peninsula with high-resolution PBR grass textures, rock shoreline, and tee markers, and cleaner island greens with better-proportioned trees, flowering shrubs, and a sleek target ring so flags and greens stay clearly visible.
+- Overhauled the **Fade / Draw (Shape Practice)** minigame visuals: replaced the flat barrier walls with realistic weathered concrete paneled walls featuring world-space concrete grain, recessed slab joints, base plinths, two-tier coping cornices, vertical pilasters, gate pillars with pennant flags, and clearly positioned `WALL XXX YD` signs; upgraded the ground and tee box to high-resolution PBR turf textures with triplanar world-space tiling, mowing stripes, and a flush mowed rough collar; and added a distant horizon tree line and mountain backdrop with atmospheric haze.
+- Upgraded the **Loft Control / Tic-Tac-Toe** minigame visuals so you no longer hit into an empty void: added sculpted rolling green hills with Course Play's High-quality 2048px fairway and rough textures and realistic striped turf shader, Course Play's high-quality volumetric 3D range trees, a distant mountain horizon, crisp yardage lines, a framed hitting mat with tee markers, and a sleek dark-steel 3x3 target frame with base anchor feet, rear support struts, and glossy sky-reflective glass panes.
+
+### Bug Fixes
+- Fixed fairway and rough rollout friction so default fairway roll distances are no longer slowed down by the green speed recalibration multiplier (keeping fairway roll faster than rough and aligned with standard club rollout).
+- Fixed an issue on Low graphics quality ("minimum trees") where hidden higher-tier trees and canopies could still collide with the golf ball after switching quality in-game or loading converted courses.
+- Fixed an issue on large downloaded courses where tee shots starting far from the course origin could falsely trigger out-of-bounds immediately on the tee, leaving the ball on the tee.
+
+### Shot Data Analysis & Tee-Shot View
 - Open a movable Shot Data Analysis window from beside the Stats button. Review launch monitor readings in editable player-and-club groups, rename or create groups, move shots between groups, and exclude individual shots from group averages.
 - Compare best-shot or group-average flight paths and view color-matched landing dispersion, with excluded shots still visible in a dimmed style.
 - Keep using the range controls while Shot Data Analysis is open; its window no longer blocks interaction with the main screen.
@@ -40,3 +60,6 @@
 - Turn the tee-shot overhead view on or off from Course Play’s Immersion Menu.
 - Show the course on the left and the overhead tee-shot flight view on the right during tee shots.
 - Fixed a script parsing issue when reading the overhead tee-shot setting.
+- Set the **Tee Shot View** toggle in Course Play’s Immersion Menu to **OFF** by default; once you enable or change it, your preference is saved and remembered for future sessions.
+- Added a **Pop Out / Dock** option to the **Tee Shot Flight View** so desktop players can detach the shot view camera into its own draggable, resizable window (including on a second monitor). Once popped out, it stays open between shots and remembers both its popped-out state and window position/size across holes and sessions until you dock or close it.
+- Added a bright, gently bobbing overhead 3D arrow pointing down at the center of the bullseye in **Closest to Pin** so the target is easy to spot from any yardage.

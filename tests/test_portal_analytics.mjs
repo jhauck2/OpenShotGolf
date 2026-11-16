@@ -164,4 +164,26 @@ console.log("=== Running Player Portal Analytics Tests ===");
   console.log("✓ Coaching insights generation passed");
 }
 
+// 8. Test Extended Data Analysis Telemetry (Launch, Spin, Total/Roll, Strike Bias, Drill Links)
+{
+  const mockShots = [
+    { t: 1, c: 200, tot: 215, sd: 2, fa: 0.5, cp: -0.5, cs: 95, bs: 138, vla: 13.0, sp: 2400, hi: 2.0, vi: 1.0 },
+    { t: 2, c: 204, tot: 220, sd: 1, fa: 0.2, cp: -0.2, cs: 96, bs: 140, vla: 13.4, sp: 2350, hi: 1.0, vi: 0.5 },
+    { t: 3, c: 195, tot: 205, sd: 16, fa: 4.2, cp: -4.0, cs: 95, bs: 132, vla: 10.5, sp: 3800, hi: 8.5, vi: -4.5 },
+    { t: 4, c: 192, tot: 202, sd: 18, fa: 4.8, cp: -4.5, cs: 95, bs: 130, vla: 10.2, sp: 3950, hi: 9.0, vi: -5.0 }
+  ].map((raw, idx) => normalizeShot(raw, idx + 1));
+
+  const analytics = computeImprovementAnalytics(mockShots, "all");
+  assert.ok(analytics.recent.avgVla != null, "Should compute recent avgVla");
+  assert.ok(analytics.recent.avgSpin != null, "Should compute recent avgSpin");
+  assert.ok(analytics.recent.avgTotalYds > analytics.recent.avgCarry, "Should compute avgTotalYds and rollout");
+  assert.ok(analytics.recent.avgHi > 5, "Should compute horizontal strike bias");
+  assert.ok(analytics.speed.ballSpeedDelta < 0, "Should compute ballSpeedDelta");
+
+  const insights = generateCoachingInsights(analytics);
+  const issueInsights = insights.filter(i => i.issueKey);
+  assert.ok(issueInsights.length >= 2, "Should flag multiple issues with drill issueKeys");
+  console.log("✓ Extended data analysis & drill-linked insights passed");
+}
+
 console.log("\nALL ANALYTICS TESTS PASSED SUCCESSFULLY! 🎉");

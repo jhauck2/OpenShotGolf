@@ -5,6 +5,7 @@ const FlagBuilder = preload("res://Courses/Range/flag_builder.gd")
 const AimDistanceIndicator = preload("res://UI/aim_distance_indicator.gd")
 const WeatherLightingController = preload("res://Courses/Range/weather_lighting_controller.gd")
 const RainPhysics = preload("res://Utils/rain_physics.gd")
+const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
 
 var track_points : bool = false
 var trail_timer : float = 0.0
@@ -1956,7 +1957,15 @@ func _on_tcp_client_hit_ball(data: Dictionary) -> void:
 		print("[Range] Practice swing or 0 ball speed ignored.")
 		return
 	RainPhysics.apply_rain_shot_reduction(data)
+	var range_ball_type := ""
+	if has_node("Player") and $Player.ball != null and $Player.ball.has_method("get_ball_type"):
+		range_ball_type = $Player.ball.get_ball_type()
+	var range_club := str(data.get("Club", data.get("club", "")))
+	if range_club.is_empty() and has_node("Player") and $Player.ball != null:
+		range_club = $Player.ball.current_selected_club
+	BallTypePhysics.apply_ball_type_to_shot_data(data, range_ball_type, range_club)
 	FoamBallBoost.apply_boost(data)
+	PowerCalibration.apply_calibration(data)
 	if has_node("Player"):
 		$Player._on_tcp_client_hit_ball(data)
 		

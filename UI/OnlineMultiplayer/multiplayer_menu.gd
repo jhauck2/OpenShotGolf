@@ -623,7 +623,8 @@ func _populate_players() -> void:
 			"preferred_tee": "Blue",
 			"avatar": "",
 			"handedness": 0,
-			"ball_graphic": "single_line"
+			"ball_graphic": "single_line",
+			"ball_type": "standard"
 		})
 
 	for p in _registered_players:

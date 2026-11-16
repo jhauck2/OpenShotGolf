@@ -1991,3 +1991,358 @@ input:checked + .slider:before {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Interactive Swing Issue Selection, Fix Details & Practice Drills ─── */
+.swing-flaw-card.is-selectable {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.swing-flaw-card.is-selectable:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(56, 189, 248, 0.06);
+}
+.swing-flaw-card.is-selectable.is-selected {
+  border-color: var(--blue);
+  background: rgba(56, 189, 248, 0.12);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.swing-pill.is-selectable {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.swing-pill.is-selectable:hover {
+  border-color: var(--blue);
+  transform: translateY(-1px);
+}
+.swing-pill.is-selectable.is-selected {
+  border-color: var(--blue);
+  background: rgba(56, 189, 248, 0.16);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.swing-selector-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+}
+.swing-selector-bar label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.swing-issue-select {
+  min-width: 240px;
+  flex: 1 1 260px;
+}
+.swing-selector-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.swing-detail-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.68));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.swing-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.85rem;
+}
+.swing-detail-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.swing-category-badge {
+  display: inline-block;
+  width: fit-content;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+}
+.swing-detail-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+.swing-detail-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.swing-detail-count-pill {
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+}
+.swing-detail-count-pill strong {
+  color: var(--text);
+}
+.swing-detail-count-pill.all-time strong {
+  color: #fde047;
+}
+
+.swing-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+.swing-detail-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+.swing-detail-box.fix-box {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(34, 197, 94, 0.06);
+}
+.swing-detail-box h5 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.45rem 0;
+}
+.swing-detail-box p {
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.swing-detail-effect {
+  margin-top: 0.5rem !important;
+  color: #cbd5e1 !important;
+}
+
+.swing-detail-drills-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.swing-detail-drills-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+}
+.swing-detail-drills-header h5 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #4ade80;
+  margin: 0;
+}
+
+.swing-drills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+.swing-drill-card {
+  background: var(--bg);
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  border-radius: 10px;
+  padding: 0.95rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.swing-drill-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.swing-drill-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.swing-drill-reps {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #fde047;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  white-space: nowrap;
+}
+.swing-drill-row {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.swing-drill-row strong,
+.swing-drill-goal strong {
+  color: var(--text);
+}
+.swing-drill-steps {
+  margin: 0.15rem 0 0.15rem 1.15rem;
+  padding: 0;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  line-height: 1.48;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.swing-drill-goal {
+  font-size: 0.8rem;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  margin-top: auto;
+}
+
+.btn-video-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-video-link:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+/* Analytics Coaching & Drills Option */
+.analytics-coaching-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+.coaching-body {
+  flex: 1;
+}
+.coaching-body-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.coaching-body-top h4 {
+  margin-bottom: 0;
+}
+.btn-drill-inline {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 999px;
+  padding: 0.22rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-drill-inline:hover {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: #4ade80;
+}
+
+.analytics-drills-panel {
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.analytics-drills-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.analytics-drills-panel-header h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4ade80;
+  margin: 0 0 0.2rem 0;
+}
+.analytics-drills-panel-header p {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0;
+}
+.analytics-drills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.analytics-drill-issue-group {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.analytics-drill-issue-group.is-highlighted {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35);
+}
+.analytics-drill-issue-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.analytics-drill-issue-header strong {
+  font-size: 0.96rem;
+  color: var(--text);
+  margin-right: auto;
+}
+.analytics-drill-fix {
+  font-size: 0.83rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+.analytics-drill-fix strong {
+  color: var(--text);
+}

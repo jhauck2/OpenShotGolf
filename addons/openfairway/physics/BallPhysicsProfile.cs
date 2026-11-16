@@ -134,48 +134,52 @@ public sealed class BallPhysicsProfile
             ["C-S0-V4-P3"] = new() { DragScaleMultiplier = 0.65f, LiftScaleMultiplier = 1.25f },
 
             // Slow iron S1a (60-72 mph): larger systematic under-carry, more aggressive corrections
-            ["I-S1a-V0-P1"] = new() { DragScaleMultiplier = 0.94f, LiftScaleMultiplier = 1.04f },
-            ["I-S1a-V2-P1"] = new() { DragScaleMultiplier = 0.80f, LiftScaleMultiplier = 1.14f },
-            ["I-S1a-V2-P2"] = new() { DragScaleMultiplier = 0.82f, LiftScaleMultiplier = 1.13f },
-            ["I-S1a-V2-P3"] = new() { DragScaleMultiplier = 0.82f, LiftScaleMultiplier = 1.12f },
-            ["I-S1a-V3-P2"] = new() { DragScaleMultiplier = 0.79f, LiftScaleMultiplier = 1.14f },
-            ["I-S1a-V3-P3"] = new() { DragScaleMultiplier = 0.94f, LiftScaleMultiplier = 1.04f },
-            ["I-S1a-V1-P2"] = new() { DragScaleMultiplier = 0.92f, LiftScaleMultiplier = 1.05f },
+            ["I-S1a-V0-P1"] = new() { DragScaleMultiplier = 0.83f, LiftScaleMultiplier = 1.04f },
+            ["I-S1a-V2-P1"] = new() { DragScaleMultiplier = 0.71f, LiftScaleMultiplier = 1.14f },
+            ["I-S1a-V2-P2"] = new() { DragScaleMultiplier = 0.73f, LiftScaleMultiplier = 1.13f },
+            ["I-S1a-V2-P3"] = new() { DragScaleMultiplier = 0.73f, LiftScaleMultiplier = 1.12f },
+            ["I-S1a-V3-P2"] = new() { DragScaleMultiplier = 0.70f, LiftScaleMultiplier = 1.14f },
+            ["I-S1a-V3-P3"] = new() { DragScaleMultiplier = 0.83f, LiftScaleMultiplier = 1.04f },
+            ["I-S1a-V1-P2"] = new() { DragScaleMultiplier = 0.82f, LiftScaleMultiplier = 1.05f },
 
             // Mid iron S1b (72-85 mph): smaller corrections
-            ["I-S1b-V0-P0"] = new() { DragScaleMultiplier = 0.97f, LiftScaleMultiplier = 1.02f },
-            ["I-S1b-V2-P2"] = new() { DragScaleMultiplier = 0.94f, LiftScaleMultiplier = 1.03f },
-            ["I-S1b-V2-P3"] = new() { DragScaleMultiplier = 0.97f, LiftScaleMultiplier = 1.01f },
-            ["I-S1b-V3-P2"] = new() { DragScaleMultiplier = 0.88f, LiftScaleMultiplier = 1.06f },
-            ["I-S1b-V3-P3"] = new() { DragScaleMultiplier = 0.97f, LiftScaleMultiplier = 1.02f },
-            ["I-S1b-V1-P2"] = new() { DragScaleMultiplier = 0.98f, LiftScaleMultiplier = 1.01f },
+            ["I-S1b-V0-P0"] = new() { DragScaleMultiplier = 0.86f, LiftScaleMultiplier = 1.02f },
+            ["I-S1b-V2-P2"] = new() { DragScaleMultiplier = 0.84f, LiftScaleMultiplier = 1.03f },
+            ["I-S1b-V2-P3"] = new() { DragScaleMultiplier = 0.86f, LiftScaleMultiplier = 1.01f },
+            ["I-S1b-V3-P2"] = new() { DragScaleMultiplier = 0.78f, LiftScaleMultiplier = 1.06f },
+            ["I-S1b-V3-P3"] = new() { DragScaleMultiplier = 0.86f, LiftScaleMultiplier = 1.02f },
+            ["I-S1b-V1-P2"] = new() { DragScaleMultiplier = 0.87f, LiftScaleMultiplier = 1.01f },
 
             // Wedge lob (launch > 30 deg, 60-72 mph): under-carry
             ["W-S1a-V3-P3"] = new() { DragScaleMultiplier = 0.83f, LiftScaleMultiplier = 1.10f },
 
             // Fast iron with high spin: over-carry
-            ["I-S3-V2-P3"] = new() { DragScaleMultiplier = 1.11f, LiftScaleMultiplier = 0.94f },
-            ["I-S3-V1-P2"] = new() { DragScaleMultiplier = 1.04f, LiftScaleMultiplier = 0.98f },
-            ["I-S2-V2-P3"] = new() { DragScaleMultiplier = 1.05f },
-            ["I-S2-V2-P4"] = new() { DragScaleMultiplier = 1.06f, LiftScaleMultiplier = 0.95f },
+            ["I-S3-V2-P3"] = new() { DragScaleMultiplier = 0.99f, LiftScaleMultiplier = 0.94f },
+            ["I-S3-V1-P2"] = new() { DragScaleMultiplier = 0.93f, LiftScaleMultiplier = 0.98f },
+            ["I-S2-V2-P3"] = new() { DragScaleMultiplier = 0.94f },
+            ["I-S2-V2-P4"] = new() { DragScaleMultiplier = 0.94f, LiftScaleMultiplier = 0.95f },
 
             // Mid-speed iron: over-carry clusters
-            ["I-S2-V1-P2"] = new() { DragScaleMultiplier = 1.03f, LiftScaleMultiplier = 0.99f },
-            ["I-S2-V0-P2"] = new() { DragScaleMultiplier = 1.06f, LiftScaleMultiplier = 0.96f },
+            ["I-S2-V1-P2"] = new() { DragScaleMultiplier = 0.92f, LiftScaleMultiplier = 0.99f },
+            ["I-S2-V0-P2"] = new() { DragScaleMultiplier = 0.94f, LiftScaleMultiplier = 0.96f },
 
             // Mid-speed iron: under-carry (very low spin)
-            ["I-S2-V1-P0"] = new() { DragScaleMultiplier = 0.96f, LiftScaleMultiplier = 1.03f },
+            ["I-S2-V1-P0"] = new() { DragScaleMultiplier = 0.85f, LiftScaleMultiplier = 1.03f },
 
             // Mid-speed iron: all short
-            ["I-S2-V1-P1"] = new() { DragScaleMultiplier = 0.97f, LiftScaleMultiplier = 1.02f },
+            ["I-S2-V1-P1"] = new() { DragScaleMultiplier = 0.86f, LiftScaleMultiplier = 1.02f },
 
-            // Driver regime: slight over-carry
-            ["D-S3-V1"] = new() { DragScaleMultiplier = 1.04f, LiftScaleMultiplier = 0.99f },
-            ["D-S4-V0-P1"] = new() { DragScaleMultiplier = 1.03f, LiftScaleMultiplier = 0.98f },
-            ["D-S4-V0-P2"] = new() { DragScaleMultiplier = 1.09f, LiftScaleMultiplier = 0.94f },
-            ["D-S4-V1-P0"] = new() { DragScaleMultiplier = 0.98f, LiftScaleMultiplier = 1.02f },
-            ["D-S4-V1-P1"] = new() { DragScaleMultiplier = 1.04f },
-            ["D-S4-V1-P2"] = new() { DragScaleMultiplier = 1.04f },
+            // Default iron family fallback (+~10 yd carry tuning)
+            ["I"] = new() { DragScaleMultiplier = 0.89f },
+
+            // Driver regime: +~15 yd carry tuning
+            ["D-S3-V1"] = new() { DragScaleMultiplier = 0.94f, LiftScaleMultiplier = 0.99f },
+            ["D-S4-V0-P1"] = new() { DragScaleMultiplier = 0.93f, LiftScaleMultiplier = 0.98f },
+            ["D-S4-V0-P2"] = new() { DragScaleMultiplier = 0.98f, LiftScaleMultiplier = 0.94f },
+            ["D-S4-V1-P0"] = new() { DragScaleMultiplier = 0.88f, LiftScaleMultiplier = 1.02f },
+            ["D-S4-V1-P1"] = new() { DragScaleMultiplier = 0.94f },
+            ["D-S4-V1-P2"] = new() { DragScaleMultiplier = 0.94f },
+            ["D"] = new() { DragScaleMultiplier = 0.90f },
 
             // High-speed wedge (launch > 30 deg, 85-105 mph): over-carry
             ["W-S2-V3-P4"] = new() { DragScaleMultiplier = 1.06f, LiftScaleMultiplier = 0.97f },

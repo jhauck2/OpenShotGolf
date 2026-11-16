@@ -36,6 +36,7 @@ import {
   generateStrikeTrendChartSvg,
   generateCoachingInsights
 } from "./analytics-engine.js";
+import { getSwingIssueDetails, getDrillsForAnalyticsIssue } from "./swing-drills.js";
 
 const STANDARD_CLUBS = [
   "Dr", "3w", "5w", "2H", "3H", "4H", "1i", "2i", "3i", "4i",
@@ -3123,6 +3124,38 @@ function renderAnalytics() {
           ${escapeHtml(smash.text || `Face-to-Path: ${recent.avgAbsFtp != null ? recent.avgAbsFtp.toFixed(1) + '°' : '–'}`)}
         </div>
       </div>
+
+      <!-- 5. Launch & Spin Profile Card -->
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">🚀 Launch &amp; Spin Profile</span>
+          <span class="analytics-trend-badge trend-consistent">${recent.avgVla != null || recent.avgSpin != null ? 'Ball Flight Window' : 'No LM Data'}</span>
+        </div>
+        <div class="analytics-kpi-val">${recent.avgVla != null ? `${recent.avgVla.toFixed(1)}°` : (recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()}` : "–")}</div>
+        <div class="analytics-kpi-sub">
+          Spin: <strong>${recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()} rpm` : "–"}</strong> • HLA: <strong>${recent.avgHla != null ? `${recent.avgHla > 0 ? '+' : ''}${recent.avgHla.toFixed(1)}°` : "–"}</strong>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
+          ${recent.avgHi != null && recent.avgVi != null
+            ? `Strike Bias: ${Math.abs(recent.avgHi).toFixed(1)} mm ${recent.avgHi >= 0 ? 'Toe' : 'Heel'}, ${Math.abs(recent.avgVi).toFixed(1)} mm ${recent.avgVi >= 0 ? 'High' : 'Low'}`
+            : `Launch &amp; spin window across ${recent.count} recent shots`}
+        </div>
+      </div>
+
+      <!-- 6. Speed & Distance Profile Card -->
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">💨 Speed &amp; Distance</span>
+          <span class="analytics-trend-badge trend-${analytics.distance.carryDelta >= 2 ? 'improving' : 'consistent'}">${analytics.distance.carryDelta >= 2 ? 'Distance Gained' : 'Distance Profile'}</span>
+        </div>
+        <div class="analytics-kpi-val highlight">${recent.avgCarry > 0 ? `${recent.avgCarry.toFixed(1)} yds` : "–"}</div>
+        <div class="analytics-kpi-sub">
+          Total: <strong>${recent.avgTotalYds > 0 ? `${recent.avgTotalYds.toFixed(1)} yds` : "–"}</strong> (Roll: <strong>${recent.avgRollYds.toFixed(1)} yds</strong>)
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
+          Ball: ${recent.avgBallSpeed != null ? `${recent.avgBallSpeed.toFixed(1)} mph` : "–"} • Club: ${recent.avgClubSpeed != null ? `${recent.avgClubSpeed.toFixed(1)} mph` : "–"}
+        </div>
+      </div>
     </div>
   `;
 
@@ -3255,6 +3288,46 @@ function renderAnalytics() {
       delta: `${distance.carryDispersionDelta > 0 ? '+' : ''}${distance.carryDispersionDelta.toFixed(1)} yds`,
       statusClass: distance.carryDispersionDelta <= 0 ? "delta-improving" : "delta-expanding",
       verdict: distance.carryDispersionDelta < -0.5 ? "🟢 Tighter Distance Grouping" : "🟡 Consistent Range"
+    },
+    {
+      metric: "Total Distance & Rollout (Yards)",
+      base: `${baseline.avgTotalYds.toFixed(1)} yds (${baseline.avgRollYds.toFixed(1)} roll)`,
+      rec: `${recent.avgTotalYds.toFixed(1)} yds (${recent.avgRollYds.toFixed(1)} roll)`,
+      delta: `${distance.totalDelta > 0 ? '+' : ''}${distance.totalDelta.toFixed(1)} yds`,
+      statusClass: distance.totalDelta >= 0 ? "delta-improving" : "delta-neutral",
+      verdict: distance.totalDelta >= 2 ? "🟢 Longer Total Distance" : "🟡 Stable Rollout"
+    },
+    {
+      metric: "Ball Speed / Club Head Speed (mph)",
+      base: baseline.avgBallSpeed != null ? `${baseline.avgBallSpeed.toFixed(1)} / ${baseline.avgClubSpeed != null ? baseline.avgClubSpeed.toFixed(1) : '–'}` : "–",
+      rec: recent.avgBallSpeed != null ? `${recent.avgBallSpeed.toFixed(1)} / ${recent.avgClubSpeed != null ? recent.avgClubSpeed.toFixed(1) : '–'}` : "–",
+      delta: analytics.speed?.ballSpeedDelta != null ? `${analytics.speed.ballSpeedDelta > 0 ? '+' : ''}${analytics.speed.ballSpeedDelta.toFixed(1)} mph` : "–",
+      statusClass: (analytics.speed?.ballSpeedDelta ?? 0) >= 0 ? "delta-improving" : "delta-neutral",
+      verdict: (analytics.speed?.ballSpeedDelta ?? 0) >= 1.5 ? "🟢 Higher Ball Speed" : "🟡 Consistent Speed"
+    },
+    {
+      metric: "Vertical Launch Angle (VLA°)",
+      base: baseline.avgVla != null ? `${baseline.avgVla.toFixed(1)}°` : "–",
+      rec: recent.avgVla != null ? `${recent.avgVla.toFixed(1)}°` : "–",
+      delta: analytics.launch?.vlaDelta != null ? `${analytics.launch.vlaDelta > 0 ? '+' : ''}${analytics.launch.vlaDelta.toFixed(1)}°` : "–",
+      statusClass: "delta-neutral",
+      verdict: recent.avgVla != null ? "🔵 Launch Window" : "–"
+    },
+    {
+      metric: "Total Spin Rate (RPM)",
+      base: baseline.avgSpin != null ? `${baseline.avgSpin.toLocaleString()} rpm` : "–",
+      rec: recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()} rpm` : "–",
+      delta: analytics.spin?.spinDelta != null ? `${analytics.spin.spinDelta > 0 ? '+' : ''}${analytics.spin.spinDelta.toLocaleString()} rpm` : "–",
+      statusClass: "delta-neutral",
+      verdict: recent.avgSpin != null ? "🔵 Spin Profile" : "–"
+    },
+    {
+      metric: "Face Strike Bias (Toe/Heel & High/Low)",
+      base: baseline.avgHi != null ? `${Math.abs(baseline.avgHi).toFixed(1)}mm ${baseline.avgHi >= 0 ? 'Toe' : 'Heel'} / ${Math.abs(baseline.avgVi).toFixed(1)}mm ${baseline.avgVi >= 0 ? 'Hi' : 'Lo'}` : "–",
+      rec: recent.avgHi != null ? `${Math.abs(recent.avgHi).toFixed(1)}mm ${recent.avgHi >= 0 ? 'Toe' : 'Heel'} / ${Math.abs(recent.avgVi).toFixed(1)}mm ${recent.avgVi >= 0 ? 'Hi' : 'Lo'}` : "–",
+      delta: impact.delta != null ? `${impact.delta > 0 ? '+' : ''}${impact.delta.toFixed(1)} mm` : "–",
+      statusClass: formatDeltaClass(impact.status),
+      verdict: recent.avgHi != null ? (Math.abs(recent.avgHi) <= 3 && Math.abs(recent.avgVi) <= 3 ? "🟢 Centered Pattern" : "🟡 Strike Tendency") : "–"
     }
   ];
 
@@ -3276,7 +3349,7 @@ function renderAnalytics() {
       <div class="analytics-table-header">
         <h4 class="analytics-table-title">📊 Baseline vs. Recent Performance Breakdown</h4>
         <p style="font-size:0.82rem; color:var(--muted); margin-top:0.25rem;">
-          Comparing earlier recorded baseline shots against your most recent swings to evaluate game progress.
+          Comparing earlier recorded baseline shots (${analytics.baselineShotsCount ?? baseline.count} shots) against your most recent swings (${analytics.recentShotsCount ?? recent.count} shots) to evaluate game progress.
         </p>
       </div>
       <div class="table-responsive">
@@ -3298,33 +3371,117 @@ function renderAnalytics() {
     </div>
   `;
 
-  // 4. AI Coaching Recommendations
+  // 4. AI Coaching Recommendations + Actionable Drills Option
   const insights = generateCoachingInsights(analytics);
+  const issueInsights = insights.filter(item => item.issueKey);
   let coachingItemsHtml = "";
-  insights.forEach(item => {
+  insights.forEach((item, idx) => {
+    const drillBtn = item.issueKey
+      ? `<button type="button" class="btn-drill-inline" data-drill-target="${escapeHtml(item.issueKey)}" data-insight-idx="${idx}">🏋️ View Drill to Work On</button>`
+      : "";
     coachingItemsHtml += `
       <div class="coaching-item">
         <span class="coaching-icon">${item.icon}</span>
         <div class="coaching-body">
-          <h4>${escapeHtml(item.title)}</h4>
+          <div class="coaching-body-top">
+            <h4>${escapeHtml(item.title)}</h4>
+            ${drillBtn}
+          </div>
           <p>${escapeHtml(item.desc)}</p>
         </div>
       </div>
     `;
   });
 
+  let drillsPanelHtml = "";
+  if (issueInsights.length > 0) {
+    const seenKeys = new Set();
+    let drillCardsHtml = "";
+    issueInsights.forEach(item => {
+      if (seenKeys.has(item.issueKey)) return;
+      seenKeys.add(item.issueKey);
+      const details = getDrillsForAnalyticsIssue(item.issueKey);
+      if (!details) return;
+      drillCardsHtml += `
+        <div class="analytics-drill-issue-group" data-drill-group="${escapeHtml(item.issueKey)}">
+          <div class="analytics-drill-issue-header">
+            <span class="swing-category-badge">${escapeHtml(details.category)}</span>
+            <strong>${escapeHtml(details.issueType)}</strong>
+            ${details.video ? `<a class="btn-video-link" href="${escapeHtml(details.video.url)}" target="_blank" rel="noopener noreferrer">▶ Watch Drill Video</a>` : ""}
+          </div>
+          <p class="analytics-drill-fix"><strong>How to Fix:</strong> ${escapeHtml(details.howToFix)}</p>
+          ${renderDrillCardsHtml(details.drills)}
+        </div>
+      `;
+    });
+
+    drillsPanelHtml = `
+      <div id="analytics-drills-panel" class="analytics-drills-panel" style="display:none;">
+        <div class="analytics-drills-panel-header">
+          <div>
+            <h4>🏋️ Recommended Practice Drills for Issues Seen</h4>
+            <p>Targeted drills matched to the dispersion, delivery, and strike trends detected in your shot telemetry.</p>
+          </div>
+          <button type="button" class="btn-action-outline" id="btn-close-analytics-drills">Hide Drills</button>
+        </div>
+        <div class="analytics-drills-list">
+          ${drillCardsHtml}
+        </div>
+      </div>
+    `;
+  }
+
   const coachingHtml = `
     <div class="analytics-coaching-box">
-      <div class="analytics-coaching-title">
+      <div class="analytics-coaching-title analytics-coaching-header-row">
         <span>💡 AI Swing Coach Observations &amp; Insights</span>
+        ${issueInsights.length > 0 ? `<button type="button" class="btn-action-outline btn-toggle-drills" id="btn-toggle-analytics-drills">🏋️ Drills to Work On (${issueInsights.length})</button>` : ""}
       </div>
       <div class="coaching-list">
         ${coachingItemsHtml}
       </div>
+      ${drillsPanelHtml}
     </div>
   `;
 
   container.innerHTML = kpiGridHtml + chartsHtml + tableHtml + coachingHtml;
+
+  // Bind interactive drill option toggles in the Analytics tab
+  const drillsPanel = document.getElementById("analytics-drills-panel");
+  const toggleDrillsBtn = document.getElementById("btn-toggle-analytics-drills");
+  const closeDrillsBtn = document.getElementById("btn-close-analytics-drills");
+
+  const setDrillsVisible = (visible, focusKey = null) => {
+    if (!drillsPanel) return;
+    drillsPanel.style.display = visible ? "block" : "none";
+    if (toggleDrillsBtn) {
+      toggleDrillsBtn.textContent = visible
+        ? "🏋️ Hide Practice Drills"
+        : `🏋️ Drills to Work On (${issueInsights.length})`;
+    }
+    if (visible && focusKey) {
+      const targetGroup = drillsPanel.querySelector(`[data-drill-group="${CSS.escape(focusKey)}"]`);
+      if (targetGroup) {
+        drillsPanel.querySelectorAll(".analytics-drill-issue-group").forEach(el => el.classList.remove("is-highlighted"));
+        targetGroup.classList.add("is-highlighted");
+        targetGroup.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  };
+
+  toggleDrillsBtn?.addEventListener("click", () => {
+    const isHidden = !drillsPanel || drillsPanel.style.display === "none";
+    setDrillsVisible(isHidden);
+  });
+
+  closeDrillsBtn?.addEventListener("click", () => setDrillsVisible(false));
+
+  container.querySelectorAll(".btn-drill-inline").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-drill-target");
+      setDrillsVisible(true, key);
+    });
+  });
 }
 
 // ─── TAB: RECENT MATCHES (LAZY-LOADED) ───
@@ -3461,6 +3618,75 @@ async function loadRecentMatches(user) {
   }
 }
 
+/**
+ * Renders structured drill cards (setup, execution steps, target goal, reps).
+ */
+function renderDrillCardsHtml(drills = []) {
+  if (!Array.isArray(drills) || drills.length === 0) return "";
+  return `<div class="swing-drills-grid">` + drills.map(drill => `
+    <div class="swing-drill-card">
+      <div class="swing-drill-card-header">
+        <span class="swing-drill-title">⛳ ${escapeHtml(drill.name)}</span>
+        ${drill.reps ? `<span class="swing-drill-reps">${escapeHtml(drill.reps)}</span>` : ""}
+      </div>
+      ${drill.setup ? `<div class="swing-drill-row"><strong>Setup:</strong> ${escapeHtml(drill.setup)}</div>` : ""}
+      ${Array.isArray(drill.steps) && drill.steps.length > 0 ? `
+        <ol class="swing-drill-steps">
+          ${drill.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
+        </ol>
+      ` : ""}
+      ${drill.goal ? `<div class="swing-drill-goal"><strong>Goal:</strong> ${escapeHtml(drill.goal)}</div>` : ""}
+    </div>
+  `).join("") + `</div>`;
+}
+
+/**
+ * Renders the Fix & Drill Recommendation Detail Panel for a selected swing issue.
+ */
+function renderSwingIssueDetailHtml(issueName, curMonthCount, allTimeCount) {
+  const details = getSwingIssueDetails(issueName);
+  if (!details) return "";
+
+  const videoHtml = details.video
+    ? `<a class="btn-video-link" href="${escapeHtml(details.video.url)}" target="_blank" rel="noopener noreferrer">▶ Watch Tutorial: ${escapeHtml(details.video.title)}</a>`
+    : "";
+
+  return `
+    <div class="swing-detail-card">
+      <div class="swing-detail-header">
+        <div class="swing-detail-title-group">
+          <span class="swing-category-badge">${escapeHtml(details.category)}</span>
+          <h4 class="swing-detail-title">${escapeHtml(issueName)}</h4>
+        </div>
+        <div class="swing-detail-counts">
+          <span class="swing-detail-count-pill">This Month: <strong>${curMonthCount}x</strong></span>
+          <span class="swing-detail-count-pill all-time">All-Time: <strong>${allTimeCount}x</strong></span>
+        </div>
+      </div>
+
+      <div class="swing-detail-grid">
+        <div class="swing-detail-box">
+          <h5>🔍 What's Happening</h5>
+          <p>${escapeHtml(details.cause)}</p>
+          ${details.ballFlightEffect ? `<p class="swing-detail-effect"><strong>Ball Flight Impact:</strong> ${escapeHtml(details.ballFlightEffect)}</p>` : ""}
+        </div>
+        <div class="swing-detail-box fix-box">
+          <h5>🛠️ How to Fix It</h5>
+          <p>${escapeHtml(details.howToFix)}</p>
+        </div>
+      </div>
+
+      <div class="swing-detail-drills-section">
+        <div class="swing-detail-drills-header">
+          <h5>🏋️ Recommended Drills to Work On</h5>
+          ${videoHtml}
+        </div>
+        ${renderDrillCardsHtml(details.drills)}
+      </div>
+    </div>
+  `;
+}
+
 // ─── TAB 4: SWING ANALYSIS & RECOMMENDATIONS (LAZY-LOADED) ───
 async function loadSwingAnalysis(user) {
   const swingContainer = document.getElementById("swing-analysis-container") || document.getElementById("swing-issues-container");
@@ -3513,11 +3739,31 @@ async function loadSwingAnalysis(user) {
     const curMonthData = swingIssues[currentMonthKey] || {};
     const curMonthIssues = Object.keys(curMonthData).sort((a, b) => curMonthData[b] - curMonthData[a]);
 
+    const initialSelectedIssue = curMonthIssues[0] || allTimeKeys[0];
+
     let html = `<div class="swing-recommendations-wrapper">`;
+
+    // 0. Interactive Issue Selector & Fix/Drill Recommendation Panel
+    html += `
+      <div class="swing-selector-bar">
+        <label for="swing-issue-selector">🎯 Inspect Issue &amp; Drills:</label>
+        <select id="swing-issue-selector" class="analytics-select swing-issue-select">
+          ${allTimeKeys.map(iss => `
+            <option value="${escapeHtml(iss)}" ${iss === initialSelectedIssue ? "selected" : ""}>
+              ${escapeHtml(iss)} (${allTimeTotals[iss]}x all-time${curMonthData[iss] ? ` • ${curMonthData[iss]}x this month` : ""})
+            </option>
+          `).join("")}
+        </select>
+        <span class="swing-selector-hint">Or click any issue card below</span>
+      </div>
+      <div id="swing-issue-detail-panel" class="swing-issue-detail-panel">
+        ${renderSwingIssueDetailHtml(initialSelectedIssue, curMonthData[initialSelectedIssue] || 0, allTimeTotals[initialSelectedIssue] || 0)}
+      </div>
+    `;
 
     // 1. Current Month Running Totals
     html += `
-      <div class="swing-section-block">
+      <div class="swing-section-block" style="margin-top: 1.5rem;">
         <h4 class="swing-section-title">📅 Current Month Running Totals (${escapeHtml(currentMonthName)})</h4>
     `;
 
@@ -3527,14 +3773,15 @@ async function loadSwingAnalysis(user) {
       html += `<div class="swing-cards-grid">`;
       curMonthIssues.forEach((issue) => {
         const count = curMonthData[issue];
+        const isSelected = issue === initialSelectedIssue;
         html += `
-          <div class="swing-flaw-card">
+          <button type="button" class="swing-flaw-card is-selectable ${isSelected ? "is-selected" : ""}" data-issue="${escapeHtml(issue)}" aria-pressed="${isSelected ? "true" : "false"}">
             <div class="swing-flaw-info">
               <div class="swing-flaw-name">${escapeHtml(issue)}</div>
-              <div class="swing-flaw-sub">This Month • Drill &amp; Fix Target</div>
+              <div class="swing-flaw-sub">This Month • Click for fix &amp; drills →</div>
             </div>
             <div class="swing-flaw-count">${count}</div>
-          </div>
+          </button>
         `;
       });
       html += `</div>`;
@@ -3549,14 +3796,15 @@ async function loadSwingAnalysis(user) {
     `;
     allTimeKeys.forEach((issue) => {
       const count = allTimeTotals[issue];
+      const isSelected = issue === initialSelectedIssue;
       html += `
-        <div class="swing-flaw-card">
+        <button type="button" class="swing-flaw-card is-selectable ${isSelected ? "is-selected" : ""}" data-issue="${escapeHtml(issue)}" aria-pressed="${isSelected ? "true" : "false"}">
           <div class="swing-flaw-info">
             <div class="swing-flaw-name">${escapeHtml(issue)}</div>
-            <div class="swing-flaw-sub">All Time • Total Flaw Count</div>
+            <div class="swing-flaw-sub">All Time • Click for fix &amp; drills →</div>
           </div>
           <div class="swing-flaw-count" style="color: #fde047;">${count}</div>
-        </div>
+        </button>
       `;
     });
     html += `</div></div>`;
@@ -3575,11 +3823,12 @@ async function loadSwingAnalysis(user) {
         let pillsHtml = "";
         mIssues.forEach((name) => {
           const count = mData[name];
+          const isSelected = name === initialSelectedIssue;
           pillsHtml += `
-            <div class="swing-pill">
+            <button type="button" class="swing-pill is-selectable ${isSelected ? "is-selected" : ""}" data-issue="${escapeHtml(name)}" aria-pressed="${isSelected ? "true" : "false"}">
               <strong>${escapeHtml(name)}</strong>
               <span class="count-badge">${count}x</span>
-            </div>
+            </button>
           `;
         });
         html += `
@@ -3594,6 +3843,41 @@ async function loadSwingAnalysis(user) {
 
     html += `</div>`;
     swingContainer.innerHTML = html;
+
+    // Bind interactive issue selection across cards, pills, and selector dropdown
+    const detailPanel = document.getElementById("swing-issue-detail-panel");
+    const issueSelect = document.getElementById("swing-issue-selector");
+
+    const selectSwingIssue = (issueName, scrollIntoView = false) => {
+      if (!issueName || !detailPanel) return;
+      detailPanel.innerHTML = renderSwingIssueDetailHtml(
+        issueName,
+        curMonthData[issueName] || 0,
+        allTimeTotals[issueName] || 0
+      );
+      if (issueSelect && issueSelect.value !== issueName) {
+        issueSelect.value = issueName;
+      }
+      swingContainer.querySelectorAll("[data-issue]").forEach((el) => {
+        const matches = el.getAttribute("data-issue") === issueName;
+        el.classList.toggle("is-selected", matches);
+        el.setAttribute("aria-pressed", matches ? "true" : "false");
+      });
+      if (scrollIntoView) {
+        detailPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    };
+
+    issueSelect?.addEventListener("change", () => {
+      selectSwingIssue(issueSelect.value, false);
+    });
+
+    swingContainer.querySelectorAll("[data-issue]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const issueName = el.getAttribute("data-issue");
+        selectSwingIssue(issueName, true);
+      });
+    });
   } catch (err) {
     console.error("Swing analysis error:", err);
     swingContainer.innerHTML = `<p class="empty-state">Could not load swing trends.</p>`;

@@ -1,6 +1,7 @@
 extends Node
 
 const RainPhysics = preload("res://Utils/rain_physics.gd")
+const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
 
 # Monitor implementations live in sibling folders (e.g. `square/`); shared transports and external receivers live under `common/`.
 
@@ -804,7 +805,9 @@ func _on_fsx_shot_received(data: Dictionary) -> void:
 		_set_status("Connected")
 	_debug_log("Bushnell/FSX shot received with %d fields" % data.size())
 	RainPhysics.apply_rain_shot_reduction(data)
+	BallTypePhysics.apply_ball_type_to_shot_data(data, "", _current_club_name)
 	FoamBallBoost.apply_boost(data, _current_club_name)
+	PowerCalibration.apply_calibration(data)
 	notify_shot_started()
 	emit_signal("hit_ball", data)
 	_update_hud_display()
@@ -1043,7 +1046,9 @@ func _on_rainmaker_shot_received(data: Dictionary) -> void:
 		_set_status("Connected")
 	_debug_log("Rainmaker shot received with %d fields" % data.size())
 	RainPhysics.apply_rain_shot_reduction(data)
+	BallTypePhysics.apply_ball_type_to_shot_data(data, "", _current_club_name)
 	FoamBallBoost.apply_boost(data, _current_club_name)
+	PowerCalibration.apply_calibration(data)
 	notify_shot_started()
 	emit_signal("hit_ball", data)
 	_update_hud_display()
@@ -1142,7 +1147,9 @@ func _on_garmin_shot_received(data: Dictionary) -> void:
 		_set_status("Connected")
 	_debug_log("Garmin shot received with %d fields" % data.size())
 	RainPhysics.apply_rain_shot_reduction(data)
+	BallTypePhysics.apply_ball_type_to_shot_data(data, "", _current_club_name)
 	FoamBallBoost.apply_boost(data, _current_club_name)
+	PowerCalibration.apply_calibration(data)
 	notify_shot_started()
 	emit_signal("hit_ball", data)
 	_update_hud_display()
@@ -1324,7 +1331,9 @@ func _on_square_shot_received(data: Dictionary) -> void:
 		float(data.get("SideSpin", 0.0))
 	])
 	RainPhysics.apply_rain_shot_reduction(data)
+	BallTypePhysics.apply_ball_type_to_shot_data(data, "", _current_club_name)
 	FoamBallBoost.apply_boost(data, _current_club_name)
+	PowerCalibration.apply_calibration(data)
 	notify_shot_started()
 	emit_signal("hit_ball", data)
 	_update_hud_display()

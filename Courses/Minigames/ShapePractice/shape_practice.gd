@@ -97,11 +97,15 @@ const PVP_TARGET_GOAL: int = 6
 var green_mat: StandardMaterial3D
 var fringe_mat: StandardMaterial3D
 var fairway_mat: StandardMaterial3D
+var fairway_shader_mat: Material
 var rough_mat: StandardMaterial3D
 var wall_wood_mat: StandardMaterial3D
-var wall_stone_mat: StandardMaterial3D
-var cap_mat: StandardMaterial3D
+var wall_stone_mat: Material
+var wall_rib_mat: Material
+var pillar_mat: Material
+var cap_mat: Material
 var tee_turf_mat: StandardMaterial3D
+var tee_collar_mat: StandardMaterial3D
 
 func _ready() -> void:
 	name = "ShapePractice"
@@ -120,6 +124,8 @@ func _ready() -> void:
 	
 	# 4. Ground Fairway & Hazards
 	_setup_ground()
+	_spawn_mountain_backdrop()
+	_spawn_distant_treeline()
 	
 	# 5. Tee Box
 	_setup_tee_box()
@@ -304,49 +310,86 @@ func check_shot_in_zone(pos: Vector3, target_idx: int) -> Dictionary:
 # ========================================
 
 func _init_materials() -> void:
+	var is_mobile := MobilePerformance.is_mobile()
+
 	# Putting Green turf
 	green_mat = StandardMaterial3D.new()
 	if ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
 		green_mat.albedo_texture = load("res://Courses/Environments/grass-green/albedo.png")
-		green_mat.albedo_color = Color(0.92, 1.0, 0.92)
+		green_mat.albedo_color = Color(0.86, 0.96, 0.82)
 		if ResourceLoader.exists("res://Courses/Environments/grass-green/normal.png"):
 			green_mat.normal_enabled = true
 			green_mat.normal_texture = load("res://Courses/Environments/grass-green/normal.png")
-		green_mat.uv1_scale = Vector3(0.18, 0.18, 0.18)
+		green_mat.uv1_scale = Vector3(0.28, 0.28, 0.28)
 	else:
 		green_mat.albedo_color = Color(0.16, 0.65, 0.22)
-	green_mat.roughness = 0.82
+	green_mat.roughness = 0.84
+	green_mat.specular = 0.05
 	
 	# Fringe / Collar turf
 	fringe_mat = StandardMaterial3D.new()
 	if ResourceLoader.exists("res://Courses/Environments/grass-rough/albedo.png"):
 		fringe_mat.albedo_texture = load("res://Courses/Environments/grass-rough/albedo.png")
-		fringe_mat.uv1_scale = Vector3(0.16, 0.16, 0.16)
+		fringe_mat.uv1_scale = Vector3(0.24, 0.24, 0.24)
 	elif ResourceLoader.exists("res://Courses/Environments/grass-green/albedo.png"):
 		fringe_mat.albedo_texture = load("res://Courses/Environments/grass-green/albedo.png")
 		fringe_mat.albedo_color = Color(0.32, 0.55, 0.25)
-		fringe_mat.uv1_scale = Vector3(0.16, 0.16, 0.16)
+		fringe_mat.uv1_scale = Vector3(0.24, 0.24, 0.24)
 	else:
 		fringe_mat.albedo_color = Color(0.14, 0.48, 0.18)
 	fringe_mat.roughness = 0.92
+	fringe_mat.specular = 0.04
 	
-	# Fairway ground
+	# Fairway ground fallback material
 	fairway_mat = StandardMaterial3D.new()
 	if ResourceLoader.exists("res://Courses/Environments/grass-fairway/albedo.png"):
 		fairway_mat.albedo_texture = load("res://Courses/Environments/grass-fairway/albedo.png")
 		if ResourceLoader.exists("res://Courses/Environments/grass-fairway/normal.png"):
 			fairway_mat.normal_enabled = true
 			fairway_mat.normal_texture = load("res://Courses/Environments/grass-fairway/normal.png")
-		fairway_mat.uv1_scale = Vector3(0.08, 0.08, 0.08)
+		fairway_mat.uv1_scale = Vector3(0.35, 0.35, 0.35)
 	else:
 		fairway_mat.albedo_color = Color(0.20, 0.52, 0.24)
 	fairway_mat.roughness = 0.88
+	fairway_mat.specular = 0.04
+
+	# High-fidelity Turf Shader Material (striped fairway + rough border)
+	var turf_shader_path := "res://Courses/Environments/shaders/driving_range_turf.gdshader" if is_mobile else "res://Courses/Environments/shaders/driving_range_turf_realistic.gdshader"
+	if ResourceLoader.exists(turf_shader_path):
+		var sm := ShaderMaterial.new()
+		sm.shader = load(turf_shader_path)
+		var fw_albedo := "res://Courses/Environments/high/grass_fairway_albedo.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_fairway_albedo.png") else "res://Courses/Environments/grass-fairway/albedo.png"
+		var fw_normal := "res://Courses/Environments/high/grass_fairway_normal.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_fairway_normal.png") else "res://Courses/Environments/grass-fairway/normal.png"
+		var fw_rough := "res://Courses/Environments/high/grass_fairway_roughness.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_fairway_roughness.png") else "res://Courses/Environments/grass-fairway/roughness.png"
+		var rg_albedo := "res://Courses/Environments/high/grass_rough_albedo.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_albedo.png") else "res://Courses/Environments/grass-rough/albedo.png"
+		var rg_normal := "res://Courses/Environments/high/grass_rough_normal.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_normal.png") else "res://Courses/Environments/grass-rough/normal.png"
+		var rg_rough := "res://Courses/Environments/high/grass_rough_roughness.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_roughness.png") else "res://Courses/Environments/grass-rough/roughness.png"
+		sm.set_shader_parameter("tex_fairway", load(fw_albedo))
+		sm.set_shader_parameter("normal_fairway", load(fw_normal))
+		sm.set_shader_parameter("ao_fairway", load("res://Courses/Environments/grass-fairway/ao.png"))
+		sm.set_shader_parameter("roughness_fairway", load(fw_rough))
+		sm.set_shader_parameter("tex_rough", load(rg_albedo))
+		sm.set_shader_parameter("normal_rough", load(rg_normal))
+		sm.set_shader_parameter("ao_rough", load("res://Courses/Environments/grass-rough/ao.png"))
+		sm.set_shader_parameter("roughness_rough", load(rg_rough))
+		sm.set_shader_parameter("corridor_half_width", 96.0)
+		sm.set_shader_parameter("blend_margin", 2.5)
+		sm.set_shader_parameter("tee_start_x", -6.0)
+		sm.set_shader_parameter("tee_blend_x", 3.5)
+		sm.set_shader_parameter("max_range_dist", 345.0)
+		sm.set_shader_parameter("uv_scale_fairway", 0.55)
+		sm.set_shader_parameter("uv_scale_rough", 0.48)
+		sm.set_shader_parameter("normal_depth", 0.90)
+		sm.set_shader_parameter("stripe_strength", 0.65)
+		fairway_shader_mat = sm
+	else:
+		fairway_shader_mat = fairway_mat
 	
 	# Rough outer ground
 	rough_mat = StandardMaterial3D.new()
 	if ResourceLoader.exists("res://Courses/Environments/grass-rough/albedo.png"):
 		rough_mat.albedo_texture = load("res://Courses/Environments/grass-rough/albedo.png")
-		rough_mat.uv1_scale = Vector3(0.05, 0.05, 0.05)
+		rough_mat.uv1_scale = Vector3(0.25, 0.25, 0.25)
 	else:
 		rough_mat.albedo_color = Color(0.12, 0.38, 0.14)
 	rough_mat.roughness = 0.95
@@ -362,26 +405,174 @@ func _init_materials() -> void:
 		wall_wood_mat.albedo_color = Color(0.35, 0.24, 0.15)
 	wall_wood_mat.roughness = 0.85
 	
-	# Wall stone / concrete panels
-	wall_stone_mat = StandardMaterial3D.new()
-	if ResourceLoader.exists("res://Courses/Environments/dry-rocky-ground-bl/dry-rocky-ground_albedo.png"):
-		wall_stone_mat.albedo_texture = load("res://Courses/Environments/dry-rocky-ground-bl/dry-rocky-ground_albedo.png")
-		wall_stone_mat.albedo_color = Color(0.6, 0.65, 0.7)
-		wall_stone_mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
-		wall_stone_mat.uv1_triplanar = true
-	else:
-		wall_stone_mat.albedo_color = Color(0.30, 0.35, 0.40)
-	wall_stone_mat.roughness = 0.80
+	# Realistic architectural olive-slate concrete wall shader
+	wall_stone_mat = _create_concrete_wall_shader_material(Color(0.20, 0.23, 0.20), true)
+
+	# Vertical pilaster / rib material (weathered dark olive-slate concrete)
+	wall_rib_mat = _create_concrete_wall_shader_material(Color(0.16, 0.19, 0.165), false)
+
+	# Weathered warm-grey concrete gate pillar & coping materials
+	pillar_mat = _create_concrete_wall_shader_material(Color(0.44, 0.44, 0.40), false)
+	cap_mat = _create_concrete_wall_shader_material(Color(0.42, 0.42, 0.38), false)
 	
-	# Top trim / Cap
-	cap_mat = StandardMaterial3D.new()
-	cap_mat.albedo_color = Color(0.18, 0.14, 0.10)
-	cap_mat.roughness = 0.75
-	
-	# Tee box turf
+	# Tee box manicured high-res turf (triplanar world-space tiling for razor-sharp detail)
 	tee_turf_mat = StandardMaterial3D.new()
-	tee_turf_mat.albedo_color = Color(0.15, 0.58, 0.22)
-	tee_turf_mat.roughness = 0.80
+	var tee_albedo_path := "res://Courses/Environments/high/grass_green_albedo.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_green_albedo.png") else "res://Courses/Environments/grass-green/albedo.png"
+	var tee_normal_path := "res://Courses/Environments/high/grass_green_normal.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_green_normal.png") else "res://Courses/Environments/grass-green/normal.png"
+	var tee_rough_path := "res://Courses/Environments/high/grass_green_roughness.png"
+	if ResourceLoader.exists(tee_albedo_path):
+		tee_turf_mat.albedo_texture = load(tee_albedo_path)
+		tee_turf_mat.albedo_color = Color(0.82, 0.96, 0.72)
+		if ResourceLoader.exists(tee_normal_path):
+			tee_turf_mat.normal_enabled = true
+			tee_turf_mat.normal_texture = load(tee_normal_path)
+			tee_turf_mat.normal_scale = 0.85
+		if ResourceLoader.exists(tee_rough_path):
+			tee_turf_mat.roughness_texture = load(tee_rough_path)
+		tee_turf_mat.uv1_triplanar = true
+		tee_turf_mat.uv1_scale = Vector3(0.85, 0.85, 0.85)
+	else:
+		tee_turf_mat.albedo_color = Color(0.18, 0.56, 0.20)
+	tee_turf_mat.roughness = 0.86
+	tee_turf_mat.specular = 0.04
+
+	# Tee box mowed rough collar (high-res triplanar rough turf around the tee pad)
+	tee_collar_mat = StandardMaterial3D.new()
+	var col_albedo := "res://Courses/Environments/high/grass_rough_albedo.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_albedo.png") else "res://Courses/Environments/grass-rough/albedo.png"
+	var col_normal := "res://Courses/Environments/high/grass_rough_normal.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_normal.png") else "res://Courses/Environments/grass-rough/normal.png"
+	if ResourceLoader.exists(col_albedo):
+		tee_collar_mat.albedo_texture = load(col_albedo)
+		tee_collar_mat.albedo_color = Color(0.84, 0.94, 0.76)
+		if ResourceLoader.exists(col_normal):
+			tee_collar_mat.normal_enabled = true
+			tee_collar_mat.normal_texture = load(col_normal)
+			tee_collar_mat.normal_scale = 0.95
+		tee_collar_mat.uv1_triplanar = true
+		tee_collar_mat.uv1_scale = Vector3(0.75, 0.75, 0.75)
+	else:
+		tee_collar_mat.albedo_color = Color(0.15, 0.46, 0.17)
+	tee_collar_mat.roughness = 0.92
+	tee_collar_mat.specular = 0.03
+
+
+func _create_concrete_wall_shader_material(base_color: Color, show_panels: bool) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+
+uniform vec3 base_color : source_color = vec3(0.165, 0.205, 0.185);
+uniform bool show_panels = true;
+uniform float panel_width = 3.2;
+uniform float panel_height = 9.8;
+
+varying vec3 v_world_pos;
+varying vec3 v_world_normal;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float a = hash21(i);
+	float b = hash21(i + vec2(1.0, 0.0));
+	float c = hash21(i + vec2(0.0, 1.0));
+	float d = hash21(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 p) {
+	float v = 0.0;
+	float a = 0.5;
+	for (int i = 0; i < 4; i++) {
+		v += a * vnoise(p);
+		p *= 2.07;
+		a *= 0.5;
+	}
+	return v;
+}
+
+void vertex() {
+	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+}
+
+void fragment() {
+	// Triplanar-style 2D coordinate based on dominant world normal
+	vec3 an = abs(v_world_normal);
+	vec2 p_uv = an.x > an.z ? v_world_pos.zy : v_world_pos.xy;
+	if (an.y > 0.7) {
+		p_uv = v_world_pos.xz;
+	}
+
+	// Multi-scale concrete weathering & fine aggregate grain
+	float macro_mottle = fbm(p_uv * 0.35);
+	float mid_grain = fbm(p_uv * 2.4);
+	float fine_grain = vnoise(p_uv * 16.0);
+	float rain_streak = fbm(vec2(p_uv.x * 3.8, p_uv.y * 0.22));
+
+	vec3 col = base_color;
+	col *= mix(0.84, 1.16, macro_mottle);
+	col *= mix(0.91, 1.09, mid_grain);
+	col *= mix(0.95, 1.05, fine_grain);
+	col *= mix(0.92, 1.04, rain_streak);
+
+	float n_dx = 0.0;
+	float n_dy = 0.0;
+
+	if (show_panels && an.y < 0.7) {
+		// Architectural concrete slab seams + per-slab tonal variation
+		float col_idx = floor(p_uv.x / panel_width);
+		float row_idx = floor(v_world_pos.y / panel_height);
+		float slab_var = hash21(vec2(col_idx, row_idx));
+		col *= mix(0.93, 1.07, slab_var);
+
+		float lx = mod(p_uv.x, panel_width);
+		float ly = mod(v_world_pos.y, panel_height);
+
+		float v_seam = 1.0 - smoothstep(0.0, 0.045, min(lx, panel_width - lx));
+		float h_seam = 1.0 - smoothstep(0.0, 0.035, min(ly, panel_height - ly));
+		float seam = max(v_seam, h_seam);
+		col *= mix(1.0, 0.58, seam);
+
+		// Subtle bevel highlight on right/top edge of each slab
+		float bevel = smoothstep(0.04, 0.09, lx) * (1.0 - smoothstep(0.09, 0.16, lx));
+		col *= (1.0 + bevel * 0.08);
+
+		if (lx < 0.05) n_dx = -0.35;
+		else if (panel_width - lx < 0.05) n_dx = 0.35;
+		if (ly < 0.04) n_dy = -0.30;
+		else if (panel_height - ly < 0.04) n_dy = 0.30;
+	}
+
+	// Ground-level moisture/dirt AO and top-coping overhang AO
+	float base_ao = smoothstep(0.0, 1.4, v_world_pos.y);
+	float top_ao = 1.0 - smoothstep(9.0, 9.8, v_world_pos.y) * 0.28;
+	col *= mix(0.68, 1.0, base_ao) * top_ao;
+
+	// Concrete surface micro-normal perturbation
+	float g1 = vnoise(p_uv * 18.0);
+	float g2 = vnoise(p_uv * 18.0 + vec2(0.15, 0.15));
+	n_dx += (g1 - 0.5) * 0.18;
+	n_dy += (g2 - 0.5) * 0.18;
+
+	ALBEDO = clamp(col, 0.0, 1.0);
+	NORMAL_MAP = normalize(vec3(n_dx, n_dy, 1.0)) * 0.5 + 0.5;
+	NORMAL_MAP_DEPTH = 0.85;
+	ROUGHNESS = clamp(0.84 + (mid_grain - 0.5) * 0.14, 0.68, 0.96);
+	SPECULAR = 0.08;
+}
+"""
+	var sm := ShaderMaterial.new()
+	sm.shader = shader
+	sm.set_shader_parameter("base_color", base_color)
+	sm.set_shader_parameter("show_panels", show_panels)
+	return sm
 
 # ========================================
 # ENVIRONMENT & LIGHTING
@@ -390,12 +581,13 @@ func _init_materials() -> void:
 func _setup_environment() -> void:
 	var is_mobile := MobilePerformance.is_mobile()
 
-	# Directional Sun Light
+	# Directional Sun Light (shining from behind-left of tee onto wall faces and fairway)
 	var sun = DirectionalLight3D.new()
 	sun.name = "SunLight"
-	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-48)).rotated(Vector3.UP, deg_to_rad(30))
+	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-38)).rotated(Vector3.UP, deg_to_rad(-118))
 	sun.shadow_enabled = true
-	sun.light_energy = 1.2
+	sun.light_color = Color(1.0, 0.97, 0.92)
+	sun.light_energy = 1.25
 	if is_mobile:
 		sun.directional_shadow_max_distance = 200.0
 		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
@@ -423,17 +615,17 @@ func _setup_environment() -> void:
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
 	sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
 	var sky_mat = ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.24, 0.54, 0.88)
-	sky_mat.sky_horizon_color = Color(0.60, 0.78, 0.94)
-	sky_mat.ground_bottom_color = Color(0.14, 0.28, 0.18)
-	sky_mat.ground_horizon_color = Color(0.60, 0.78, 0.94)
+	sky_mat.sky_top_color = Color(0.28, 0.54, 0.84)
+	sky_mat.sky_horizon_color = Color(0.70, 0.81, 0.90)
+	sky_mat.ground_bottom_color = Color(0.16, 0.26, 0.16)
+	sky_mat.ground_horizon_color = Color(0.70, 0.81, 0.90)
 	sky_mat.sun_angle_max = 30.0
 	sky.sky_material = sky_mat
 	env.sky = sky
 	
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.50
-	env.ambient_light_sky_contribution = 0.55
+	env.ambient_light_energy = 0.52
+	env.ambient_light_sky_contribution = 0.58
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_white = 5.0
 	env.tonemap_exposure = 1.0
@@ -449,9 +641,9 @@ func _setup_environment() -> void:
 		env.ssao_ao_channel_affect = 0.5
 	
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.65, 0.78, 0.88)
-	env.fog_density = 0.0012
-	env.fog_sky_affect = 0.25
+	env.fog_light_color = Color(0.72, 0.82, 0.90)
+	env.fog_density = 0.0016
+	env.fog_sky_affect = 0.28
 	
 	world_env.environment = env
 	add_child(world_env)
@@ -483,18 +675,185 @@ func _setup_ground() -> void:
 	
 	var col_shape = CollisionShape3D.new()
 	var box_shape = BoxShape3D.new()
-	box_shape.size = Vector3(450.0, 1.0, 300.0)
+	box_shape.size = Vector3(580.0, 1.0, 600.0)
 	col_shape.shape = box_shape
-	col_shape.position = Vector3(180.0, -0.5, 0.0)
+	col_shape.position = Vector3(170.0, -0.5, 0.0)
 	ground.add_child(col_shape)
 	
+	# Subdivided turf mesh for realistic driving range shader (stripes + rough borders)
+	var min_x := -120.0
+	var max_x := 460.0
+	var min_z := -300.0
+	var max_z := 300.0
+	var subdiv_x := 56
+	var subdiv_z := 48
+	var cell_w := (max_x - min_x) / subdiv_x
+	var cell_d := (max_z - min_z) / subdiv_z
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(fairway_shader_mat)
+
+	for z in range(subdiv_z):
+		for x in range(subdiv_x):
+			var x0 := min_x + x * cell_w
+			var x1 := x0 + cell_w
+			var z0 := min_z + z * cell_d
+			var z1 := z0 + cell_d
+
+			var p00 := Vector3(x0, 0.0, z0)
+			var p10 := Vector3(x1, 0.0, z0)
+			var p01 := Vector3(x0, 0.0, z1)
+			var p11 := Vector3(x1, 0.0, z1)
+
+			var uv00 := Vector2(x0, z0) * 0.05
+			var uv10 := Vector2(x1, z0) * 0.05
+			var uv01 := Vector2(x0, z1) * 0.05
+			var uv11 := Vector2(x1, z1) * 0.05
+
+			st.set_uv(uv00)
+			st.add_vertex(p00)
+			st.set_uv(uv10)
+			st.add_vertex(p10)
+			st.set_uv(uv01)
+			st.add_vertex(p01)
+
+			st.set_uv(uv10)
+			st.add_vertex(p10)
+			st.set_uv(uv11)
+			st.add_vertex(p11)
+			st.set_uv(uv01)
+			st.add_vertex(p01)
+
+	st.generate_normals()
+	st.generate_tangents()
+
 	var mesh_inst = MeshInstance3D.new()
-	var plane_mesh = PlaneMesh.new()
-	plane_mesh.size = Vector2(450.0, 300.0)
-	mesh_inst.mesh = plane_mesh
-	mesh_inst.material_override = fairway_mat
-	mesh_inst.position = Vector3(180.0, 0.0, 0.0)
+	mesh_inst.name = "GroundTurfMesh"
+	mesh_inst.mesh = st.commit()
+	mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	ground.add_child(mesh_inst)
+
+
+func _spawn_mountain_backdrop() -> void:
+	if not ResourceLoader.exists("res://Courses/Environments/mountain_backdrop_seamless.png"):
+		return
+	var tex = load("res://Courses/Environments/mountain_backdrop_seamless.png")
+	if tex == null:
+		return
+
+	var mountain_root = Node3D.new()
+	mountain_root.name = "MountainBackdrop"
+	add_child(mountain_root)
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.5
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(mat)
+
+	var center_x := 30.0
+	var radius := 430.0
+	var y_bottom := -4.0
+	var y_top := 145.0
+	var segments := 72
+	var angle_start := deg_to_rad(-115.0)
+	var angle_end := deg_to_rad(115.0)
+	var angle_span := angle_end - angle_start
+	var u_start := -0.75
+	var u_end := 1.75
+
+	for i in range(segments):
+		var t0 := float(i) / segments
+		var t1 := float(i + 1) / segments
+		var a0 := angle_start + t0 * angle_span
+		var a1 := angle_start + t1 * angle_span
+		var x0 := center_x + radius * cos(a0)
+		var z0 := radius * sin(a0)
+		var x1 := center_x + radius * cos(a1)
+		var z1 := radius * sin(a1)
+		var u0 := lerpf(u_start, u_end, t0)
+		var u1 := lerpf(u_start, u_end, t1)
+
+		var p_b0 := Vector3(x0, y_bottom, z0)
+		var p_t0 := Vector3(x0, y_top, z0)
+		var p_b1 := Vector3(x1, y_bottom, z1)
+		var p_t1 := Vector3(x1, y_top, z1)
+
+		var n0 := Vector3(center_x - x0, 0.0, -z0).normalized()
+		var n1 := Vector3(center_x - x1, 0.0, -z1).normalized()
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 0.0))
+		st.add_vertex(p_t0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+
+		st.set_normal(n0)
+		st.set_uv(Vector2(u0, 1.0))
+		st.add_vertex(p_b0)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 0.0))
+		st.add_vertex(p_t1)
+		st.set_normal(n1)
+		st.set_uv(Vector2(u1, 1.0))
+		st.add_vertex(p_b1)
+
+	var mesh_inst = MeshInstance3D.new()
+	mesh_inst.name = "MountainMesh"
+	mesh_inst.mesh = st.commit()
+	mesh_inst.material_override = mat
+	mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mountain_root.add_child(mesh_inst)
+
+
+func _spawn_distant_treeline() -> void:
+	# Distant tree line beyond the 325 YD back wall (x = 340..380m) framing the horizon
+	var tree_paths := [
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-01-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-01-2-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-02-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-02-2-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-03-1-staticbody.tscn",
+		"res://addons/shapespark-low-poly-exterior-plants/bodies/tree-pine-1-staticbody.tscn",
+	]
+	var valid_scenes: Array[PackedScene] = []
+	for p in tree_paths:
+		if ResourceLoader.exists(p):
+			var sc := load(p) as PackedScene
+			if sc != null:
+				valid_scenes.append(sc)
+	if valid_scenes.is_empty():
+		return
+
+	var trees_folder = Node3D.new()
+	trees_folder.name = "DistantTreeLine"
+	add_child(trees_folder)
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 8421
+	var tree_count := 28 if MobilePerformance.is_mobile() else 46
+	for i in range(tree_count):
+		var tz := lerpf(-130.0, 130.0, float(i) / float(tree_count - 1)) + rng.randf_range(-3.5, 3.5)
+		var tx := rng.randf_range(345.0, 382.0)
+		var sc := valid_scenes[rng.randi_range(0, valid_scenes.size() - 1)]
+		var t := sc.instantiate()
+		t.name = "HorizonTree_%d" % i
+		t.position = Vector3(tx, -0.2, tz)
+		var s := rng.randf_range(3.2, 5.4)
+		t.scale = Vector3(s, s, s)
+		t.rotation.y = rng.randf_range(0.0, TAU)
+		trees_folder.add_child(t)
 
 # ========================================
 # TEE BOX
@@ -512,23 +871,25 @@ func _setup_tee_box() -> void:
 	col.shape = box
 	col.position = Vector3(0.0, -0.2, 0.0)
 	tee.add_child(col)
+
+	# Flush mowed rough collar surrounding the tee pad (high-res triplanar rough turf, no tall blades)
+	var collar_inst = MeshInstance3D.new()
+	var collar_mesh = BoxMesh.new()
+	collar_mesh.size = Vector3(9.6, 0.012, 9.6)
+	collar_inst.mesh = collar_mesh
+	collar_inst.material_override = tee_collar_mat
+	collar_inst.position = Vector3(0.0, 0.006, 0.0)
+	collar_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	tee.add_child(collar_inst)
 	
-	# Base border
-	var base_mesh_inst = MeshInstance3D.new()
-	var base_mesh = BoxMesh.new()
-	base_mesh.size = Vector3(6.4, 0.38, 6.4)
-	base_mesh_inst.mesh = base_mesh
-	base_mesh_inst.material_override = wall_wood_mat
-	base_mesh_inst.position = Vector3(0.0, -0.2, 0.0)
-	tee.add_child(base_mesh_inst)
-	
-	# Turf surface
+	# Flush manicured tee turf surface (high-res triplanar green turf)
 	var turf_inst = MeshInstance3D.new()
 	var turf_mesh = BoxMesh.new()
-	turf_mesh.size = Vector3(6.0, 0.04, 6.0)
+	turf_mesh.size = Vector3(6.0, 0.024, 6.0)
 	turf_inst.mesh = turf_mesh
 	turf_inst.material_override = tee_turf_mat
-	turf_inst.position = Vector3(0.0, 0.02, 0.0)
+	turf_inst.position = Vector3(0.0, 0.012, 0.0)
+	turf_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	tee.add_child(turf_inst)
 	
 	# Tee markers (White Spheres)
@@ -539,9 +900,10 @@ func _setup_tee_box() -> void:
 		sphere_mesh.height = 0.16
 		marker.mesh = sphere_mesh
 		var marker_mat = StandardMaterial3D.new()
-		marker_mat.albedo_color = Color.WHITE
+		marker_mat.albedo_color = Color(0.95, 0.96, 0.96)
+		marker_mat.roughness = 0.35
 		marker.material_override = marker_mat
-		marker.position = Vector3(0.0, 0.1, side_z)
+		marker.position = Vector3(0.0, 0.09, side_z)
 		tee.add_child(marker)
 
 # ========================================
@@ -657,7 +1019,7 @@ func _setup_barrier_walls() -> void:
 		var wall_length = wall_extent - gate_half_w
 		var wall_center_z_offset = gate_half_w + (wall_length / 2.0)
 		
-		var wall_height = 13.0
+		var wall_height = 9.8
 		var wall_thickness = 1.2
 		
 		# --- LEFT WALL (Draw Side, -Z) ---
@@ -699,7 +1061,7 @@ func _create_single_barrier_wall(w_name: String, pos: Vector3, size: Vector3, di
 	col.shape = box_col
 	wall.add_child(col)
 	
-	# Main Wall Mesh (Stone / Timber panel)
+	# Main Wall Mesh (Architectural slate-green concrete panels)
 	var mesh_inst = MeshInstance3D.new()
 	var box_mesh = BoxMesh.new()
 	box_mesh.size = size
@@ -707,62 +1069,132 @@ func _create_single_barrier_wall(w_name: String, pos: Vector3, size: Vector3, di
 	mesh_inst.material_override = wall_stone_mat
 	wall.add_child(mesh_inst)
 	wall.set_meta("mesh_inst", mesh_inst)
+
+	# Architectural vertical pilasters / ribs spaced along the wall for 3D shadow depth
+	var rib_spacing := 4.5
+	var rib_count := maxi(1, int(floor((size.z - 2.0) / rib_spacing)))
+	if rib_count > 0:
+		var rib_mesh := BoxMesh.new()
+		rib_mesh.size = Vector3(size.x + 0.24, size.y - 0.05, 0.26)
+		rib_mesh.material = wall_rib_mat
+		var rib_mm := MultiMesh.new()
+		rib_mm.transform_format = MultiMesh.TRANSFORM_3D
+		rib_mm.mesh = rib_mesh
+		rib_mm.instance_count = rib_count
+		var start_z := -size.z * 0.5 + 2.25
+		for r_i in range(rib_count):
+			var rz := start_z + float(r_i) * rib_spacing
+			rib_mm.set_instance_transform(r_i, Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, rz)))
+		var rib_mmi := MultiMeshInstance3D.new()
+		rib_mmi.name = "WallPilasters"
+		rib_mmi.multimesh = rib_mm
+		wall.add_child(rib_mmi)
 	
-	# Top Cap Trim Beam
+	# Base Concrete Plinth / Foundation along bottom of wall
+	var plinth_inst := MeshInstance3D.new()
+	var plinth_mesh := BoxMesh.new()
+	plinth_mesh.size = Vector3(size.x + 0.22, 0.55, size.z + 0.16)
+	plinth_inst.mesh = plinth_mesh
+	plinth_inst.material_override = pillar_mat
+	plinth_inst.position = Vector3(0.0, -size.y / 2.0 + 0.275, 0.0)
+	wall.add_child(plinth_inst)
+
+	# Lower Cornice Shadow Ledge
+	var ledge_inst := MeshInstance3D.new()
+	var ledge_mesh := BoxMesh.new()
+	ledge_mesh.size = Vector3(size.x * 1.18, 0.16, size.z + 0.18)
+	ledge_inst.mesh = ledge_mesh
+	ledge_inst.material_override = cap_mat
+	ledge_inst.position = Vector3(0.0, size.y / 2.0 + 0.04, 0.0)
+	wall.add_child(ledge_inst)
+
+	# Top Coping Cap Beam
 	var cap_inst = MeshInstance3D.new()
 	var cap_mesh = BoxMesh.new()
-	cap_mesh.size = Vector3(size.x * 1.3, 0.4, size.z * 1.01)
+	cap_mesh.size = Vector3(size.x * 1.32, 0.32, size.z + 0.34)
 	cap_inst.mesh = cap_mesh
 	cap_inst.material_override = cap_mat
-	cap_inst.position = Vector3(0.0, size.y / 2.0 + 0.2, 0.0)
+	cap_inst.position = Vector3(0.0, size.y / 2.0 + 0.28, 0.0)
 	wall.add_child(cap_inst)
 	wall.set_meta("cap_inst", cap_inst)
 	wall.set_meta("default_cap_mat", cap_mat)
 	
-	# Neon/Glow inner gate post indicator (highlights the open middle window edge)
+	# Inner Gate Pillar (architectural concrete column framing the center clearway)
 	var post_z = -(size.z / 2.0) if side == "fade" else (size.z / 2.0)
 	var post_inst = MeshInstance3D.new()
-	var post_mesh = CylinderMesh.new()
-	post_mesh.top_radius = 0.18
-	post_mesh.bottom_radius = 0.18
-	post_mesh.height = size.y + 0.8
+	var post_mesh = BoxMesh.new()
+	post_mesh.size = Vector3(size.x * 1.38, size.y + 0.55, 0.92)
 	post_inst.mesh = post_mesh
-	
-	var post_mat = StandardMaterial3D.new()
-	var glow_color = Color(0.15, 0.8, 1.0) if side == "draw" else Color(1.0, 0.6, 0.15)
-	post_mat.albedo_color = glow_color
-	post_mat.emission_enabled = true
-	post_mat.emission = glow_color
-	post_mat.emission_energy_multiplier = 0.9
-	post_inst.material_override = post_mat
-	post_inst.position = Vector3(0.0, 0.4, post_z)
+	post_inst.material_override = pillar_mat
+	post_inst.position = Vector3(0.0, 0.275, post_z)
 	wall.add_child(post_inst)
 	wall.set_meta("post_inst", post_inst)
-	wall.set_meta("default_post_mat", post_mat)
+	wall.set_meta("default_post_mat", pillar_mat)
 
-	# Vertical Sky Beacon above gate edge (illuminates on active bounding walls)
+	# Gate Pillar Base Plinth
+	var p_base := MeshInstance3D.new()
+	var p_base_mesh := BoxMesh.new()
+	p_base_mesh.size = Vector3(size.x * 1.54, 0.65, 1.10)
+	p_base.mesh = p_base_mesh
+	p_base.material_override = cap_mat
+	p_base.position = Vector3(0.0, -size.y / 2.0 + 0.325, post_z)
+	wall.add_child(p_base)
+
+	# Gate Pillar Top Cap Block
+	var p_cap := MeshInstance3D.new()
+	var p_cap_mesh := BoxMesh.new()
+	p_cap_mesh.size = Vector3(size.x * 1.54, 0.26, 1.10)
+	p_cap.mesh = p_cap_mesh
+	p_cap.material_override = cap_mat
+	p_cap.position = Vector3(0.0, size.y / 2.0 + 0.62, post_z)
+	wall.add_child(p_cap)
+
+	# Gate-Top Pennant Flag (Blue on Draw/Left, Amber/Gold on Fade/Right)
+	var pole_inst := MeshInstance3D.new()
+	var pole_mesh := CylinderMesh.new()
+	pole_mesh.top_radius = 0.035
+	pole_mesh.bottom_radius = 0.045
+	pole_mesh.height = 1.65
+	pole_inst.mesh = pole_mesh
+	var pole_mat := StandardMaterial3D.new()
+	pole_mat.albedo_color = Color(0.20, 0.22, 0.24)
+	pole_mat.metallic = 0.6
+	pole_mat.roughness = 0.4
+	pole_inst.material_override = pole_mat
+	pole_inst.position = Vector3(0.0, size.y / 2.0 + 1.48, post_z)
+	wall.add_child(pole_inst)
+
+	var flag_inst := MeshInstance3D.new()
+	var flag_mesh := BoxMesh.new()
+	flag_mesh.size = Vector3(0.04, 0.52, 0.88)
+	flag_inst.mesh = flag_mesh
+	var flag_mat := StandardMaterial3D.new()
+	var flag_col := Color(0.20, 0.50, 0.92) if side == "draw" else Color(0.92, 0.56, 0.16)
+	flag_mat.albedo_color = flag_col
+	flag_mat.roughness = 0.65
+	flag_inst.material_override = flag_mat
+	flag_inst.position = Vector3(0.0, size.y / 2.0 + 2.02, post_z + (0.44 if side == "fade" else -0.44))
+	wall.add_child(flag_inst)
+
+	# Keep beacon node for compatibility, hidden by default
 	var beacon_inst = MeshInstance3D.new()
-	var cyl_beacon = CylinderMesh.new()
-	cyl_beacon.top_radius = 0.28
-	cyl_beacon.bottom_radius = 0.38
-	cyl_beacon.height = 36.0
-	beacon_inst.mesh = cyl_beacon
-	beacon_inst.position = Vector3(0.0, size.y + 18.0, post_z)
 	beacon_inst.visible = false
 	wall.add_child(beacon_inst)
 	wall.set_meta("beacon_inst", beacon_inst)
 	
-	# Front Wall Distance Marker Sign
+	# Front Wall Stenciled Distance Marker Sign ("WALL / XXX YD")
 	var sign_lbl = Label3D.new()
-	sign_lbl.text = "⛔ %d YDS" % dist_yd
-	sign_lbl.font_size = 40
+	sign_lbl.text = "WALL\n%d YD" % dist_yd
+	sign_lbl.font_size = 165
+	sign_lbl.pixel_size = 0.0085
+	sign_lbl.line_spacing = -12.0
 	sign_lbl.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	sign_lbl.rotation.y = deg_to_rad(-90) # Face towards tee box (-X)
-	sign_lbl.modulate = Color(1.0, 0.9, 0.6)
-	sign_lbl.outline_size = 8
-	sign_lbl.outline_modulate = Color(0, 0, 0, 0.9)
-	# Position sign on front face facing tee
-	sign_lbl.position = Vector3(-size.x / 2.0 - 0.05, 1.5, post_z + (1.6 if side == "fade" else -1.6))
+	sign_lbl.modulate = Color(0.94, 0.96, 0.96) if side == "draw" else Color(0.96, 0.76, 0.28)
+	sign_lbl.outline_size = 14
+	sign_lbl.outline_modulate = Color(0.05, 0.07, 0.07, 0.92)
+	# Position sign on front face in front of pilasters, clear of gate pillar & top HUD
+	sign_lbl.position = Vector3(-size.x / 2.0 - 0.18, 1.85, post_z + (3.8 if side == "fade" else -3.8))
 	wall.add_child(sign_lbl)
 	wall.set_meta("sign_lbl", sign_lbl)
 	
@@ -1099,42 +1531,15 @@ func _update_wall_and_zone_highlights() -> void:
 	var z_width = wall_ext - inner_z
 	var z_center = (inner_z + wall_ext) * 0.5 * (-1.0 if side == "draw" else 1.0)
 	
-	# Full Wall Material for Front Bounding Wall (Full wall face glows vividly)
-	var front_wall_mat = StandardMaterial3D.new()
-	front_wall_mat.albedo_color = Color(c.r * 0.75 + 0.15, c.g * 0.75 + 0.15, c.b * 0.75 + 0.15)
-	front_wall_mat.emission_enabled = true
-	front_wall_mat.emission = c
-	front_wall_mat.emission_energy_multiplier = 0.95
-	front_wall_mat.roughness = 0.35
-	
-	# Full Wall Material for Back Bounding Wall
-	var back_wall_mat = StandardMaterial3D.new()
-	back_wall_mat.albedo_color = Color(c.r * 0.6 + 0.12, c.g * 0.6 + 0.12, c.b * 0.6 + 0.12)
-	back_wall_mat.emission_enabled = true
-	back_wall_mat.emission = c
-	back_wall_mat.emission_energy_multiplier = 0.75
-	back_wall_mat.roughness = 0.35
-	
-	# Top Cap Materials
-	var front_cap_mat = StandardMaterial3D.new()
-	front_cap_mat.albedo_color = c
-	front_cap_mat.emission_enabled = true
-	front_cap_mat.emission = c
-	front_cap_mat.emission_energy_multiplier = 2.2
-	
-	var back_cap_mat = StandardMaterial3D.new()
-	back_cap_mat.albedo_color = Color(c.r * 0.85, c.g * 0.85, c.b * 0.85)
-	back_cap_mat.emission_enabled = true
-	back_cap_mat.emission = c
-	back_cap_mat.emission_energy_multiplier = 1.6
-
-	# Vertical Sky Beacon Material
-	var beacon_mat = StandardMaterial3D.new()
-	beacon_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	beacon_mat.albedo_color = Color(c.r, c.g, c.b, 0.75)
-	beacon_mat.emission_enabled = true
-	beacon_mat.emission = c
-	beacon_mat.emission_energy_multiplier = 3.2
+	# Subtle architectural accent for active bounding wall coping & gate pillar (preserving concrete texture)
+	var active_cap_mat := _create_concrete_wall_shader_material(
+		Color(lerpf(0.37, c.r, 0.30), lerpf(0.38, c.g, 0.30), lerpf(0.35, c.b, 0.30)),
+		false
+	)
+	var active_pillar_mat := _create_concrete_wall_shader_material(
+		Color(lerpf(0.40, c.r, 0.25), lerpf(0.41, c.g, 0.25), lerpf(0.38, c.b, 0.25)),
+		false
+	)
 	
 	for w in wall_nodes:
 		if not is_instance_valid(w):
@@ -1146,66 +1551,36 @@ func _update_wall_and_zone_highlights() -> void:
 		var post_inst: MeshInstance3D = w.get_meta("post_inst", null)
 		var beacon_inst: MeshInstance3D = w.get_meta("beacon_inst", null)
 		var sign_lbl: Label3D = w.get_meta("sign_lbl", null)
-		var def_cap: StandardMaterial3D = w.get_meta("default_cap_mat", cap_mat)
-		var def_post: StandardMaterial3D = w.get_meta("default_post_mat", null)
+		var def_cap: Material = w.get_meta("default_cap_mat", cap_mat)
+		var def_post: Material = w.get_meta("default_post_mat", pillar_mat)
+		var default_sign_color := Color(0.94, 0.96, 0.96) if w_side == "draw" else Color(0.96, 0.76, 0.28)
 		
-		if w_side == side and w_dist == front_wall_yd:
-			# Active Front Barrier Wall - FULL WALL HIGHLIGHT
-			if mesh_inst:
-				mesh_inst.material_override = front_wall_mat
+		# Keep architectural slate-green concrete panels on all walls
+		if mesh_inst:
+			mesh_inst.material_override = wall_stone_mat
+		if beacon_inst:
+			beacon_inst.visible = false
+
+		if w_side == side and (w_dist == front_wall_yd or w_dist == back_wall_yd):
 			if cap_inst:
-				cap_inst.material_override = front_cap_mat
-			if beacon_inst:
-				beacon_inst.material_override = beacon_mat
-				beacon_inst.visible = true
-			if sign_lbl:
-				sign_lbl.text = "ENTRY ➔ [%d YD ZONE]" % dist_yd
-				sign_lbl.modulate = Color(1.0, 1.0, 0.25)
-				sign_lbl.font_size = 54
-				sign_lbl.outline_size = 12
+				cap_inst.material_override = active_cap_mat
 			if post_inst:
-				var p_mat = StandardMaterial3D.new()
-				p_mat.albedo_color = c
-				p_mat.emission_enabled = true
-				p_mat.emission = c
-				p_mat.emission_energy_multiplier = 2.5
-				post_inst.material_override = p_mat
-		elif w_side == side and w_dist == back_wall_yd:
-			# Active Back Barrier Wall - FULL WALL HIGHLIGHT
-			if mesh_inst:
-				mesh_inst.material_override = back_wall_mat
-			if cap_inst:
-				cap_inst.material_override = back_cap_mat
-			if beacon_inst:
-				beacon_inst.material_override = beacon_mat
-				beacon_inst.visible = true
+				post_inst.material_override = active_pillar_mat
 			if sign_lbl:
-				sign_lbl.text = "[%d YD ZONE] ⛔ BACK WALL" % dist_yd
-				sign_lbl.modulate = Color(1.0, 0.45, 0.3)
-				sign_lbl.font_size = 54
-				sign_lbl.outline_size = 12
-			if post_inst:
-				var p_mat = StandardMaterial3D.new()
-				p_mat.albedo_color = c
-				p_mat.emission_enabled = true
-				p_mat.emission = c
-				p_mat.emission_energy_multiplier = 1.8
-				post_inst.material_override = p_mat
+				sign_lbl.text = "WALL\n%d YD" % w_dist
+				sign_lbl.modulate = default_sign_color
+				sign_lbl.font_size = 180
+				sign_lbl.outline_size = 16
 		else:
-			# Standard / Non-bounding Wall
-			if mesh_inst:
-				mesh_inst.material_override = wall_stone_mat
 			if cap_inst:
 				cap_inst.material_override = def_cap
-			if beacon_inst:
-				beacon_inst.visible = false
-			if sign_lbl:
-				sign_lbl.text = "⛔ %d YDS" % w_dist
-				sign_lbl.modulate = Color(1.0, 0.9, 0.6)
-				sign_lbl.font_size = 40
-				sign_lbl.outline_size = 8
 			if post_inst and def_post:
 				post_inst.material_override = def_post
+			if sign_lbl:
+				sign_lbl.text = "WALL\n%d YD" % w_dist
+				sign_lbl.modulate = default_sign_color.darkened(0.06)
+				sign_lbl.font_size = 165
+				sign_lbl.outline_size = 14
 
 	# 3D Landing Zone Ground Highlight
 	if target_zone_ground:
@@ -1216,10 +1591,10 @@ func _update_wall_and_zone_highlights() -> void:
 		
 		var zg_mat = StandardMaterial3D.new()
 		zg_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		zg_mat.albedo_color = Color(c.r, c.g, c.b, 0.35)
+		zg_mat.albedo_color = Color(c.r, c.g, c.b, 0.22)
 		zg_mat.emission_enabled = true
 		zg_mat.emission = c
-		zg_mat.emission_energy_multiplier = 1.0
+		zg_mat.emission_energy_multiplier = 0.55
 		target_zone_ground.material_override = zg_mat
 		target_zone_ground.visible = true
 
@@ -1255,6 +1630,8 @@ func _setup_player() -> void:
 	player.rest.connect(_on_ball_rest)
 	
 	player.ball.spawn_position = player.global_position
+	if player.has_method("set_profile"):
+		player.set_profile(get_active_player_name())
 	player.ball.reset()
 
 func _reset_ball_position() -> void:
@@ -1267,6 +1644,8 @@ func _reset_ball_position() -> void:
 	if player and player.ball:
 		player.global_position = Vector3(0.0, 0.05, 0.0)
 		player.ball.spawn_position = player.global_position
+		if player.has_method("set_profile"):
+			player.set_profile(get_active_player_name())
 		player.ball.reset()
 		player.reset_ball()
 		
@@ -1382,6 +1761,7 @@ func _on_launch_monitor_hit_ball(data: Dictionary) -> void:
 		return
 
 	FoamBallBoost.apply_boost(data)
+	PowerCalibration.apply_calibration(data)
 
 	is_shot_in_progress = true
 	is_resetting = false

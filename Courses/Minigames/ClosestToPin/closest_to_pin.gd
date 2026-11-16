@@ -6,6 +6,7 @@ const FlagBuilder = preload("res://Courses/Range/flag_builder.gd")
 
 # Minigame state variables
 var player = null
+var is_driving_range: bool = true
 
 # Camera follow state
 var last_camera_offset = Vector3.ZERO
@@ -71,6 +72,8 @@ var sfx_applause_player: AudioStreamPlayer = null
 # Target 3D nodes
 var target_node: Node3D = null
 var target_flag_node: Node3D = null
+var target_arrow_node: Node3D = null
+const TARGET_ARROW_BASE_Y: float = 4.1
 
 # PvP Mode State
 const MinigamePlayerModal = preload("res://Courses/Minigames/minigame_player_modal.gd")
@@ -117,6 +120,8 @@ func get_player_color_at(idx: int) -> Color:
 
 func _ready() -> void:
 	name = "ClosestToPin"
+	is_driving_range = true
+	set_meta("is_driving_range", true)
 	rng.randomize()
 	_init_player_names()
 
@@ -136,14 +141,19 @@ func _ready() -> void:
 	# 3. Driving Range Ground Mesh with PBR turf shader
 	_generate_ground_terrain()
 
-	# 4. Driving Range Visual Elements (Boundary walls, 50yd lines & numerals, trees, mountain backdrop)
+	# 4. Driving Range Visual Elements (Hitting bays, boundary walls, 50yd lines & numerals, trees, mountain backdrop)
 	_spawn_driving_range_elements()
 
-	# 5. Setup Tee Box
-	_setup_tee_box()
-
-	# 6. Setup Player (instantiates ball and camera tracking)
+	# 5. Setup Player (instantiates ball and camera tracking)
 	_setup_player()
+
+	# 6. Apply Driving Range Graphics Quality (High Fidelity shaders, trees, shadows, Sky3D)
+	if has_node("Sky3D"):
+		MobilePerformance.optimize_sky3d($Sky3D)
+	MobilePerformance.optimize_scene(self)
+	var range_quality = GlobalSettings.get_graphics_quality() if GlobalSettings != null else "High"
+	MobilePerformance.apply_graphics_quality(self, range_quality)
+	_setup_atmospheric_fog()
 
 	# 7. Generate random target (50-200 yards)
 	_generate_new_target()
@@ -324,79 +334,97 @@ func _init_materials() -> void:
 func _setup_environment() -> void:
 	var is_mobile := MobilePerformance.is_mobile()
 
-	var sun = DirectionalLight3D.new()
-	sun.name = "SunLight"
-	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-52)).rotated(Vector3.UP, deg_to_rad(35))
-	sun.shadow_enabled = true
-	sun.light_energy = 1.2
-	if is_mobile:
-		sun.directional_shadow_max_distance = 200.0
-		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-		sun.directional_shadow_blend_splits = true
-		sun.directional_shadow_split_1 = 0.1
-	else:
-		sun.directional_shadow_max_distance = 500.0
-		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-		sun.directional_shadow_blend_splits = true
-		sun.directional_shadow_split_1 = 0.05
-		sun.directional_shadow_split_2 = 0.15
-		sun.directional_shadow_split_3 = 0.40
-	sun.shadow_bias = 0.03
-	sun.shadow_normal_bias = 2.0
-	add_child(sun)
+	if not has_node("Sky3D"):
+		var sun = DirectionalLight3D.new()
+		sun.name = "SunLight"
+		sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-52)).rotated(Vector3.UP, deg_to_rad(35))
+		sun.shadow_enabled = true
+		sun.light_energy = 1.2
+		if is_mobile:
+			sun.directional_shadow_max_distance = 200.0
+			sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+			sun.directional_shadow_blend_splits = true
+			sun.directional_shadow_split_1 = 0.1
+		else:
+			sun.directional_shadow_max_distance = 500.0
+			sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+			sun.directional_shadow_blend_splits = true
+			sun.directional_shadow_split_1 = 0.05
+			sun.directional_shadow_split_2 = 0.15
+			sun.directional_shadow_split_3 = 0.40
+		sun.shadow_bias = 0.03
+		sun.shadow_normal_bias = 2.0
+		add_child(sun)
 
-	var world_env = WorldEnvironment.new()
-	world_env.name = "WorldEnvironment"
+		var world_env = WorldEnvironment.new()
+		world_env.name = "WorldEnvironment"
 
-	var env = Environment.new()
-	env.background_mode = Environment.BG_SKY
+		var env = Environment.new()
+		env.background_mode = Environment.BG_SKY
 
-	var sky = Sky.new()
-	sky.process_mode = Sky.PROCESS_MODE_REALTIME
-	sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
-	var sky_mat = ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.22, 0.52, 0.86)
-	sky_mat.sky_horizon_color = Color(0.58, 0.76, 0.92)
-	sky_mat.ground_bottom_color = Color(0.15, 0.28, 0.20)
-	sky_mat.ground_horizon_color = Color(0.58, 0.76, 0.92)
-	sky_mat.sun_angle_max = 35.0
-	sky.sky_material = sky_mat
-	env.sky = sky
+		var sky = Sky.new()
+		sky.process_mode = Sky.PROCESS_MODE_REALTIME
+		sky.radiance_size = Sky.RADIANCE_SIZE_128 if is_mobile else Sky.RADIANCE_SIZE_256
+		var sky_mat = ProceduralSkyMaterial.new()
+		sky_mat.sky_top_color = Color(0.22, 0.52, 0.86)
+		sky_mat.sky_horizon_color = Color(0.58, 0.76, 0.92)
+		sky_mat.ground_bottom_color = Color(0.15, 0.28, 0.20)
+		sky_mat.ground_horizon_color = Color(0.58, 0.76, 0.92)
+		sky_mat.sun_angle_max = 35.0
+		sky.sky_material = sky_mat
+		env.sky = sky
 
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.50
-	env.ambient_light_sky_contribution = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_white = 5.0
-	env.tonemap_exposure = 1.0
-	if is_mobile:
-		env.ssao_enabled = false
-	else:
-		env.ssao_enabled = true
-		env.ssao_radius = 2.0
-		env.ssao_intensity = 1.2
-		env.ssao_power = 1.5
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+		env.ambient_light_energy = 0.50
+		env.ambient_light_sky_contribution = 0.55
+		env.tonemap_mode = Environment.TONE_MAPPER_ACES
+		env.tonemap_white = 5.0
+		env.tonemap_exposure = 1.0
+		if is_mobile:
+			env.ssao_enabled = false
+		else:
+			env.ssao_enabled = true
+			env.ssao_radius = 2.0
+			env.ssao_intensity = 1.2
+			env.ssao_power = 1.5
 
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.65, 0.78, 0.88)
-	env.fog_density = 0.0018
-	env.fog_sky_affect = 0.3
+		env.fog_enabled = true
+		env.fog_light_color = Color(0.65, 0.78, 0.88)
+		env.fog_density = 0.0018
+		env.fog_sky_affect = 0.3
 
-	world_env.environment = env
-	add_child(world_env)
+		world_env.environment = env
+		add_child(world_env)
 
 	# Main Gameplay Camera
-	var camera = Camera3D.new()
-	camera.name = "Camera3D"
-	camera.current = true
-	camera.near = 0.05
-	camera.far = 4000.0
-	add_child(camera)
+	var camera = get_node_or_null("Camera3D")
+	if camera == null:
+		camera = Camera3D.new()
+		camera.name = "Camera3D"
+		camera.current = true
+		camera.near = 0.05
+		camera.far = 4000.0
+		add_child(camera)
+	if has_node("Sky3D") and $Sky3D is WorldEnvironment and $Sky3D.camera_attributes != null:
+		camera.attributes = $Sky3D.camera_attributes
 	if has_node("/root/TensionManager"):
 		TensionManager.register_camera(camera, 55.0)
 	if has_node("/root/ScreenOffsetManager"):
 		ScreenOffsetManager.register_camera(camera)
 		ScreenOffsetManager.on_ready_for_shot(0.0, true)
+
+
+func _setup_atmospheric_fog() -> void:
+	var skydome = get_node_or_null("Sky3D/Skydome")
+	if skydome == null:
+		return
+	skydome.fog_density = 0.0018
+	skydome.fog_start = 140.0
+	skydome.fog_end = 350.0
+	skydome.clouds_visible = true
+	skydome.clouds_cumulus_visible = false
+	skydome.clouds_speed = 0.005
+	skydome.clouds_cumulus_speed = 0.003
 
 
 # ========================================
@@ -501,10 +529,23 @@ func _generate_ground_terrain() -> void:
 # ========================================
 
 func _spawn_driving_range_elements() -> void:
+	_spawn_hitting_bays()
 	_spawn_boundary_walls()
 	_spawn_ground_distance_indicators()
 	_spawn_range_trees()
 	_spawn_mountain_backdrop()
+
+
+func _spawn_hitting_bays() -> void:
+	if has_node("DrivingRangeBaySetup"):
+		$DrivingRangeBaySetup.queue_free()
+	var bays_script = load("res://Courses/Range/driving_range_bays.gd")
+	if bays_script != null:
+		var bays_node = bays_script.create_bay_setup()
+		bays_node.name = "DrivingRangeBaySetup"
+		add_child(bays_node)
+	else:
+		_setup_tee_box()
 
 
 func _spawn_boundary_walls() -> void:
@@ -977,6 +1018,8 @@ func _generate_new_target() -> void:
 	if target_node != null and is_instance_valid(target_node):
 		target_node.queue_free()
 		target_node = null
+	target_flag_node = null
+	target_arrow_node = null
 
 	# Random distance 50 to 200 yards
 	target_distance_yards = rng.randi_range(50, 200)
@@ -1058,6 +1101,9 @@ func _build_target_rings() -> void:
 	# Flagpole at target center
 	_build_target_flag()
 
+	# Overhead downward-pointing arrow above the bullseye center
+	_build_target_arrow()
+
 	# Ring Point value labels
 	_add_ring_point_labels()
 
@@ -1134,6 +1180,54 @@ func _build_target_flag() -> void:
 	label.outline_modulate = Color(0, 0, 0, 0.9)
 	label.position = Vector3(0.0, 3.25, 0.0)
 	target_flag_node.add_child(label)
+
+
+func _build_target_arrow() -> void:
+	target_arrow_node = Node3D.new()
+	target_arrow_node.name = "TargetArrow"
+	target_arrow_node.position = Vector3(0.0, TARGET_ARROW_BASE_Y, 0.0)
+	target_node.add_child(target_arrow_node)
+
+	var arrow_mat = StandardMaterial3D.new()
+	arrow_mat.albedo_color = Color(1.0, 0.85, 0.1)
+	arrow_mat.emission_enabled = true
+	arrow_mat.emission = Color(1.0, 0.75, 0.05)
+	arrow_mat.emission_energy_multiplier = 1.2
+	arrow_mat.roughness = 0.25
+
+	# Downward-pointing cone head (tip at local y = 0.0)
+	var head_mesh = CylinderMesh.new()
+	head_mesh.top_radius = 0.65
+	head_mesh.bottom_radius = 0.0
+	head_mesh.height = 1.2
+	head_mesh.radial_segments = 24
+	var head_inst = MeshInstance3D.new()
+	head_inst.name = "ArrowHead"
+	head_inst.mesh = head_mesh
+	head_inst.material_override = arrow_mat
+	head_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	head_inst.position = Vector3(0.0, 0.6, 0.0)
+	target_arrow_node.add_child(head_inst)
+
+	# Vertical shaft above the arrowhead
+	var shaft_mesh = CylinderMesh.new()
+	shaft_mesh.top_radius = 0.24
+	shaft_mesh.bottom_radius = 0.24
+	shaft_mesh.height = 1.5
+	shaft_mesh.radial_segments = 20
+	var shaft_inst = MeshInstance3D.new()
+	shaft_inst.name = "ArrowShaft"
+	shaft_inst.mesh = shaft_mesh
+	shaft_inst.material_override = arrow_mat
+	shaft_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shaft_inst.position = Vector3(0.0, 1.95, 0.0)
+	target_arrow_node.add_child(shaft_inst)
+
+
+func _process(_delta: float) -> void:
+	if target_arrow_node != null and is_instance_valid(target_arrow_node):
+		var t := Time.get_ticks_msec() * 0.001
+		target_arrow_node.position.y = TARGET_ARROW_BASE_Y + sin(t * 2.8) * 0.25
 
 
 func _add_ring_point_labels() -> void:
@@ -1217,6 +1311,8 @@ func _setup_player() -> void:
 	player.rest.connect(_on_ball_rest)
 
 	player.ball.spawn_position = player.global_position
+	if player.has_method("set_profile"):
+		player.set_profile(get_active_player_name())
 	player.ball.reset()
 
 
@@ -1227,6 +1323,8 @@ func _reset_ball_position() -> void:
 	if player != null and player.ball != null:
 		player.global_position = Vector3(0.0, 0.05, 0.0)
 		player.ball.spawn_position = player.global_position
+		if player.has_method("set_profile"):
+			player.set_profile(get_active_player_name())
 		player.ball.reset()
 		player.reset_ball()
 	_update_aim_and_camera()
@@ -1313,6 +1411,7 @@ func _on_launch_monitor_hit_ball(data: Dictionary) -> void:
 		return
 
 	FoamBallBoost.apply_boost(data)
+	PowerCalibration.apply_calibration(data)
 
 	if has_node("/root/TensionManager"):
 		TensionManager.stop_tension()

@@ -105,6 +105,16 @@ func _run_tests() -> void:
 	assert(ball.state == PhysicsEnums.BallState.REST, "Recovered ball must be placed at rest on surface")
 	print("PASS: Fall-through below fairway caught and safely recovered to ground.")
 
+	# Test 6: Distant course tee box (>3000m from origin) must not falsely trigger out-of-bounds
+	print("\n--- Test 6: Distant Tee Box Bounds Check ---")
+	ball.state = PhysicsEnums.BallState.FLIGHT
+	ball.shot_start_pos = Vector3(3500.0, 0.06, -3200.0)
+	ball.position = Vector3(3500.0, 0.06, -3200.0)
+	var distant_oob = ball._check_out_of_bounds()
+	assert(distant_oob == false, "Ball at distant tee box must NOT falsely trigger out-of-bounds")
+	assert(ball.state == PhysicsEnums.BallState.FLIGHT, "Ball at distant tee box must remain in FLIGHT")
+	print("PASS: Distant tee box (>3000m from origin) does not trigger false OOB.")
+
 	# Cleanup
 	sub_viewport.queue_free()
 

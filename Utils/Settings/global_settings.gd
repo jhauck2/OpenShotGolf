@@ -66,6 +66,10 @@ func apply_foam_ball_boost(data: Dictionary, fallback_club: String = "") -> void
 	FoamBallBoost.apply_boost(data, fallback_club if not fallback_club.is_empty() else current_selected_club)
 
 
+func apply_power_calibration(data: Dictionary) -> void:
+	PowerCalibration.apply_calibration(data)
+
+
 func is_low_graphics() -> bool:
 	if is_driving_range_scene():
 		return false
