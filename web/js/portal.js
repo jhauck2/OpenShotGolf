@@ -98,7 +98,7 @@ let currentUser = null;
 let currentProfile = null;
 let currentStats = null;
 let currentTab = "overview";
-let loadedTabs = { overview: false, analytics: false, matches: false, swing: false, achievements: false, settings: false };
+let loadedTabs = { overview: false, "shot-analysis": false, analytics: false, matches: false, swing: false, achievements: false, settings: false };
 let currentAnalyticsClub = "all";
 let currentAnalyticsWindow = "last10";
 let pendingDeviceCode = "";
@@ -106,6 +106,7 @@ let pendingLoopbackPort = "";
 let deviceHandoffCompleted = false;
 let activeConfirmCallback = null;
 let toastTimeout = null;
+let selectedShotAnalysis = null;
 
 export function initPortal() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -532,7 +533,8 @@ function showAuthView() {
   if (signinInfo) signinInfo.style.display = "";
 
   setAuthMode("signin");
-  loadedTabs = { overview: false, analytics: false, matches: false, swing: false, achievements: false, settings: false };
+  loadedTabs = { overview: false, "shot-analysis": false, analytics: false, matches: false, swing: false, achievements: false, settings: false };
+  selectedShotAnalysis = null;
 }
 
 function showPortalView() {
@@ -554,6 +556,13 @@ function bindPortalTabs() {
       switchPortalTab(tabName);
     });
   });
+  document.getElementById("shot-analysis-refresh")?.addEventListener("click", () => {
+    if (currentUser) loadShotAnalysisSessions(currentUser);
+  });
+  document.getElementById("shot-analysis-view-mode")?.addEventListener("change", renderSelectedShotAnalysis);
+  window.addEventListener("resize", () => {
+    if (selectedShotAnalysis && currentTab === "shot-analysis") drawShotAnalysisCharts(selectedShotAnalysis);
+  });
 }
 
 function switchPortalTab(tabName) {
@@ -568,11 +577,457 @@ function switchPortalTab(tabName) {
   // Lazy load tab data
   if (!loadedTabs[tabName] && currentUser) {
     if (tabName === "analytics") loadAnalyticsAndTrends(currentUser);
+    else if (tabName === "shot-analysis") loadShotAnalysisSessions(currentUser);
     else if (tabName === "matches") loadRecentMatches(currentUser);
     else if (tabName === "swing") loadSwingAnalysis(currentUser);
     else if (tabName === "achievements") loadAchievements(currentUser);
     else if (tabName === "settings") loadSharedAccessAndSettings(currentUser);
   }
+}
+
+// ─── TAB: UPLOADED SHOT ANALYSIS ───
+async function loadShotAnalysisSessions(user) {
+  const container = document.getElementById("shot-analysis-list");
+  if (!container) return;
+  container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading uploaded shot sessions…</p></div>`;
+
+  try {
+    const sessionsQuery = query(
+      collection(db, "profiles", user.uid, "shot_analysis"),
+      orderBy("created_at", "desc")
+    );
+    const snapshot = await getDocs(sessionsQuery);
+    const sessions = snapshot.docs.map((sessionDoc) => ({ id: sessionDoc.id, ...sessionDoc.data() }));
+    loadedTabs["shot-analysis"] = true;
+    renderShotAnalysisSessions(sessions);
+  } catch (err) {
+    console.error("Shot analysis session fetch error:", err);
+    container.innerHTML = `<div class="shot-analysis-error">Could not load shot analysis sessions: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderShotAnalysisSessions(sessions) {
+  const container = document.getElementById("shot-analysis-list");
+  if (!container) return;
+  if (sessions.length === 0) {
+    container.innerHTML = `<div class="empty-state"><span class="empty-icon">🎯</span><p>No uploaded shot data yet. From Shot Data Analysis on the range, choose “Upload to Portal”.</p></div>`;
+    selectedShotAnalysis = null;
+    document.getElementById("shot-analysis-detail")?.setAttribute("hidden", "");
+    return;
+  }
+
+  container.innerHTML = `<div class="shot-analysis-session-list">${sessions.map((session) => {
+    const timestamp = Number(session.created_at || 0);
+    const dateText = timestamp ? new Date(timestamp * 1000).toLocaleString() : "Date unavailable";
+    const records = Array.isArray(session.records) ? session.records : [];
+    const groups = Array.isArray(session.groups) ? session.groups : [];
+    const playerNames = [...new Set(records.map((record) => String(record.shot?.player_name || record.shot?.player || "")).filter(Boolean))];
+    const summary = `${records.length} shots · ${groups.length} groups${playerNames.length ? ` · ${playerNames.map(escapeHtml).join(", ")}` : ""}`;
+    return `
+      <div class="shot-analysis-session" data-session-id="${escapeHtml(session.id)}">
+        <div class="shot-analysis-session-info">
+          <strong>${escapeHtml(dateText)}</strong>
+          <span>${summary}</span>
+        </div>
+        <div class="shot-analysis-session-actions">
+          <button class="btn-action-outline" data-shot-action="view">View</button>
+          <button class="btn-action-outline" data-shot-action="csv">Download CSV</button>
+          <button class="btn-action-outline btn-danger-outline" data-shot-action="delete">Delete</button>
+        </div>
+      </div>`;
+  }).join("")}</div>`;
+
+  container.querySelectorAll(".shot-analysis-session").forEach((row, index) => {
+    const session = sessions[index];
+    row.querySelector('[data-shot-action="view"]').addEventListener("click", () => {
+      selectedShotAnalysis = session;
+      renderSelectedShotAnalysis();
+      document.getElementById("shot-analysis-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    row.querySelector('[data-shot-action="csv"]').addEventListener("click", () => downloadShotAnalysisCsv(session));
+    row.querySelector('[data-shot-action="delete"]').addEventListener("click", async () => {
+      const dateText = new Date(Number(session.created_at || 0) * 1000).toLocaleString();
+      if (!confirm(`Delete the uploaded shot analysis from ${dateText}? This cannot be undone.`)) return;
+      try {
+        await deleteDoc(doc(db, "profiles", currentUser.uid, "shot_analysis", session.id));
+        if (selectedShotAnalysis?.id === session.id) {
+          selectedShotAnalysis = null;
+          document.getElementById("shot-analysis-detail")?.setAttribute("hidden", "");
+        }
+        await loadShotAnalysisSessions(currentUser);
+      } catch (err) {
+        console.error("Shot analysis deletion failed:", err);
+        alert(`Could not delete this shot analysis: ${err.message}`);
+      }
+    });
+  });
+}
+
+function downloadShotAnalysisCsv(session) {
+  const records = Array.isArray(session.records) ? session.records : [];
+  const groups = Array.isArray(session.groups) ? session.groups : [];
+  const groupLabels = new Map(groups.map((group) => [String(group.id), String(group.label || "Group")]));
+  const keys = [...new Set(records.flatMap((record) => Object.keys(record.shot || {})))].sort();
+  const createdAt = Number(session.created_at || 0);
+  const sessionDate = createdAt ? new Date(createdAt * 1000).toISOString() : "";
+  const rows = [["Session Date (UTC)", "Group", "Included", ...keys]];
+  records.forEach((record) => {
+    const shot = record.shot || {};
+    const csvValue = (value) => typeof value === "string" && /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+    rows.push([
+      sessionDate,
+      csvValue(groupLabels.get(String(record.group_id)) || "Group"),
+      record.included === false ? "false" : "true",
+      ...keys.map((key) => {
+        const value = shot[key];
+        return csvValue(value != null && typeof value === "object" ? JSON.stringify(value) : value ?? "");
+      })
+    ]);
+  });
+  const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `shot-analysis-${session.id}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const SHOT_STAT_CATEGORIES = ["Distance & Height", "Ball Speed", "Ball Flight", "Club & Face", "Spin", "Other"];
+const SHOT_STAT_LABELS = {
+  Speed: "Ball Speed", BallSpeed: "Ball Speed", ClubSpeed: "Club Speed",
+  CarryDistance: "Carry", TotalDistance: "Distance", SideDistance: "Offline",
+  TotalSpin: "Spin", BackSpin: "Back Spin", SideSpin: "Side Spin",
+  SpinAxis: "Spin Axis", Apex: "Apex", LaunchAngle: "Launch Angle",
+  VLA: "VLA", HLA: "HLA", DescentAngle: "Descent Angle", HangTime: "Hang Time"
+};
+const SHOT_GROUP_COLORS = ["#1ad9ff", "#ffb81f", "#ff4d5c", "#66e66b", "#c777ff", "#ff8533", "#59f2b8", "#f28cb7"];
+
+function shotStatCategory(key) {
+  const normalized = key.toLowerCase().replace(/[_ -]/g, "");
+  if (["carrydistance", "totaldistance", "distance", "carry", "apex", "height", "peakheight", "hangtime"].includes(normalized)) return "Distance & Height";
+  if (["speed", "ballspeed", "clubspeed", "smashfactor"].includes(normalized)) return "Ball Speed";
+  if (["launchangle", "vla", "hla", "sidedistance", "offline", "direction", "shotdirection", "descentangle", "landingangle"].includes(normalized)) return "Ball Flight";
+  if (["clubpath", "faceangle", "facetopath", "attackangle", "dynamicloft", "clubfaceangle", "facetotarget"].includes(normalized)) return "Club & Face";
+  if (["totalspin", "backspin", "sidespin", "spinaxis", "spinrate"].includes(normalized)) return "Spin";
+  return "Other";
+}
+
+function shotStatKeys(records) {
+  const excluded = new Set([
+    "aimdistance", "aimdistanceyards", "club", "player", "playername",
+    "recordedinaverages", "shotreduction", "shotreductionm", "shottype",
+    "targetdistance", "tracerpoints"
+  ]);
+  const keys = new Set();
+  records.forEach((record) => Object.entries(record.shot || {}).forEach(([key, value]) => {
+    const normalized = key.toLowerCase().replace(/[_ -]/g, "");
+    if (excluded.has(normalized)) return;
+    if (normalized === "speed" || normalized === "ballspeed") keys.add("BallSpeed");
+    else if (normalized === "descentangle" || normalized === "landingangle") keys.add("DescentAngle");
+    else keys.add(key);
+  }));
+  return [...keys].sort((a, b) => {
+    const categoryDiff = SHOT_STAT_CATEGORIES.indexOf(shotStatCategory(a)) - SHOT_STAT_CATEGORIES.indexOf(shotStatCategory(b));
+    if (categoryDiff === 0 && shotStatCategory(a) === "Ball Flight") {
+      const descentA = ["descentangle", "landingangle"].includes(a.toLowerCase().replace(/[_ -]/g, ""));
+      const descentB = ["descentangle", "landingangle"].includes(b.toLowerCase().replace(/[_ -]/g, ""));
+      if (descentA !== descentB) return descentA ? -1 : 1;
+    }
+    return categoryDiff || (SHOT_STAT_LABELS[a] || a).localeCompare(SHOT_STAT_LABELS[b] || b);
+  });
+}
+
+function shotStatUnit(key, units) {
+  const normalized = key.toLowerCase().replace(/[_ -]/g, "");
+  const imperial = units !== "metric";
+  if (["carrydistance", "totaldistance", "distance", "carry", "sidedistance", "offline", "rollout"].includes(normalized)) return imperial ? "yd" : "m";
+  if (["apex", "height", "peakheight"].includes(normalized)) return imperial ? "ft" : "m";
+  if (["ballspeed", "speed", "clubspeed"].includes(normalized)) return imperial ? "mph" : "m/s";
+  return "";
+}
+
+function shotAnalysisDisplayValue(shot, key, units) {
+  const value = shotAnalysisValue(shot, key);
+  if (typeof value !== "number") return value;
+  const normalized = key.toLowerCase().replace(/[_ -]/g, "");
+  if (["ballspeed", "speed", "clubspeed"].includes(normalized)) return units === "metric" ? value * 0.44704 : value;
+  if (["carrydistance", "totaldistance", "distance", "carry", "sidedistance", "offline", "rollout"].includes(normalized)) return units === "metric" ? value : value * 1.09361;
+  if (["apex", "height", "peakheight"].includes(normalized)) return units === "metric" ? value : value * 3.28084;
+  return value;
+}
+
+function formatShotValue(value) {
+  if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  if (value == null) return "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function shotAnalysisValue(shot, key) {
+  if (key === "BallSpeed") return shot.BallSpeed ?? shot.Speed ?? null;
+  if (key === "DescentAngle") return shot.DescentAngle ?? shot.descent_angle ?? shot.landing_angle ?? null;
+  return Object.prototype.hasOwnProperty.call(shot, key) ? shot[key] : null;
+}
+
+function shotAnalysisDispersionStats(records, groupId, useDistance, units = "imperial") {
+  const unitFactor = units === "metric" ? 1 : 1.09361;
+  const values = records
+    .filter((record) => String(record.group_id) === String(groupId) && record.included !== false)
+    .map((record) => {
+      const shot = record.shot || {};
+      if (useDistance) {
+        return Math.max(0, Number(shot.TotalDistance ?? shot.CarryDistance ?? 0) * unitFactor);
+      }
+      let meters = Number(shot.SideDistance || 0);
+      const trace = shot.tracer_points;
+      if (Math.abs(meters) < 0.001 && Array.isArray(trace) && trace.length > 1 && Array.isArray(trace[0]) && Array.isArray(trace.at(-1))) {
+        meters = Number(trace.at(-1)[2] || 0) - Number(trace[0][2] || 0);
+      }
+      return meters * unitFactor;
+    })
+    .filter(Number.isFinite);
+  if (!values.length) return { mean: 0, radius: 0 };
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+  return { mean, radius: Math.max(Math.sqrt(variance) * 2, 5) };
+}
+
+function renderSelectedShotAnalysis() {
+  const detail = document.getElementById("shot-analysis-detail");
+  const session = selectedShotAnalysis;
+  if (!detail || !session) return;
+  detail.removeAttribute("hidden");
+  const timestamp = Number(session.created_at || 0);
+  document.getElementById("shot-analysis-detail-title").textContent =
+    `Shot data · ${timestamp ? new Date(timestamp * 1000).toLocaleString() : "Date unavailable"}`;
+  renderShotAnalysisTable(session);
+  drawShotAnalysisCharts(session);
+}
+
+function renderShotAnalysisTable(session) {
+  const container = document.getElementById("shot-analysis-table");
+  const records = Array.isArray(session.records) ? session.records : [];
+  const groups = Array.isArray(session.groups) ? session.groups : [];
+  const units = session.display_units === "metric" ? "metric" : "imperial";
+  const keys = shotStatKeys(records);
+  const groupsHtml = groups.map((group) => {
+    const groupRecords = records.filter((record) => String(record.group_id) === String(group.id));
+    const columns = keys.map((key) => {
+      const label = SHOT_STAT_LABELS[key] || key.replace(/_/g, " ");
+      const unit = shotStatUnit(key, units);
+      return `<th>${escapeHtml(unit ? `${label} (${unit})` : label)}</th>`;
+    }).join("");
+    const shotsHtml = groupRecords.map((record) => {
+      const shot = record.shot || {};
+      const className = record.included === false ? "excluded-shot" : "";
+      return `<tr class="${className}"><td>${record.included === false ? "Excluded" : "Included"}</td>${keys.map((key) => {
+        const value = shotAnalysisDisplayValue(shot, key, units);
+        return `<td title="${escapeHtml(formatShotValue(value))}">${escapeHtml(formatShotValue(value))}</td>`;
+      }).join("")}</tr>`;
+    }).join("");
+    const included = groupRecords.filter((record) => record.included !== false);
+    const averages = keys.map((key) => {
+      const numeric = included.map((record) => shotAnalysisDisplayValue(record.shot || {}, key, units)).filter((value) => typeof value === "number" && Number.isFinite(value));
+      return numeric.length ? formatShotValue(numeric.reduce((sum, value) => sum + value, 0) / numeric.length) : "—";
+    });
+    return `<tbody>
+      <tr class="category-heading"><th colspan="${keys.length + 1}">${escapeHtml(group.label || "Group")} · ${included.length} of ${groupRecords.length} included</th></tr>
+      <tr><th>Use</th>${columns}</tr>
+      ${shotsHtml}
+      <tr class="average-row"><td>Average</td>${averages.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>
+    </tbody>`;
+  }).join("");
+  const categoryHeaders = [];
+  keys.forEach((key) => {
+    const category = shotStatCategory(key);
+    const last = categoryHeaders[categoryHeaders.length - 1];
+    if (last && last.name === category) last.count += 1;
+    else categoryHeaders.push({ name: category, count: 1 });
+  });
+  const categoryRow = categoryHeaders.map((category) => `<th colspan="${category.count}">${escapeHtml(category.name)}</th>`).join("");
+  container.innerHTML = `<table class="data-table shot-analysis-table">
+    <thead><tr><th></th>${categoryRow}</tr></thead>${groupsHtml}
+  </table>`;
+}
+
+function drawShotAnalysisCharts(session) {
+  const canvas = document.getElementById("shot-analysis-canvas");
+  if (!canvas) return;
+  const bounds = canvas.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return;
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.round(bounds.width * ratio);
+  canvas.height = Math.round(bounds.height * ratio);
+  const ctx = canvas.getContext("2d");
+  ctx.scale(ratio, ratio);
+  const width = bounds.width, height = bounds.height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#0e1624";
+  ctx.fillRect(0, 0, width, height);
+  const records = Array.isArray(session.records) ? session.records : [];
+  const groups = Array.isArray(session.groups) ? session.groups : [];
+  const units = session.display_units === "metric" ? "metric" : "imperial";
+  const unitFactor = units === "metric" ? 1 : 1.09361;
+  const distanceUnit = units === "metric" ? "m" : "yd";
+  const apexUnitFactor = units === "metric" ? 1 : 3;
+  const mode = document.getElementById("shot-analysis-view-mode")?.value || "best";
+  const yards = (shot, total = false) => Math.max(0, Number(shot?.[total ? "TotalDistance" : "CarryDistance"] ?? shot?.TotalDistance ?? shot?.CarryDistance ?? 0) * unitFactor);
+  const offline = (shot) => {
+    let value = Number(shot?.SideDistance || 0);
+    const trace = shot?.tracer_points;
+    if (Math.abs(value) < 0.001 && Array.isArray(trace) && trace.length > 1 && Array.isArray(trace[0]) && Array.isArray(trace.at(-1))) {
+      value = Number(trace.at(-1)[2] || 0) - Number(trace[0][2] || 0);
+    }
+    return value * unitFactor;
+  };
+  const includedFor = (group) => records.filter((record) => String(record.group_id) === String(group.id) && record.included !== false);
+  const representatives = groups.map((group) => {
+    const included = includedFor(group);
+    if (!included.length) return null;
+    if (mode === "best") return included.reduce((best, record) => yards(record.shot, true) > yards(best.shot, true) ? record : best);
+    const average = {};
+    ["CarryDistance", "TotalDistance", "Apex"].forEach((key) => {
+      const nums = included.map((record) => record.shot?.[key]).filter((value) => typeof value === "number" && Number.isFinite(value));
+      if (nums.length) average[key] = nums.reduce((sum, value) => sum + value, 0) / nums.length;
+    });
+    return { shot: average };
+  });
+  let maxFlightHeight = 5;
+  const flightSeries = representatives.map((representative) => {
+    if (!representative) return [];
+    const shot = representative.shot || {};
+    const trace = shot.tracer_points;
+    if (Array.isArray(trace) && trace.length > 1 && trace.every((point) => Array.isArray(point) && point.length >= 3 && point.every(Number.isFinite))) {
+      const start = trace[0];
+      const points = trace.map((point) => [
+        Math.hypot(point[0] - start[0], point[2] - start[2]) * unitFactor,
+        Math.max(0, point[1] - start[1]) * unitFactor
+      ]);
+      maxFlightHeight = Math.max(maxFlightHeight, ...points.map((point) => point[1]));
+      return points;
+    }
+    const distance = Math.max(1, yards(shot));
+    const apex = Math.max(1, Number(shot.Apex || 0) * unitFactor);
+    maxFlightHeight = Math.max(maxFlightHeight, apex);
+    return Array.from({ length: 41 }, (_, index) => {
+      const t = index / 40;
+      return [distance * t, 4 * apex * t * (1 - t)];
+    });
+  });
+  maxFlightHeight *= 1.3;
+  let maxDistance = Math.max(
+    0,
+    ...records.map((record) => yards(record.shot, true)),
+    ...representatives.filter(Boolean).map((record) => yards(record.shot, true)),
+    ...flightSeries.flatMap((points) => points.map((point) => point[0])),
+    ...groups.map((group) => {
+      const dispersion = shotAnalysisDispersionStats(records, group.id, true, units);
+      return dispersion.mean + dispersion.radius;
+    })
+  );
+  maxDistance = Math.max(50, Math.ceil(maxDistance * 1.1 / 50) * 50);
+  const left = 64, right = width - 18;
+  const flightTop = 42, flightBottom = height * 0.30;
+  const rulerY = height * 0.36;
+  const dispersionTop = height * 0.52, dispersionBottom = height - 24;
+  const xFor = (distance) => left + Math.max(0, Math.min(1, distance / maxDistance)) * (right - left);
+  const drawText = (text, x, y, color = "#c5d0df", size = 11) => {
+    ctx.fillStyle = color;
+    ctx.font = `${size}px system-ui, sans-serif`;
+    ctx.fillText(text, x, y);
+  };
+  drawText(`FLIGHT PATH · ${mode === "best" ? "BEST SHOT" : "GROUP AVERAGE"}`, 16, 20, "#c5d0df", 12);
+  groups.forEach((group, index) => {
+    const representative = representatives[index];
+    const points = flightSeries[index];
+    const color = SHOT_GROUP_COLORS[index % SHOT_GROUP_COLORS.length];
+    const legendX = left + (index % Math.max(1, Math.floor((right - left) / 190))) * 190;
+    const legendY = flightTop + 12 + Math.floor(index / Math.max(1, Math.floor((right - left) / 190))) * 14;
+    drawText(String(group.label || "Group"), legendX, legendY, color, 10);
+    if (!representative) return;
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    let apexIndex = 0;
+    points.forEach((point, pointIndex) => {
+      const px = xFor(point[0]);
+      const py = flightBottom - (point[1] / maxFlightHeight) * (flightBottom - flightTop - 18);
+      if (point[1] > points[apexIndex][1]) apexIndex = pointIndex;
+      if (pointIndex === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    const apexPoint = points[apexIndex];
+    drawText(`APEX ${(apexPoint[1] * apexUnitFactor).toFixed(0)} ${units === "metric" ? "m" : "ft"}`, xFor(apexPoint[0]) + 4, flightBottom - (apexPoint[1] / maxFlightHeight) * (flightBottom - flightTop - 18) - 4, color, 9);
+  });
+  for (let distance = 0; distance <= maxDistance; distance += 50) {
+    const x = xFor(distance);
+    ctx.strokeStyle = "rgba(160,180,205,.2)";
+    ctx.beginPath(); ctx.moveTo(x, flightTop); ctx.lineTo(x, flightBottom); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, dispersionTop); ctx.lineTo(x, dispersionBottom); ctx.stroke();
+    ctx.strokeStyle = "rgba(220,230,245,.7)";
+    ctx.beginPath(); ctx.moveTo(x, rulerY - 4); ctx.lineTo(x, rulerY + 4); ctx.stroke();
+    drawText(`${distance} ${distanceUnit}`, Math.max(2, Math.min(width - 42, x - 16)), rulerY + 18, "#c5d0df", 9);
+  }
+  ctx.strokeStyle = "rgba(220,230,245,.55)";
+  ctx.beginPath(); ctx.moveTo(left, rulerY); ctx.lineTo(right, rulerY); ctx.stroke();
+  drawText("DISTANCE SCALE", 16, rulerY + 4, "#c5d0df", 10);
+  drawText("LANDING DISPERSION · DIMMED SHOTS ARE EXCLUDED", 16, height * 0.46, "#c5d0df", 12);
+  const lateralExtent = Math.max(
+    0,
+    ...records.map((record) => Math.abs(offline(record.shot))),
+    ...groups.map((group) => {
+      const dispersion = shotAnalysisDispersionStats(records, group.id, false, units);
+      return Math.abs(dispersion.mean) + dispersion.radius;
+    })
+  );
+  const lateralMax = Math.max(15, Math.ceil(lateralExtent * 1.15 / 5) * 5);
+  const centerY = (dispersionTop + dispersionBottom) / 2;
+  ctx.strokeStyle = "rgba(220,230,245,.45)";
+  ctx.beginPath(); ctx.moveTo(left, centerY); ctx.lineTo(right, centerY); ctx.stroke();
+  drawText("RIGHT", 18, dispersionTop + 12);
+  drawText("LEFT", 18, dispersionBottom);
+  groups.forEach((group, groupIndex) => {
+    const color = SHOT_GROUP_COLORS[groupIndex % SHOT_GROUP_COLORS.length];
+    const activePoints = [];
+    records.forEach((record) => {
+      if (String(record.group_id) !== String(group.id)) return;
+      const x = xFor(yards(record.shot, true));
+      const y = centerY - Math.max(-1, Math.min(1, offline(record.shot) / lateralMax)) * ((dispersionBottom - dispersionTop) / 2);
+      ctx.globalAlpha = record.included === false ? 0.2 : 0.92;
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x, y, record.included === false ? 3 : 4, 0, Math.PI * 2); ctx.fill();
+      if (record.included !== false) activePoints.push([x, y]);
+    });
+    if (activePoints.length < 2) return;
+    const meanX = activePoints.reduce((sum, point) => sum + point[0], 0) / activePoints.length;
+    const meanY = activePoints.reduce((sum, point) => sum + point[1], 0) / activePoints.length;
+    const varianceX = activePoints.reduce((sum, point) => sum + (point[0] - meanX) ** 2, 0) / activePoints.length;
+    const varianceY = activePoints.reduce((sum, point) => sum + (point[1] - meanY) ** 2, 0) / activePoints.length;
+    const radiusX = Math.min(Math.max(Math.sqrt(varianceX) * 2, 5), Math.max(0, Math.min(meanX - left, right - meanX) - 2));
+    const radiusY = Math.min(Math.max(Math.sqrt(varianceY) * 2, 5), Math.max(0, Math.min(meanY - dispersionTop, dispersionBottom - meanY) - 2));
+    if (radiusX < 1 || radiusY < 1) return;
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    for (let point = 0; point <= 40; point++) {
+      const angle = Math.PI * 2 * point / 40;
+      const x = meanX + Math.cos(angle) * radiusX;
+      const y = meanY + Math.sin(angle) * radiusY;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = `${color}14`;
+    ctx.strokeStyle = `${color}b8`;
+    ctx.lineWidth = 1.5;
+    ctx.fill();
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
 }
 
 // ─── LOAD USER DATA (READ 1 & READ 2) ───
@@ -3029,7 +3484,7 @@ function renderAnalytics() {
   });
 }
 
-// ─── TAB 2: RECENT MATCHES (LAZY-LOADED) ───
+// ─── TAB: RECENT MATCHES (LAZY-LOADED) ───
 async function loadRecentMatches(user) {
   const container = document.getElementById("recent-matches-container");
   if (!container) return;
@@ -3683,19 +4138,29 @@ function bindAccountDeletion(user) {
     newBtn.disabled = true;
 
     try {
-      // 1. Delete public_profiles/{uid}
+      // 1. Delete uploaded shot-analysis sessions and their raw shot data.
+      const shotAnalysisSnapshot = await getDocs(collection(db, "profiles", user.uid, "shot_analysis"));
+      for (let start = 0; start < shotAnalysisSnapshot.docs.length; start += 450) {
+        const batch = writeBatch(db);
+        shotAnalysisSnapshot.docs.slice(start, start + 450).forEach((session) => {
+          batch.delete(doc(db, "profiles", user.uid, "shot_analysis", session.id));
+        });
+        await batch.commit();
+      }
+
+      // 2. Delete public_profiles/{uid}
       try { await deleteDoc(doc(db, "public_profiles", user.uid)); } catch {}
 
-      // 2. Delete profiles/{uid}/sync/stats
+      // 3. Delete profiles/{uid}/sync/stats
       try { await deleteDoc(doc(db, "profiles", user.uid, "sync", "stats")); } catch {}
 
-      // 3. Delete profiles/{uid}
+      // 4. Delete profiles/{uid}
       try { await deleteDoc(doc(db, "profiles", user.uid)); } catch {}
 
-      // 4. Delete users/{uid}
+      // 5. Delete users/{uid}
       try { await deleteDoc(doc(db, "users", user.uid)); } catch {}
 
-      // 5. Delete Firebase Auth user
+      // 6. Delete Firebase Auth user
       await deleteUser(user);
 
       alert("Your account and cloud data have been completely deleted.");

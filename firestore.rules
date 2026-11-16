@@ -94,6 +94,20 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
 
+      // Private raw shot-analysis sessions uploaded from the range.
+      match /shot_analysis/{analysisId} {
+        allow read: if isOwner(uid);
+        allow create: if isCloudActive()
+          && isOwner(uid)
+          && request.resource.data.schema_version == 1
+          && request.resource.data.session_id == analysisId
+          && request.resource.data.created_at is int
+          && request.resource.data.groups is list
+          && request.resource.data.records is list;
+        allow update: if false;
+        allow delete: if isOwner(uid);
+      }
+
       // Access grants for linked accounts
       match /delegates/{delegateUid} {
         allow read: if isOwner(uid) || (isSignedIn() && request.auth.uid == delegateUid);

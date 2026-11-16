@@ -780,7 +780,9 @@ func _is_control_in_modal(ctrl: Node) -> bool:
 	var cur: Node = ctrl
 	var root: Node = get_tree().root if get_tree() != null else null
 	while cur != null and is_instance_valid(cur) and cur != root:
-		if cur is Popup or cur is AcceptDialog or cur is ConfirmationDialog or cur is Window:
+		if cur is Popup or cur is AcceptDialog or cur is ConfirmationDialog:
+			return true
+		if cur is Window and cur.exclusive:
 			return true
 		if cur.is_in_group("modals") or cur.is_in_group("modal_dialogs"):
 			return true
@@ -806,7 +808,7 @@ func _find_visible_modal_in_tree() -> Node:
 	var modal_nodes := tree.get_nodes_in_group("modals")
 	for m in modal_nodes:
 		if is_instance_valid(m) and m is Node and m != current_scene and m != self:
-			if (m is Control and m.is_visible_in_tree()) or (m is Window and m.visible) or (m is CanvasLayer and m.visible):
+			if (m is Control and m.is_visible_in_tree()) or (m is Window and m.visible and m.exclusive) or (m is CanvasLayer and m.visible):
 				return m
 
 	# 2. Search direct children of current_scene and root
@@ -820,7 +822,7 @@ func _find_visible_modal_in_tree() -> Node:
 		for child in s_root.get_children():
 			if not is_instance_valid(child) or child == current_scene or child == self:
 				continue
-			if child is Window and child.visible:
+			if child is Window and child.visible and child.exclusive:
 				return child
 			if child is Control and child.is_visible_in_tree():
 				var c_name := str(child.name).to_lower()

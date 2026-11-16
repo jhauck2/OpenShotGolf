@@ -17,3 +17,46 @@
 - Fixed fairway and rough rollout friction so default fairway roll distances are no longer slowed down by the green speed recalibration multiplier (keeping fairway roll faster than rough and aligned with standard club rollout).
 - Fixed an issue on Low graphics quality ("minimum trees") where hidden higher-tier trees and canopies could still collide with the golf ball after switching quality in-game or loading converted courses.
 - Fixed an issue on large downloaded courses where tee shots starting far from the course origin could falsely trigger out-of-bounds immediately on the tee, leaving the ball on the tee.
+
+### Shot Data Analysis & Tee-Shot View
+- Open a movable Shot Data Analysis window from beside the Stats button. Review launch monitor readings in editable player-and-club groups, rename or create groups, move shots between groups, and exclude individual shots from group averages.
+- Compare best-shot or group-average flight paths and view color-matched landing dispersion, with excluded shots still visible in a dimmed style.
+- Keep using the range controls while Shot Data Analysis is open; its window no longer blocks interaction with the main screen.
+- Open Shot Data Analysis as a regular desktop window instead of a popup, and place it on a second monitor when one is available.
+- Fixed startup script errors that could prevent the range and minigames from loading.
+- Keep player selection, settings, and range buttons usable while the non-modal analysis window is open.
+- Fixed a crash when the shot list refreshes after changing clubs or recording another shot.
+- Use a newly created custom group for the next shot, including when the player or club changed before the shot.
+- Prevent creating another custom group until the pending group has received a shot.
+- Show landing dispersion left-to-right from tee to landing, aligned to the flight chart with one shared 50-yard distance ruler.
+- Organize shot spreadsheet stats under clear categories and hide player metadata and internal fields that are not useful for shot analysis.
+- Delete a shot group and its shots from the analysis window without affecting shots stored on the range.
+- Upload shot-analysis sessions to Firebase and review, visualize, download as CSV, or delete them from the signed-in Player Portal.
+- Keep the Shot Data Analysis window’s standard minimize and maximize controls visible.
+- Display apex height in feet and scale the yardage range to keep dispersion circles within the chart while showing the full distance range.
+- Remove duplicate Ball Speed and aim/target-only columns while retaining all other launch-monitor fields in shot analysis.
+- Add Descent Angle as the first stat in the Ball Flight category.
+- Match shot-analysis table values and chart distance labels to the range's selected imperial or metric units.
+- View tee shots from a fixed, raised position behind the tee, clear of HUD controls, with the inset hiding on landing.
+- Fixed an error at the end of a hole that could interrupt tournament score handling.
+- Make the tee-shot flight window portrait-oriented and one-third larger for a clearer view.
+- Overlay the tee-shot view over the minimap at one-third larger, with a solid, cleanly rendered flight tracer.
+- Keep the tee-shot camera fixed in a slightly higher, farther-back position throughout the flight.
+- Fixed a loading error that could prevent the course from opening after selecting Play.
+- Raise the tee-shot camera and aim it downrange above the canopy to keep the view clear of trees.
+- Animate the tee-shot window as it grows from minimap size and shrinks back when the shot ends.
+- Keep the tee-shot ball marker and solid tracer confined to the inset so they do not alter the main game view.
+- Pull the tee-shot camera back to keep the tee box in frame, and clip the tracer to the inset window.
+- Let the tee-shot sound play before the inset opens, then reveal the flight view after its longer resize transition; use the same duration when it closes.
+- Keep the ball still until the tee-shot inset finishes opening, and preserve the course picture's portrait shape throughout the resize.
+- Expand the tee-shot window before playing the hit sound and launching the ball, and clear the previous flight tracer before the next expansion.
+- Keep the tee-shot window visible through its full closing animation when the ball comes to rest, including multiplayer turn changes.
+- Allow the tee-shot inset content to shrink with the window instead of forcing an immediate return to minimap size.
+- Show the behind-the-tee view full-screen during tee shots, then return to the course view and restore the HUD after the shot.
+- Reduce tee-shot flight stuttering by skipping the hidden main view's duplicate course rendering.
+- Improve tee-shot flight smoothness by reducing extra rendering and updating only the moving end of the tracer.
+- Further reduce tee-shot flight rendering load while preserving the flight view's on-screen size.
+- Update the tee-shot tracer less often while keeping the ball marker moving smoothly during flight.
+- Turn the tee-shot overhead view on or off from Course Play’s Immersion Menu.
+- Show the course on the left and the overhead tee-shot flight view on the right during tee shots.
+- Fixed a script parsing issue when reading the overhead tee-shot setting.
