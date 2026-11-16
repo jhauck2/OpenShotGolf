@@ -55,6 +55,7 @@ var _sfx_cup_drop = preload("res://assets/audio/sfx/cup_drop.mp3")
 
 # SFX players
 var _sfx_player: AudioStreamPlayer = null
+var tee_shot_view: Node = null
 var _leaves_player: AudioStreamPlayer = null
 var _cup_player: AudioStreamPlayer = null
 
@@ -2856,11 +2857,6 @@ func hit_from_data(data: Dictionary) -> void:
 			_set_openfairway_property(params, &"is_putt", &"IsPutt", is_putt)
 			_set_openfairway_property(params, &"lateral_curve_scale", &"LateralCurveScale", lateral_curve_scale)
 
-	velocity = launch_velocity
-	omega = launch_omega
-	shot_dir = launch_direction
-	target_dir = Vector3.RIGHT.rotated(Vector3.UP, deg_to_rad(aim_yaw_offset_deg)).normalized()
-
 	shot_start_pos = position
 	shot_start_pos_global = global_position
 	_current_ground_y = global_position.y
@@ -2873,11 +2869,20 @@ func hit_from_data(data: Dictionary) -> void:
 		TensionManager.reset_for_new_shot()
 		if TensionManager.is_course_play_active() and not _cached_target_hole.is_zero_approx():
 			if TensionManager.is_shot_eligible_for_suspense(global_position, _cached_target_hole, is_putt, shot_was_in_sand):
-				TensionManager.predict_shot_outcome(global_position, velocity, is_putt, _cached_target_hole, shot_was_in_sand)
+				TensionManager.predict_shot_outcome(global_position, launch_velocity, is_putt, _cached_target_hole, shot_was_in_sand)
 
 	_print_launch_debug(data, speed_mps, vla_deg, hla_deg, total_spin, spin_axis)
 
-	# Play hit sound effect
+	if shot_was_from_teebox and is_instance_valid(tee_shot_view) and tee_shot_view.has_method("prepare_for_shot"):
+		var target_pos := _cached_target_hole
+		if target_pos.is_zero_approx():
+			target_pos = get_target_hole_position()
+		var launch_state := state
+		state = PhysicsEnums.BallState.REST
+		await tee_shot_view.prepare_for_shot(shot_start_pos_global, global_position, target_pos)
+		state = launch_state
+
+	# Play hit sound after the tee-shot window finishes opening.
 	if _sfx_player != null:
 		_sfx_player.volume_db = 0.0
 		_sfx_player.pitch_scale = randf_range(0.97, 1.03)
@@ -2888,6 +2893,11 @@ func hit_from_data(data: Dictionary) -> void:
 		else:
 			_sfx_player.stream = _sfx_hit_other
 		_sfx_player.play()
+
+	velocity = launch_velocity
+	omega = launch_omega
+	shot_dir = launch_direction
+	target_dir = Vector3.RIGHT.rotated(Vector3.UP, deg_to_rad(aim_yaw_offset_deg)).normalized()
 
 
 func _parse_spin_data(data: Dictionary) -> Dictionary:

@@ -52,6 +52,7 @@ var gspro_selected_device := Setting.new("mlm2pro")
 var graphics_quality := Setting.new(MobilePerformance.get_default_graphics_quality())
 var wind_enabled := Setting.new(false)
 var wind_speed := Setting.new(10.0, 0.0, 35.0)
+var tee_shot_view_enabled := Setting.new(true)
 var replay_window_detached := Setting.new(false)
 var replay_window_position_x := Setting.new(-1)
 var replay_window_position_y := Setting.new(-1)
@@ -133,6 +134,7 @@ func _init():
 		"graphics_quality": graphics_quality,
 		"wind_enabled": wind_enabled,
 		"wind_speed": wind_speed,
+		"tee_shot_view_enabled": tee_shot_view_enabled,
 		"replay_window_detached": replay_window_detached,
 		"replay_window_position_x": replay_window_position_x,
 		"replay_window_position_y": replay_window_position_y,
@@ -161,5 +163,4 @@ func _init():
 		"debug_log_path": debug_log_path,
 		"track_club_averages": track_club_averages,
 	})
-
 

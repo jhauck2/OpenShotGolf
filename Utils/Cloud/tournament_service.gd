@@ -382,7 +382,7 @@ func fetch_standings(tournament_id: String) -> Dictionary:
 ## Accumulates hole scores for any matching active tournament entry.
 func _on_hole_completed(_scores: Array) -> void:
 	var mp := get_node_or_null("/root/MultiplayerManager")
-	if mp == null or mp.practice_mode_active or bool(mp.get("is_online_match")):
+	if mp == null or mp.practice_mode_active or _is_online_match_active():
 		return
 	_accumulate_scores_from_mp(mp)
 
@@ -390,7 +390,7 @@ func _on_hole_completed(_scores: Array) -> void:
 ## Called from MultiplayerManager's game_over signal.
 func _on_game_over(_scores: Array) -> void:
 	var mp := get_node_or_null("/root/MultiplayerManager")
-	if mp == null or mp.practice_mode_active or bool(mp.get("is_online_match")):
+	if mp == null or mp.practice_mode_active or _is_online_match_active():
 		restore_tournament_settings()
 		return
 	_accumulate_scores_from_mp(mp)
@@ -450,6 +450,11 @@ func _get_global_settings() -> Node:
 	if loop is SceneTree and loop.root != null and loop.root.has_node("GlobalSettings"):
 		return loop.root.get_node("GlobalSettings")
 	return null
+
+
+func _is_online_match_active() -> bool:
+	var online_session := get_node_or_null("/root/OnlineSession")
+	return online_session != null and online_session.get("is_online_match") == true
 
 
 func _accumulate_scores_from_mp(mp: Node) -> void:

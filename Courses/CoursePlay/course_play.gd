@@ -28,6 +28,7 @@ var _last_course_hole_id: String = ""
 
 const ScorecardBadge = preload("res://UI/scorecard_badge.gd")
 const HoleShotPathDiagram = preload("res://UI/hole_shot_path_diagram.gd")
+const TeeShotView = preload("res://UI/tee_shot_view.gd")
 
 var hud_scorecard: Panel = Panel.new()
 var scorecard_grid: GridContainer = GridContainer.new()
@@ -78,6 +79,12 @@ var _player_map_markers: Dictionary = {}
 var _cached_player_textures: Dictionary = {}
 
 var range_ui: Control = null
+var _tee_shot_view: Control = null
+var _tee_shot_canvas: CanvasLayer = null
+var _tee_shot_flight_active: bool = false
+var _tee_shot_tracer_update_elapsed: float = 0.0
+const TEE_SHOT_TRACER_UPDATE_INTERVAL := 0.05
+var _hud_visible_before_tee_shot: bool = true
 var top_bar: HBoxContainer = null
 var right_panel: VBoxContainer = null
 var toggles_scroll: ScrollContainer = null
@@ -248,6 +255,16 @@ func _setup_hud() -> void:
 	
 	_overlay_node = MultiplayerBallOverlay.new(self)
 	canvas.add_child(_overlay_node)
+
+	_tee_shot_canvas = CanvasLayer.new()
+	_tee_shot_canvas.name = "TeeShotViewLayer"
+	_tee_shot_canvas.layer = 110
+	add_child(_tee_shot_canvas)
+
+	_tee_shot_view = TeeShotView.new()
+	_tee_shot_canvas.add_child(_tee_shot_view)
+	_tee_shot_view.connect("split_started", Callable(self, "_on_tee_shot_split_started"))
+	_tee_shot_view.connect("split_closed", Callable(self, "_on_tee_shot_split_closed"))
 	
 	mulligan_confirm_dialog = PanelContainer.new()
 	mulligan_confirm_dialog.name = "MulliganConfirmDialog"
@@ -1469,6 +1486,29 @@ func _setup_hud() -> void:
 	)
 	imm_menu_container.add_child(putting_cam_btn)
 	_update_course_putting_cam_btn_state()
+
+	# Tee-shot flight view toggle
+	var tee_shot_view_btn := Button.new()
+	tee_shot_view_btn.name = "TeeShotViewButton"
+	tee_shot_view_btn.tooltip_text = "Show the overhead flight view for tee shots in Course Play"
+	tee_shot_view_btn.custom_minimum_size = Vector2(180, 56)
+	var tee_shot_view_enabled := bool(GlobalSettings.range_settings.tee_shot_view_enabled.value)
+	tee_shot_view_btn.text = "📺 Tee Shot View: ON" if tee_shot_view_enabled else "📺 Tee Shot View: OFF"
+	apply_material_button_style(
+		tee_shot_view_btn,
+		Color(0.2, 0.5, 0.75, 0.85) if tee_shot_view_enabled else Color(0.5, 0.5, 0.5, 0.85)
+	)
+	tee_shot_view_btn.pressed.connect(func():
+		var enabled := not bool(GlobalSettings.range_settings.tee_shot_view_enabled.value)
+		GlobalSettings.range_settings.tee_shot_view_enabled.set_value(enabled)
+		GlobalSettings.save_settings()
+		tee_shot_view_btn.text = "📺 Tee Shot View: ON" if enabled else "📺 Tee Shot View: OFF"
+		apply_material_button_style(
+			tee_shot_view_btn,
+			Color(0.2, 0.5, 0.75, 0.85) if enabled else Color(0.5, 0.5, 0.5, 0.85)
+		)
+	)
+	imm_menu_container.add_child(tee_shot_view_btn)
 
 	# Screen Offset Toggle & Dual Sliders (General & Putter)
 	var so_script = load("res://UI/ScreenOffset/screen_offset_control.gd")
@@ -5572,6 +5612,73 @@ func _on_game_over(scores: Array) -> void:
 	GlobalSettings.play_golf_clap()
 
 
+func _update_tee_shot_view(ball: Node, ball_is_moving: bool, ball_state_changed: bool, delta: float) -> void:
+	if _tee_shot_view == null or ball == null:
+		return
+	var tee_shot_view_enabled: bool = bool(GlobalSettings.range_settings.tee_shot_view_enabled.value)
+	if not tee_shot_view_enabled:
+		ball.set("tee_shot_view", null)
+		if _tee_shot_flight_active:
+			_tee_shot_view.hide_shot(true)
+			_tee_shot_flight_active = false
+			_tee_shot_tracer_update_elapsed = 0.0
+		return
+	ball.set("tee_shot_view", _tee_shot_view)
+	var main_camera := course_instance.get_node_or_null("Camera3D") as Camera3D if course_instance != null else null
+	_tee_shot_view.call("set_main_camera", main_camera)
+	if _minimap_panel != null and is_instance_valid(_minimap_panel):
+		_tee_shot_view.set_minimap_rect(_minimap_panel.get_global_rect())
+
+	if not ball_is_moving:
+		if _tee_shot_flight_active:
+			_tee_shot_view.hide_shot()
+			_tee_shot_flight_active = false
+			_tee_shot_tracer_update_elapsed = 0.0
+		return
+
+	if not bool(ball.get("shot_was_from_teebox")):
+		if _tee_shot_flight_active:
+			_tee_shot_view.hide_shot()
+			_tee_shot_flight_active = false
+			_tee_shot_tracer_update_elapsed = 0.0
+		return
+
+	_tee_shot_flight_active = true
+	var start_pos: Vector3 = ball.get("shot_start_pos_global")
+	var current_pos: Vector3 = ball.get_interpolated_position() if ball.has_method("get_interpolated_position") else ball.global_position
+	var target_pos := Vector3.ZERO
+	if course_instance != null:
+		var target_value: Variant = course_instance.get("current_hole_location")
+		if not target_value is Vector3 or target_value.is_zero_approx():
+			target_value = course_instance.get("aim_target_pos")
+		if target_value is Vector3:
+			target_pos = target_value
+
+	if ball_is_moving:
+		if not _tee_shot_view.visible:
+			_tee_shot_view.show_shot(start_pos, current_pos, target_pos)
+			_tee_shot_tracer_update_elapsed = TEE_SHOT_TRACER_UPDATE_INTERVAL
+		_tee_shot_view.update_ball_position(current_pos)
+		_tee_shot_tracer_update_elapsed += delta
+		if _tee_shot_tracer_update_elapsed >= TEE_SHOT_TRACER_UPDATE_INTERVAL:
+			_tee_shot_tracer_update_elapsed = 0.0
+			var player_node := course_instance.get_node_or_null("Player") as Node3D if course_instance != null else null
+			var current_tracer: Node = player_node.get("current_tracer") if player_node != null else null
+			var tracer_points: Array = current_tracer.get("points") if current_tracer != null and is_instance_valid(current_tracer) else []
+			var player_transform := player_node.global_transform if player_node != null else Transform3D.IDENTITY
+			_tee_shot_view.update_tracer(tracer_points, player_transform, start_pos, current_pos)
+
+
+func _on_tee_shot_split_started() -> void:
+	_hud_visible_before_tee_shot = _hud_elements_visible
+	_set_other_elements_visible(false)
+
+
+func _on_tee_shot_split_closed() -> void:
+	if _hud_visible_before_tee_shot:
+		_set_other_elements_visible(true)
+
+
 func _process(_delta: float) -> void:
 	# Scorecard countdown handling
 	if _scorecard_countdown_active and hud_scorecard.visible:
@@ -5593,7 +5700,8 @@ func _process(_delta: float) -> void:
 			active_ball = ball
 
 	var ball_is_moving: bool = (ball != null and ball.state != PhysicsEnums.BallState.REST)
-	if ball_is_moving != _prev_ball_moving:
+	var ball_state_changed: bool = ball_is_moving != _prev_ball_moving
+	if ball_state_changed:
 		_prev_ball_moving = ball_is_moving
 		_minimap_zoom_dirty = true
 		if has_node("/root/ScreenOffsetManager"):
@@ -5603,6 +5711,8 @@ func _process(_delta: float) -> void:
 			else:
 				som.call("set_putter_active", is_default_club_putter())
 				som.call("on_ready_for_shot")
+
+	_update_tee_shot_view(ball, ball_is_moving, ball_state_changed, _delta)
 
 	if mulligan_btn != null and mulligan_btn.visible:
 		if _is_online_match():
