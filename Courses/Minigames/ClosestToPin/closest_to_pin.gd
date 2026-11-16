@@ -72,6 +72,8 @@ var sfx_applause_player: AudioStreamPlayer = null
 # Target 3D nodes
 var target_node: Node3D = null
 var target_flag_node: Node3D = null
+var target_arrow_node: Node3D = null
+const TARGET_ARROW_BASE_Y: float = 4.1
 
 # PvP Mode State
 const MinigamePlayerModal = preload("res://Courses/Minigames/minigame_player_modal.gd")
@@ -1016,6 +1018,8 @@ func _generate_new_target() -> void:
 	if target_node != null and is_instance_valid(target_node):
 		target_node.queue_free()
 		target_node = null
+	target_flag_node = null
+	target_arrow_node = null
 
 	# Random distance 50 to 200 yards
 	target_distance_yards = rng.randi_range(50, 200)
@@ -1097,6 +1101,9 @@ func _build_target_rings() -> void:
 	# Flagpole at target center
 	_build_target_flag()
 
+	# Overhead downward-pointing arrow above the bullseye center
+	_build_target_arrow()
+
 	# Ring Point value labels
 	_add_ring_point_labels()
 
@@ -1173,6 +1180,54 @@ func _build_target_flag() -> void:
 	label.outline_modulate = Color(0, 0, 0, 0.9)
 	label.position = Vector3(0.0, 3.25, 0.0)
 	target_flag_node.add_child(label)
+
+
+func _build_target_arrow() -> void:
+	target_arrow_node = Node3D.new()
+	target_arrow_node.name = "TargetArrow"
+	target_arrow_node.position = Vector3(0.0, TARGET_ARROW_BASE_Y, 0.0)
+	target_node.add_child(target_arrow_node)
+
+	var arrow_mat = StandardMaterial3D.new()
+	arrow_mat.albedo_color = Color(1.0, 0.85, 0.1)
+	arrow_mat.emission_enabled = true
+	arrow_mat.emission = Color(1.0, 0.75, 0.05)
+	arrow_mat.emission_energy_multiplier = 1.2
+	arrow_mat.roughness = 0.25
+
+	# Downward-pointing cone head (tip at local y = 0.0)
+	var head_mesh = CylinderMesh.new()
+	head_mesh.top_radius = 0.65
+	head_mesh.bottom_radius = 0.0
+	head_mesh.height = 1.2
+	head_mesh.radial_segments = 24
+	var head_inst = MeshInstance3D.new()
+	head_inst.name = "ArrowHead"
+	head_inst.mesh = head_mesh
+	head_inst.material_override = arrow_mat
+	head_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	head_inst.position = Vector3(0.0, 0.6, 0.0)
+	target_arrow_node.add_child(head_inst)
+
+	# Vertical shaft above the arrowhead
+	var shaft_mesh = CylinderMesh.new()
+	shaft_mesh.top_radius = 0.24
+	shaft_mesh.bottom_radius = 0.24
+	shaft_mesh.height = 1.5
+	shaft_mesh.radial_segments = 20
+	var shaft_inst = MeshInstance3D.new()
+	shaft_inst.name = "ArrowShaft"
+	shaft_inst.mesh = shaft_mesh
+	shaft_inst.material_override = arrow_mat
+	shaft_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	shaft_inst.position = Vector3(0.0, 1.95, 0.0)
+	target_arrow_node.add_child(shaft_inst)
+
+
+func _process(_delta: float) -> void:
+	if target_arrow_node != null and is_instance_valid(target_arrow_node):
+		var t := Time.get_ticks_msec() * 0.001
+		target_arrow_node.position.y = TARGET_ARROW_BASE_Y + sin(t * 2.8) * 0.25
 
 
 func _add_ring_point_labels() -> void:

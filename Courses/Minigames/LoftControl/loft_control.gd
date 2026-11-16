@@ -497,17 +497,29 @@ func _setup_range_ground() -> void:
 	var shader = load("res://Courses/Environments/shaders/driving_range_turf_realistic.gdshader")
 	if shader == null:
 		shader = load("res://Courses/Environments/shaders/driving_range_turf.gdshader")
-	if shader != null and ResourceLoader.exists("res://Courses/Environments/grass-fairway/albedo.png") and ResourceLoader.exists("res://Courses/Environments/grass-rough/albedo.png"):
+	var fw_albedo := "res://Courses/Environments/high/grass_fairway_albedo.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_fairway_albedo.png") else "res://Courses/Environments/grass-fairway/albedo.png"
+	var fw_normal := "res://Courses/Environments/high/grass_fairway_normal.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_fairway_normal.png") else "res://Courses/Environments/grass-fairway/normal.png"
+	var fw_rough := "res://Courses/Environments/high/grass_fairway_roughness.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_fairway_roughness.png") else "res://Courses/Environments/grass-fairway/roughness.png"
+	var rg_albedo := "res://Courses/Environments/high/grass_rough_albedo.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_albedo.png") else "res://Courses/Environments/grass-rough/albedo.png"
+	var rg_normal := "res://Courses/Environments/high/grass_rough_normal.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_normal.png") else "res://Courses/Environments/grass-rough/normal.png"
+	var rg_rough := "res://Courses/Environments/high/grass_rough_roughness.png" if ResourceLoader.exists("res://Courses/Environments/high/grass_rough_roughness.png") else "res://Courses/Environments/grass-rough/roughness.png"
+	if shader != null and ResourceLoader.exists(fw_albedo) and ResourceLoader.exists(rg_albedo):
 		var sm := ShaderMaterial.new()
 		sm.shader = shader
-		sm.set_shader_parameter("tex_fairway", load("res://Courses/Environments/grass-fairway/albedo.png"))
-		sm.set_shader_parameter("normal_fairway", load("res://Courses/Environments/grass-fairway/normal.png"))
-		sm.set_shader_parameter("ao_fairway", load("res://Courses/Environments/grass-fairway/ao.png"))
-		sm.set_shader_parameter("roughness_fairway", load("res://Courses/Environments/grass-fairway/roughness.png"))
-		sm.set_shader_parameter("tex_rough", load("res://Courses/Environments/grass-rough/albedo.png"))
-		sm.set_shader_parameter("normal_rough", load("res://Courses/Environments/grass-rough/normal.png"))
-		sm.set_shader_parameter("ao_rough", load("res://Courses/Environments/grass-rough/ao.png"))
-		sm.set_shader_parameter("roughness_rough", load("res://Courses/Environments/grass-rough/roughness.png"))
+		sm.set_shader_parameter("tex_fairway", load(fw_albedo))
+		if ResourceLoader.exists(fw_normal):
+			sm.set_shader_parameter("normal_fairway", load(fw_normal))
+		if ResourceLoader.exists("res://Courses/Environments/grass-fairway/ao.png"):
+			sm.set_shader_parameter("ao_fairway", load("res://Courses/Environments/grass-fairway/ao.png"))
+		if ResourceLoader.exists(fw_rough):
+			sm.set_shader_parameter("roughness_fairway", load(fw_rough))
+		sm.set_shader_parameter("tex_rough", load(rg_albedo))
+		if ResourceLoader.exists(rg_normal):
+			sm.set_shader_parameter("normal_rough", load(rg_normal))
+		if ResourceLoader.exists("res://Courses/Environments/grass-rough/ao.png"):
+			sm.set_shader_parameter("ao_rough", load("res://Courses/Environments/grass-rough/ao.png"))
+		if ResourceLoader.exists(rg_rough):
+			sm.set_shader_parameter("roughness_rough", load(rg_rough))
 		sm.set_shader_parameter("corridor_half_width", 24.0)
 		sm.set_shader_parameter("blend_margin", 2.5)
 		sm.set_shader_parameter("tee_start_x", -10.0)
@@ -624,127 +636,10 @@ func _setup_range_ground() -> void:
 		var dist_m = yard * 0.9144
 		_create_yardage_stripe(dist_m)
 
-	# 4. High-Quality 3D Grass Blades Collar, Volumetric 3D Trees & Distant Mountain Horizon
-	_build_tee_grass_collar(tee)
+	# 4. High-Quality Volumetric 3D Trees & Distant Mountain Horizon
 	_spawn_range_trees()
 	_spawn_mountain_backdrop()
-
-
-func _build_tee_grass_collar(parent_node: Node3D) -> void:
-	var shader := load("res://Courses/Environments/shaders/grass_blades_high.gdshader") as Shader
-	if shader == null:
-		return
-
-	var mat := ShaderMaterial.new()
-	mat.shader = shader
-	mat.set_shader_parameter("root_color", Color(0.11, 0.22, 0.09))
-	mat.set_shader_parameter("tip_color", Color(0.35, 0.52, 0.20))
-	mat.set_shader_parameter("dry_tip_color", Color(0.52, 0.50, 0.28))
-	mat.set_shader_parameter("dry_tip_ratio", 0.16)
-	mat.set_shader_parameter("wind_strength", 0.045)
-	mat.set_shader_parameter("max_render_distance", 28.0)
-	mat.set_shader_parameter("fade_start_distance", 18.0)
-
-	var clump_mesh := _create_tee_grass_clump_mesh(12, 0.19, 0.036, 0.075)
-	clump_mesh.surface_set_material(0, mat)
-
-	var count := 1400
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_custom_data = true
-	mm.mesh = clump_mesh
-	mm.instance_count = count
-
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 9031
-	var placed := 0
-	var attempts := 0
-	while placed < count and attempts < count * 8:
-		attempts += 1
-		var gx := rng.randf_range(-6.5, 9.5)
-		var gz := rng.randf_range(-6.5, 6.5)
-		if absf(gx) < 3.25 and absf(gz) < 3.25:
-			continue
-		var edge_dx := maxf(0.0, absf(gx) - 3.25)
-		var edge_dz := maxf(0.0, absf(gz) - 3.25)
-		var edge_dist := sqrt(edge_dx * edge_dx + edge_dz * edge_dz)
-		if edge_dist > 1.8 and rng.randf() > exp(-(edge_dist - 1.8) * 0.65):
-			continue
-
-		var yaw := rng.randf_range(0.0, TAU)
-		var sc := rng.randf_range(0.75, 1.35)
-		var h_sc := sc * lerpf(0.70, 1.25, clampf(edge_dist / 1.5, 0.0, 1.0))
-		var basis := Basis(Vector3.UP, yaw).scaled(Vector3(sc, h_sc, sc))
-		mm.set_instance_transform(placed, Transform3D(basis, Vector3(gx, 0.0, gz)))
-		var tint := rng.randf_range(0.86, 1.12)
-		mm.set_instance_custom_data(placed, Color(tint, tint * rng.randf_range(0.95, 1.05), tint * 0.92, rng.randf_range(0.05, 1.0)))
-		placed += 1
-	mm.visible_instance_count = placed
-
-	var mmi := MultiMeshInstance3D.new()
-	mmi.name = "TeeGrassCollar"
-	mmi.multimesh = mm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent_node.add_child(mmi)
-
-
-func _create_tee_grass_clump_mesh(blades_per_clump: int, height: float, width: float, spread: float) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1337
-	for i in range(blades_per_clump):
-		var angle := (float(i) / float(blades_per_clump)) * TAU + rng.randf_range(-0.3, 0.3)
-		var r := rng.randf_range(0.0, spread)
-		var cx := cos(angle) * r
-		var cz := sin(angle) * r
-		var h := height * rng.randf_range(0.65, 1.25)
-		var w := width * rng.randf_range(0.75, 1.2)
-		var yaw := rng.randf_range(0.0, TAU)
-		var lean := rng.randf_range(0.04, 0.14)
-		var dx := cos(yaw) * w * 0.5
-		var dz := sin(yaw) * w * 0.5
-		var lx := -sin(yaw) * lean
-		var lz := cos(yaw) * lean
-
-		var b0 := Vector3(cx - dx, 0.0, cz - dz)
-		var b1 := Vector3(cx + dx, 0.0, cz + dz)
-		var m0 := Vector3(cx - dx * 0.55 + lx * 0.45, h * 0.55, cz - dz * 0.55 + lz * 0.45)
-		var m1 := Vector3(cx + dx * 0.55 + lx * 0.45, h * 0.55, cz + dz * 0.55 + lz * 0.45)
-		var tip := Vector3(cx + lx, h, cz + lz)
-		var n := Vector3(lx, 0.6, lz).normalized()
-
-		st.set_normal(n)
-		st.set_uv(Vector2(0.0, 1.0))
-		st.add_vertex(b0)
-		st.set_normal(n)
-		st.set_uv(Vector2(1.0, 1.0))
-		st.add_vertex(b1)
-		st.set_normal(n)
-		st.set_uv(Vector2(0.0, 0.45))
-		st.add_vertex(m0)
-
-		st.set_normal(n)
-		st.set_uv(Vector2(1.0, 1.0))
-		st.add_vertex(b1)
-		st.set_normal(n)
-		st.set_uv(Vector2(1.0, 0.45))
-		st.add_vertex(m1)
-		st.set_normal(n)
-		st.set_uv(Vector2(0.0, 0.45))
-		st.add_vertex(m0)
-
-		st.set_normal(n)
-		st.set_uv(Vector2(0.0, 0.45))
-		st.add_vertex(m0)
-		st.set_normal(n)
-		st.set_uv(Vector2(1.0, 0.45))
-		st.add_vertex(m1)
-		st.set_normal(n)
-		st.set_uv(Vector2(0.5, 0.0))
-		st.add_vertex(tip)
-
-	return st.commit()
+	MobilePerformance.apply_graphics_quality(self, "High")
 
 
 func _create_yardage_stripe(dist_x: float) -> void:

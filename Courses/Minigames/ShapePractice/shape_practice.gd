@@ -405,15 +405,15 @@ func _init_materials() -> void:
 		wall_wood_mat.albedo_color = Color(0.35, 0.24, 0.15)
 	wall_wood_mat.roughness = 0.85
 	
-	# Realistic architectural slate-green concrete wall shader
-	wall_stone_mat = _create_concrete_wall_shader_material(Color(0.165, 0.205, 0.185), true)
+	# Realistic architectural olive-slate concrete wall shader
+	wall_stone_mat = _create_concrete_wall_shader_material(Color(0.20, 0.23, 0.20), true)
 
-	# Vertical pilaster / rib material (weathered dark concrete)
-	wall_rib_mat = _create_concrete_wall_shader_material(Color(0.135, 0.168, 0.152), false)
+	# Vertical pilaster / rib material (weathered dark olive-slate concrete)
+	wall_rib_mat = _create_concrete_wall_shader_material(Color(0.16, 0.19, 0.165), false)
 
-	# Weathered light-grey concrete gate pillar & coping materials
-	pillar_mat = _create_concrete_wall_shader_material(Color(0.40, 0.41, 0.38), false)
-	cap_mat = _create_concrete_wall_shader_material(Color(0.37, 0.38, 0.35), false)
+	# Weathered warm-grey concrete gate pillar & coping materials
+	pillar_mat = _create_concrete_wall_shader_material(Color(0.44, 0.44, 0.40), false)
+	cap_mat = _create_concrete_wall_shader_material(Color(0.42, 0.42, 0.38), false)
 	
 	# Tee box manicured high-res turf (triplanar world-space tiling for razor-sharp detail)
 	tee_turf_mat = StandardMaterial3D.new()
@@ -463,8 +463,8 @@ render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_sc
 
 uniform vec3 base_color : source_color = vec3(0.165, 0.205, 0.185);
 uniform bool show_panels = true;
-uniform float panel_width = 3.6;
-uniform float panel_height = 4.3;
+uniform float panel_width = 3.2;
+uniform float panel_height = 9.8;
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -551,8 +551,8 @@ void fragment() {
 	}
 
 	// Ground-level moisture/dirt AO and top-coping overhang AO
-	float base_ao = smoothstep(0.0, 1.6, v_world_pos.y);
-	float top_ao = 1.0 - smoothstep(12.2, 13.0, v_world_pos.y) * 0.25;
+	float base_ao = smoothstep(0.0, 1.4, v_world_pos.y);
+	float top_ao = 1.0 - smoothstep(9.0, 9.8, v_world_pos.y) * 0.28;
 	col *= mix(0.68, 1.0, base_ao) * top_ao;
 
 	// Concrete surface micro-normal perturbation
@@ -581,10 +581,10 @@ void fragment() {
 func _setup_environment() -> void:
 	var is_mobile := MobilePerformance.is_mobile()
 
-	# Directional Sun Light (angled to cast crisp architectural shadows on wall pilasters)
+	# Directional Sun Light (shining from behind-left of tee onto wall faces and fairway)
 	var sun = DirectionalLight3D.new()
 	sun.name = "SunLight"
-	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-42)).rotated(Vector3.UP, deg_to_rad(38))
+	sun.transform.basis = Basis(Vector3.RIGHT, deg_to_rad(-38)).rotated(Vector3.UP, deg_to_rad(-118))
 	sun.shadow_enabled = true
 	sun.light_color = Color(1.0, 0.97, 0.92)
 	sun.light_energy = 1.25
@@ -1019,7 +1019,7 @@ func _setup_barrier_walls() -> void:
 		var wall_length = wall_extent - gate_half_w
 		var wall_center_z_offset = gate_half_w + (wall_length / 2.0)
 		
-		var wall_height = 13.0
+		var wall_height = 9.8
 		var wall_thickness = 1.2
 		
 		# --- LEFT WALL (Draw Side, -Z) ---
@@ -1185,15 +1185,16 @@ func _create_single_barrier_wall(w_name: String, pos: Vector3, size: Vector3, di
 	# Front Wall Stenciled Distance Marker Sign ("WALL / XXX YD")
 	var sign_lbl = Label3D.new()
 	sign_lbl.text = "WALL\n%d YD" % dist_yd
-	sign_lbl.font_size = 76
-	sign_lbl.line_spacing = -6.0
+	sign_lbl.font_size = 165
+	sign_lbl.pixel_size = 0.0085
+	sign_lbl.line_spacing = -12.0
 	sign_lbl.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	sign_lbl.rotation.y = deg_to_rad(-90) # Face towards tee box (-X)
 	sign_lbl.modulate = Color(0.94, 0.96, 0.96) if side == "draw" else Color(0.96, 0.76, 0.28)
-	sign_lbl.outline_size = 10
+	sign_lbl.outline_size = 14
 	sign_lbl.outline_modulate = Color(0.05, 0.07, 0.07, 0.92)
-	# Position sign on front face clearly below the top HUD
-	sign_lbl.position = Vector3(-size.x / 2.0 - 0.06, -0.35, post_z + (2.7 if side == "fade" else -2.7))
+	# Position sign on front face in front of pilasters, clear of gate pillar & top HUD
+	sign_lbl.position = Vector3(-size.x / 2.0 - 0.18, 1.85, post_z + (3.8 if side == "fade" else -3.8))
 	wall.add_child(sign_lbl)
 	wall.set_meta("sign_lbl", sign_lbl)
 	
@@ -1568,8 +1569,8 @@ func _update_wall_and_zone_highlights() -> void:
 			if sign_lbl:
 				sign_lbl.text = "WALL\n%d YD" % w_dist
 				sign_lbl.modulate = default_sign_color
-				sign_lbl.font_size = 82
-				sign_lbl.outline_size = 11
+				sign_lbl.font_size = 180
+				sign_lbl.outline_size = 16
 		else:
 			if cap_inst:
 				cap_inst.material_override = def_cap
@@ -1577,9 +1578,9 @@ func _update_wall_and_zone_highlights() -> void:
 				post_inst.material_override = def_post
 			if sign_lbl:
 				sign_lbl.text = "WALL\n%d YD" % w_dist
-				sign_lbl.modulate = default_sign_color.darkened(0.08)
-				sign_lbl.font_size = 76
-				sign_lbl.outline_size = 10
+				sign_lbl.modulate = default_sign_color.darkened(0.06)
+				sign_lbl.font_size = 165
+				sign_lbl.outline_size = 14
 
 	# 3D Landing Zone Ground Highlight
 	if target_zone_ground:

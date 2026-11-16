@@ -5671,7 +5671,7 @@ func _update_tee_shot_view(ball: Node, ball_is_moving: bool, ball_state_changed:
 			target_pos = target_value
 
 	if ball_is_moving:
-		if not _tee_shot_view.visible:
+		if not _tee_shot_view.is_shot_active():
 			_tee_shot_view.show_shot(start_pos, current_pos, target_pos)
 			_tee_shot_tracer_update_elapsed = TEE_SHOT_TRACER_UPDATE_INTERVAL
 		_tee_shot_view.update_ball_position(current_pos)
