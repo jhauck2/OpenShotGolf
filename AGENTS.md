@@ -44,7 +44,58 @@ Whenever you make changes to this codebase that add features, fix bugs, adjust U
 
 3. **Targeted Testing & Execution Restrictions**:
    - **Do NOT run the full project unit test suite** unless explicitly asked by the user.
-   - **Do NOT launch or run the application** (e.g., Godot runtime or game instances) unless explicitly asked by the user.
    - **Targeted validation only**: When implementing features or bugfixes, add appropriate new tests and run **only** the specific newly added or modified test(s) to validate functionality.
+   - **Application Execution Restrictions**:
+     - Do NOT launch or run the application for unrequested manual gameplay.
+     - **Exception for UI/UX Validation**: Running the application via [scripts/tools/capture_preview.ps1](file:///c:/Users/micha/Repositories/HeckleGolfSim/scripts/tools/capture_preview.ps1) to capture screenshots, videos, or GIFs for visual verification is explicitly permitted and required for any UI/UX changes under the **UI/UX Visual Verification & Approval Rule**.
    - Avoid repetitive, redundant full-suite test cycles.
+
+### UI/UX Visual Verification & Approval Rule (Screenshots & Videos)
+Whenever you make changes to this codebase that add, modify, fix, or tune UI/UX (e.g., menus, dialogs, buttons, HUD overlays, layout, styling, themes, courses, minigame graphics, animations, or visual widgets):
+1. **Mandatory Visual Evidence**:
+   - You MUST run the Godot application or target scene using the automated visual capture tool to capture visual evidence (screenshot and/or video/GIF) demonstrating that the feature or fix is working properly.
+   - Do NOT mark a UI/UX task as done or present the final review to the user without including this visual evidence.
+2. **How to Run Automated Visual Capture**:
+   - Use the PowerShell script [scripts/tools/capture_preview.ps1](file:///c:/Users/micha/Repositories/HeckleGolfSim/scripts/tools/capture_preview.ps1):
+     - **Screenshot capture**:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\capture_preview.ps1 -Screenshot "captures/<feature_name>.png" -DelaySeconds 2.0
+       ```
+     - **Specific Scene / Sub-menu**:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\capture_preview.ps1 -Scene "res://UI/SettingsMenu/settings_menu.tscn" -Screenshot "captures/settings.png" -DelaySeconds 1.5
+       ```
+     - **Simulated UI Click / Navigation**:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\capture_preview.ps1 -Screenshot "captures/tab.png" -Click "Audio" -ClickDelay 0.5
+       ```
+     - **Video / Animated GIF capture**:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\capture_preview.ps1 -Video "captures/<feature_name>.mp4" -Gif "captures/<feature_name>.gif" -DurationSeconds 3.0
+       ```
+     - **Shot Flight & Landing Video Review (Range / Course)**:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\capture_preview.ps1 -Scene "res://Courses/Range/range.tscn" -Shot "wedge" -Video "captures/range_shot.mp4" -Gif "captures/range_shot.gif"
+       ```
+     - **Interactive mode (manual launch)**:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\capture_preview.ps1 -Interactive
+       ```
+3. **Presentation in Final Review**:
+   - In your final response to the user, always embed or display the captured visual proof:
+     - Embed screenshots or animated GIFs directly using Markdown: `![Feature Preview](file:///c:/path/to/captures/feature.png)` or `![Feature Animation](file:///c:/path/to/captures/feature.gif)`.
+     - Provide clickable file links to the full-resolution screenshot(s) and video file(s): `[feature.png](file:///c:/...)` / `[feature.mp4](file:///c:/...)`.
+     - Summarize what the visual evidence displays and how it confirms the requested feature is functioning as intended.
+
+4. **Post-Approval Cleanup & Anti-Runaway Process Safety**:
+   - **Post-Approval Janitor Execution**: Whenever the user confirms a feature looks good, approves changes, or when finalizing code for commit:
+     - Antigravity MUST run:
+       ```powershell
+       powershell -ExecutionPolicy Bypass -File .\scripts\tools\clean_captures.ps1
+       ```
+     - This deletes temporary review captures (`captures/*`, `*.avi`, `*.mp4`, `*.gif`, `*.html`) so review files never accumulate or linger on disk.
+   - **Pre-commit Hook Safety Net**: The Git pre-commit hook ([scripts/hooks/pre-commit](file:///c:/Users/micha/Repositories/HeckleGolfSim/scripts/hooks/pre-commit)) automatically triggers `clean_captures.ps1 -Quiet` before every commit to catch any uncleaned verification files.
+   - **Runaway Godot Protection**:
+     - Both in-engine ([Utils/visual_capture_helper.gd](file:///c:/Users/micha/Repositories/HeckleGolfSim/Utils/visual_capture_helper.gd)) and caller-level ([scripts/tools/capture_preview.ps1](file:///c:/Users/micha/Repositories/HeckleGolfSim/scripts/tools/capture_preview.ps1)) hard watchdog timers terminate any Godot execution exceeding the expected run duration.
+     - `clean_captures.ps1` automatically searches for and terminates any orphaned Godot game instances or Python helper servers left running in the background.
 

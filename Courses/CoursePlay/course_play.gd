@@ -4533,6 +4533,9 @@ func _on_active_player_changed(player: Dictionary) -> void:
 				var flag_pin = course_instance.get_node_or_null("FlagPin")
 				if flag_pin != null and not flag_pin.is_queued_for_deletion():
 					flag_pin.global_position = course_instance.current_hole_location
+					if course_instance.has_method("get_terrain_normal"):
+						var hole_norm: Vector3 = course_instance.call("get_terrain_normal", course_instance.current_hole_location.x, course_instance.current_hole_location.z)
+						FlagBuilder.align_cup_to_normal(flag_pin, hole_norm)
 					var active_cup_r = float(course_instance.cup_radius) if "cup_radius" in course_instance else 0.054
 					FlagBuilder.sync_hole_cutout_to_terrain(course_instance, course_instance.current_hole_location, active_cup_r)
 					if course_instance.has_method("update_gimme_circles"):

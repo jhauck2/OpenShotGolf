@@ -46,6 +46,8 @@ An open-source, full-featured golf simulator and practice suite built with the G
   - [Android MediaPipe Pose Plugin Rebuild](#android-mediapipe-pose-plugin-rebuild)
 - [Controls](#controls)
 - [Project Architecture & Directory Layout](#project-architecture--directory-layout)
+- [Community & Discord](#community--discord)
+- [Support Development](#support-development)
 
 ---
 
@@ -555,6 +557,15 @@ Join the official **Heckle Golf Simulator Discord** to connect with fellow golfe
 - 💡 **General Feedback**: Share impressions and tuning suggestions in `#feedback`.
 - 🚀 **Feature Requests**: Propose new game modes, course tools, and device integrations in `#feature_requests`.
 - 🐛 **Bug Reports**: Report issues with reproduction steps and screenshots in `#bug_reports`.
+
+---
+
+## Support Development
+**Heckle Golf Simulator** is completely free and open-source. If you enjoy the simulator and want to help support ongoing development, voluntary donations are welcome via Ko-fi:
+
+- ☕ **Support on Ko-fi**: [https://ko-fi.com/hecklegolf](https://ko-fi.com/hecklegolf)
+
+Contributions are 100% optional and go toward helping cover online stats management and matchmaking server costs, as well as yearly iOS and macOS App Store fees.
 
 ---
 

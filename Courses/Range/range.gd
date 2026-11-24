@@ -65,10 +65,13 @@ var current_aim_elevation_diff_m: float = -9999.0
 var _live_stats_timer: float = 0.0
 var _green_grid_timer: float = 0.0
 var _zoom_zone_dirty: bool = true
+const FRINGE_WIDTH_M: float = 1.5
+
 var _cached_surface_nodes_initialized: bool = false
 var _cached_green_bodies: Array[Dictionary] = []
 var _cached_tee_bodies: Array[Dictionary] = []
 var _cached_fairway_bodies: Array[Dictionary] = []
+var _cached_bunker_bodies: Array[Dictionary] = []
 var _cached_current_green_pin: Vector3 = Vector3.ZERO
 var _cached_current_green_entry: Dictionary = {}
 
@@ -226,6 +229,78 @@ func get_height(x: float, z: float) -> float:
 	# producing gentle ~1% grades with at most 1 gradual rise or fall across an entire hole.
 	var h = sin(x * 0.0042 + z * 0.0031) * cos(z * 0.0051 - x * 0.0036) * 1.2 + sin(x * 0.0078 - z * 0.0062) * 0.5
 	return h
+
+
+## Returns the ground surface normal at (x, z) by raycasting against physical terrain (Layer 1).
+func get_terrain_normal(x: float, z: float) -> Vector3:
+	if is_driving_range:
+		return Vector3.UP
+	if _height_raycast != null:
+		_height_raycast.global_position = Vector3(x, 1000.0, z)
+		_height_raycast.target_position = Vector3(0.0, -2000.0, 0.0)
+		var max_passes = 8
+		var hit_norm := Vector3.UP
+		while max_passes > 0:
+			max_passes -= 1
+			_height_raycast.force_raycast_update()
+			if not _height_raycast.is_colliding():
+				break
+			var collider = _height_raycast.get_collider()
+			if collider:
+				if collider.get_meta("is_obstacle", false) == true:
+					_height_raycast.add_exception(collider)
+					continue
+				if collider.has_meta("surface_type") or collider.name.contains("Terrain") or collider.name.contains("Rough") or collider.name.contains("green") or collider.name.contains("fairway") or collider.name.contains("tee") or collider.name.contains("bunker"):
+					var n := _height_raycast.get_collision_normal()
+					if n.length_squared() > 0.0001 and n.y >= 0.5:
+						hit_norm = n.normalized()
+					break
+			_height_raycast.add_exception(collider)
+		_height_raycast.clear_exceptions()
+		return hit_norm
+	return Vector3.UP
+
+
+## When a course has a 1:1 visual UnifiedTerrain collider (TerrainStatic), move invisible
+## surface-zone overlay StaticBody3D colliders (green_Static_*, fairway_Static_*, tee_Static_*,
+## bunker_Static_*, GreenStatic, FairwayStatic, TeeStatic, BunkerStatic) to Layer 4 (bitmask 8).
+## This prevents triangulation height mismatches from causing holes or balls to float above the
+## rendered UnifiedTerrain mesh while preserving surface-type detection on Layer 4.
+func _separate_surface_zone_colliders() -> void:
+	var terrain_static := find_child("TerrainStatic", true, false) as StaticBody3D
+	if terrain_static == null:
+		return
+	var moved_count := 0
+	var stack: Array[Node] = [self]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is StaticBody3D and n != terrain_static:
+			var sb := n as StaticBody3D
+			var cname := sb.name.to_lower()
+			var is_overlay_name := (
+				cname.begins_with("green_static")
+				or cname.begins_with("fairway_static")
+				or cname.begins_with("tee_static")
+				or cname.begins_with("bunker_static")
+				or cname == "greenstatic"
+				or cname == "fairwaystatic"
+				or cname == "teestatic"
+				or cname == "bunkerstatic"
+			)
+			if is_overlay_name and not sb.get_meta("is_water", false) and not sb.get_meta("is_obstacle", false):
+				var has_visual_mesh := false
+				for child in sb.get_children():
+					if child is MeshInstance3D:
+						has_visual_mesh = true
+						break
+				if not has_visual_mesh:
+					sb.collision_layer = 8 # Layer 4: surface-zone detection only
+					sb.collision_mask = 0
+					moved_count += 1
+		for child in n.get_children():
+			stack.push_back(child)
+	if moved_count > 0:
+		print("[range.gd] Moved %d invisible surface-zone overlay colliders to Layer 4 (TerrainStatic is authoritative Layer 1 ground)." % moved_count)
 
 
 func _load_elevation_map() -> void:
@@ -436,6 +511,7 @@ func _ready() -> void:
 		_generate_ground_terrain()
 	else:
 		_load_elevation_map()
+		_separate_surface_zone_colliders()
 		_height_raycast = RayCast3D.new()
 		_height_raycast.collision_mask = 1 # Terrain collision layer
 		_height_raycast.collide_with_areas = false
@@ -3420,6 +3496,7 @@ func _spawn_flag_pin() -> void:
 	if gs != null and gs.has_method("get_graphics_quality"):
 		q_str = gs.get_graphics_quality()
 	FlagBuilder.build_flag_pin(pin, 3.0, Color(0.95, 0.12, 0.12), cup_radius, q_str)
+	FlagBuilder.align_cup_to_normal(pin, get_terrain_normal(current_hole_location.x, current_hole_location.z))
 	FlagBuilder.sync_hole_cutout_to_terrain(self, current_hole_location, cup_radius)
 	
 	print("[CoursePlay] FlagPin and PinMarker spawned at: ", current_hole_location)
@@ -3796,6 +3873,7 @@ func clear_surface_distance_caches() -> void:
 	_cached_dist_current_green_pin = Vector3.INF
 	_cached_dist_any_green_pos = Vector3.INF
 	_cached_dist_fairway_pos = Vector3.INF
+	_cached_dist_bunker_pos = Vector3.INF
 	_cached_dist_teebox_pos = Vector3.INF
 	_cached_default_aim_ball_pos = Vector3.INF
 	_cached_default_aim_targets.clear()
@@ -3868,9 +3946,11 @@ func _calc_is_ball_on_fringe(ball: Node) -> bool:
 	var p_lie = str($Player.get("current_lie_type")).to_lower()
 	if lie == "teebox" or p_lie == "teebox" or lie == "sand" or p_lie == "sand" or ball.is_in_sand:
 		return false
+	if get_distance_to_nearest_bunker(ball.global_position) <= 0.001:
+		return false
 	if has_method("get_distance_to_current_green"):
 		var d_green: float = get_distance_to_current_green(ball.global_position)
-		if d_green > 0.001 and d_green <= 2.5:
+		if d_green > 0.001 and d_green <= FRINGE_WIDTH_M:
 			return true
 	if lie == "fringe" or p_lie == "fringe":
 		return true
@@ -3882,7 +3962,7 @@ func _calc_is_ball_on_fringe(ball: Node) -> bool:
 				return true
 	if has_method("get_distance_to_nearest_green"):
 		var d_green: float = get_distance_to_nearest_green(ball.global_position)
-		return (d_green > 0.001 and d_green <= 2.5)
+		return (d_green > 0.001 and d_green <= FRINGE_WIDTH_M)
 	return false
 
 
@@ -3924,8 +4004,11 @@ func get_camera_local_offset(override_is_on_green: Variant = null) -> Vector3:
 
 
 func is_ball_in_sand(pos: Variant = null) -> bool:
+	var check_pos: Variant = pos
 	if has_node("Player") and $Player.ball != null:
 		var b = $Player.ball
+		if check_pos == null:
+			check_pos = b.global_position
 		if b.is_in_sand or (b.get("shot_was_in_sand") == true) or str(b.get("lie_type")).to_lower() in ["sand", "bunker"]:
 			return true
 	if has_node("/root/MultiplayerManager"):
@@ -3934,10 +4017,15 @@ func is_ball_in_sand(pos: Variant = null) -> bool:
 			var ap = mp.get_active_player()
 			if str(ap.get("lie_type", "")).to_lower() in ["sand", "bunker"]:
 				return true
+	if check_pos is Vector3 and get_distance_to_nearest_bunker(check_pos) <= 0.001:
+		return true
 	if pos != null and _height_raycast != null:
+		var prev_mask := _height_raycast.collision_mask
+		_height_raycast.collision_mask = 1 | 8
 		_height_raycast.global_position = Vector3(pos.x, 1000.0, pos.z)
 		_height_raycast.target_position = Vector3(0.0, -2000.0, 0.0)
 		_height_raycast.force_raycast_update()
+		var hit_bunker := false
 		if _height_raycast.is_colliding():
 			var collider = _height_raycast.get_collider()
 			if collider:
@@ -3945,7 +4033,10 @@ func is_ball_in_sand(pos: Variant = null) -> bool:
 				if (collider.has_meta("is_sand") and bool(collider.get_meta("is_sand"))) or \
 					cname.contains("bunker") or cname.contains("sand") or \
 					(collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.BUNKER):
-					return true
+					hit_bunker = true
+		_height_raycast.collision_mask = prev_mask
+		if hit_bunker:
+			return true
 	return false
 
 
@@ -4225,10 +4316,10 @@ func setup_atmospheric_fog() -> void:
 		print("[VisualFX] No Skydome found, skipping fog tuning")
 		return
 	if is_driving_range:
-		# Smooth realistic atmospheric depth haze for driving range to eliminate distant horizon and boundary wall jitter
-		skydome.fog_density = 0.0018
-		skydome.fog_start = 140.0
-		skydome.fog_end = 350.0
+		# Subtle distant atmospheric depth haze for driving range (starts well past playable range)
+		skydome.fog_density = 0.00035
+		skydome.fog_start = 380.0
+		skydome.fog_end = 1400.0
 		skydome.clouds_visible = true
 		skydome.clouds_cumulus_visible = false
 		skydome.clouds_speed = 0.005
@@ -4241,10 +4332,10 @@ func setup_atmospheric_fog() -> void:
 		skydome.clouds_cumulus_visible = false
 		print("[VisualFX] Fog and clouds disabled for mobile platform")
 	else:
-		# Restore original sky settings for dynamic courses on desktop
-		skydome.fog_density = 0.001
-		skydome.fog_end = 600.0
-		skydome.fog_start = 0.0
+		# Subtle distant sky fog for dynamic courses on desktop (clear across playable hole)
+		skydome.fog_density = 0.0003
+		skydome.fog_start = 380.0
+		skydome.fog_end = 1400.0
 		skydome.clouds_visible = true
 		skydome.clouds_cumulus_visible = true
 		skydome.clouds_speed = 0.005
@@ -5640,6 +5731,7 @@ func _init_cached_surface_bodies(force: bool = false) -> void:
 	_cached_green_bodies.clear()
 	_cached_tee_bodies.clear()
 	_cached_fairway_bodies.clear()
+	_cached_bunker_bodies.clear()
 	
 	var all_static_bodies: Array = []
 	var stack: Array[Node] = [self]
@@ -5652,20 +5744,41 @@ func _init_cached_surface_bodies(force: bool = false) -> void:
 			
 	for body in all_static_bodies:
 		var n_lower: String = body.name.to_lower()
-		var is_green = n_lower.begins_with("green_static") or n_lower.contains("green") or (body.has_meta("surface_type") and int(body.get_meta("surface_type")) == 4)
-		var is_tee = n_lower.begins_with("tee_static") or n_lower.contains("tee")
-		var is_fairway = n_lower.begins_with("fairway_static") or n_lower.contains("fairway")
+		var is_water_body: bool = bool(body.get_meta("is_water", false)) or n_lower.begins_with("water")
+		var is_bunker: bool = (not is_water_body) and (not n_lower.contains("terrain")) and (not n_lower.contains("rough")) and (n_lower.begins_with("bunker") or n_lower.contains("bunker") or bool(body.get_meta("is_sand", false)) or (body.has_meta("surface_type") and int(body.get_meta("surface_type")) == PhysicsEnums.SurfaceType.BUNKER))
+		var is_green = (not is_bunker) and (n_lower.begins_with("green_static") or n_lower.contains("green") or (body.has_meta("surface_type") and int(body.get_meta("surface_type")) == 4))
+		var is_tee = (not is_bunker) and (n_lower.begins_with("tee_static") or n_lower.contains("tee"))
+		var is_fairway = (not is_bunker) and (n_lower.begins_with("fairway_static") or n_lower.contains("fairway"))
 		
-		if not is_green and not is_tee and not is_fairway:
+		if not is_green and not is_tee and not is_fairway and not is_bunker:
 			continue
 			
 		var shapes_data: Array = []
 		var triangles_2d: Array = []
+		var boundary_poly := PackedVector2Array()
 		var min_x := 999999.0
 		var max_x := -999999.0
 		var min_z := 999999.0
 		var max_z := -999999.0
 		var trans: Transform3D = body.global_transform if body.is_inside_tree() else body.transform
+
+		if is_bunker and body.has_meta("boundary_polygon"):
+			var raw_poly = body.get_meta("boundary_polygon")
+			var pts_2d := PackedVector2Array()
+			if raw_poly is PackedVector2Array:
+				pts_2d = raw_poly
+			elif raw_poly is Array:
+				for p in raw_poly:
+					if p is Vector2:
+						pts_2d.append(p)
+			if pts_2d.size() >= 3:
+				for pt in pts_2d:
+					var wp := trans * Vector3(pt.x, 0.0, pt.y)
+					boundary_poly.append(Vector2(wp.x, wp.z))
+					min_x = minf(min_x, wp.x)
+					max_x = maxf(max_x, wp.x)
+					min_z = minf(min_z, wp.z)
+					max_z = maxf(max_z, wp.z)
 		
 		for child in body.get_children():
 			if child is CollisionShape3D and child.shape is ConcavePolygonShape3D:
@@ -5709,7 +5822,7 @@ func _init_cached_surface_bodies(force: bool = false) -> void:
 				max_z = maxf(max_z, center_pos.z + cyl_radius)
 				shapes_data.append(PackedVector3Array())
 					
-		if shapes_data.is_empty():
+		if shapes_data.is_empty() and boundary_poly.size() < 3:
 			continue
 			
 		var center_2d = Vector2((min_x + max_x) * 0.5, (min_z + max_z) * 0.5)
@@ -5721,6 +5834,7 @@ func _init_cached_surface_bodies(force: bool = false) -> void:
 			"transform": trans,
 			"shapes": shapes_data,
 			"triangles_2d": triangles_2d,
+			"boundary_polygon": boundary_poly,
 			"center_2d": center_2d,
 			"radius": radius
 		}
@@ -5730,6 +5844,75 @@ func _init_cached_surface_bodies(force: bool = false) -> void:
 			_cached_tee_bodies.append(entry)
 		if is_fairway:
 			_cached_fairway_bodies.append(entry)
+		if is_bunker:
+			_cached_bunker_bodies.append(entry)
+
+
+var _cached_dist_bunker_pos: Vector3 = Vector3.INF
+var _cached_dist_bunker_res: float = 9999.0
+
+func get_distance_to_nearest_bunker(pos: Vector3) -> float:
+	if pos.is_equal_approx(_cached_dist_bunker_pos):
+		return _cached_dist_bunker_res
+	_cached_dist_bunker_pos = pos
+	_cached_dist_bunker_res = _calc_distance_to_nearest_bunker(pos)
+	return _cached_dist_bunker_res
+
+func _distance_to_polygon_edge_2d(pt: Vector2, poly: PackedVector2Array) -> float:
+	var n := poly.size()
+	if n < 2:
+		return 9999.0
+	var min_d_sq := 1e18
+	for i in range(n):
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var ab := b - a
+		var len_sq := ab.length_squared()
+		var t := 0.0
+		if len_sq > 1e-8:
+			t = clampf((pt - a).dot(ab) / len_sq, 0.0, 1.0)
+		var closest := a + ab * t
+		var d_sq := pt.distance_squared_to(closest)
+		if d_sq < min_d_sq:
+			min_d_sq = d_sq
+	return sqrt(min_d_sq)
+
+func _calc_distance_to_nearest_bunker(pos: Vector3) -> float:
+	_init_cached_surface_bodies()
+	if _cached_bunker_bodies.is_empty():
+		return 9999.0
+	var pos_2d := Vector2(pos.x, pos.z)
+	var min_dist := 9999.0
+	for entry in _cached_bunker_bodies:
+		var dist_to_center = pos_2d.distance_to(entry.center_2d)
+		if dist_to_center - entry.radius >= min_dist:
+			continue
+		var poly: PackedVector2Array = entry.get("boundary_polygon", PackedVector2Array())
+		if poly.size() >= 3:
+			if Geometry2D.is_point_in_polygon(pos_2d, poly):
+				return 0.0
+			var edge_d := _distance_to_polygon_edge_2d(pos_2d, poly)
+			if edge_d < min_dist:
+				min_dist = edge_d
+				if min_dist <= 0.001:
+					return 0.0
+			continue
+		var trans: Transform3D = entry.transform
+		for faces in entry.shapes:
+			for i in range(0, faces.size(), 3):
+				if i + 2 < faces.size():
+					var a_3d = trans * faces[i]
+					var b_3d = trans * faces[i+1]
+					var c_3d = trans * faces[i+2]
+					var a = Vector2(a_3d.x, a_3d.z)
+					var b = Vector2(b_3d.x, b_3d.z)
+					var c = Vector2(c_3d.x, c_3d.z)
+					var dist = _distance_to_triangle_2d(pos_2d, a, b, c)
+					if dist < min_dist:
+						min_dist = dist
+						if min_dist <= 0.001:
+							return 0.0
+	return min_dist
 
 
 var _cached_dist_fairway_pos: Vector3 = Vector3.INF
@@ -6598,11 +6781,11 @@ func is_ball_on_wrong_green(override_pos: Vector3 = Vector3.ZERO) -> bool:
 
 func _calc_is_ball_on_wrong_green(pos: Vector3, pin_pos: Vector3) -> bool:
 	var d_curr = get_distance_to_current_green(pos)
-	if d_curr <= 2.5:
+	if d_curr <= FRINGE_WIDTH_M:
 		return false
 		
 	var d_any = get_distance_to_any_green(pos)
-	if d_any <= 2.5:
+	if d_any <= FRINGE_WIDTH_M:
 		return true
 		
 	if has_node("Player") and $Player.ball != null:
@@ -6688,15 +6871,20 @@ func update_current_lie_and_reduction() -> void:
 			ball_node.lie_type = "fairway"
 			ball_node.set_surface(PhysicsEnums.SurfaceType.FAIRWAY)
 		else:
-			# Geometric check fallbacks to ensure absolute accuracy for teeboxes, fairways and greens
-			if lie_type != "green" and lie_type != "sand":
+			# Geometric check fallbacks to ensure absolute accuracy for bunkers, teeboxes, fairways and greens
+			if get_distance_to_nearest_bunker(ball_node.global_position) <= 0.001:
+				lie_type = "sand"
+				ball_node.lie_type = "sand"
+				ball_node.is_in_sand = true
+				ball_node.set_surface(PhysicsEnums.SurfaceType.BUNKER)
+			elif lie_type != "green" and lie_type != "sand":
 				# Check if we are actually on a green (strictly inside green triangles)
 				if get_distance_to_nearest_green(ball_node.global_position) <= 0.001:
 					lie_type = "green"
 					ball_node.lie_type = "green"
 					ball_node.set_surface(PhysicsEnums.SurfaceType.GREEN)
-				# Check if we are on the fringe / collar bordering the green (within 2.5 meters of green edge)
-				elif get_distance_to_nearest_green(ball_node.global_position) <= 2.5:
+				# Check if we are on the fringe / collar bordering the green (aligned with visual splat edge)
+				elif get_distance_to_nearest_green(ball_node.global_position) <= FRINGE_WIDTH_M:
 					lie_type = "fringe"
 					ball_node.lie_type = "fringe"
 					ball_node.set_surface(PhysicsEnums.SurfaceType.FAIRWAY)

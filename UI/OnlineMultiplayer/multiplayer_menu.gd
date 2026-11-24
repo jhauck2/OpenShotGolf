@@ -1859,6 +1859,8 @@ func _on_back_pressed() -> void:
 		var sm = get_node_or_null("/root/SceneManager")
 		if sm != null and sm.has_method("load_main_menu"):
 			sm.load_main_menu()
+		elif sm != null and sm.has_method("change_scene"):
+			sm.change_scene("res://UI/MainMenu/main_menu.tscn")
 		else:
 			get_tree().change_scene_to_file("res://UI/MainMenu/main_menu.tscn")
 

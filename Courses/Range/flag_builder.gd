@@ -233,6 +233,43 @@ static func build_hole_cup(cup_parent: Node3D, cup_radius: float = 0.054) -> voi
 	cup_interior.position = Vector3.ZERO
 
 
+## Computes an orthonormal Basis whose +Y axis aligns with the given ground surface normal.
+static func basis_from_surface_normal(surface_normal: Vector3) -> Basis:
+	var n := surface_normal
+	if n.length_squared() < 0.0001 or n.y < 0.5:
+		return Basis.IDENTITY
+	n = n.normalized()
+	if n.distance_squared_to(Vector3.UP) < 0.00001:
+		return Basis.IDENTITY
+	var ref_x := Vector3.RIGHT
+	if absf(n.dot(ref_x)) > 0.95:
+		ref_x = Vector3.FORWARD
+	var z_axis := ref_x.cross(n).normalized()
+	var x_axis := n.cross(z_axis).normalized()
+	return Basis(x_axis, n, z_axis).orthonormalized()
+
+
+## Aligns the recessed hole cup meshes (CupInterior, CupWhite, Cup) to sit flush against
+## sloped green terrain while keeping the flagstick pole & flag strictly vertical.
+static func align_cup_to_normal(cup_parent: Node3D, surface_normal: Vector3) -> void:
+	if cup_parent == null:
+		return
+	var b := basis_from_surface_normal(surface_normal)
+	var up_dir := b.y
+	var cup_interior := cup_parent.get_node_or_null("CupInterior") as Node3D
+	if cup_interior != null:
+		cup_interior.basis = b
+		cup_interior.position = Vector3.ZERO
+	var cup_white := cup_parent.get_node_or_null("CupWhite") as Node3D
+	if cup_white != null:
+		cup_white.basis = b
+		cup_white.position = up_dir * (-CUP_SOIL_DEPTH - CUP_LINER_HEIGHT * 0.5)
+	var cup_dark := cup_parent.get_node_or_null("Cup") as Node3D
+	if cup_dark != null:
+		cup_dark.basis = b
+		cup_dark.position = up_dir * (-CUP_DEPTH + 0.002)
+
+
 ## Generates the 3D physical cup interior mesh (turf lip bevel, cut soil collar,
 ## white cup liner shelf, AO-shaded inner sleeve wall, and bottom ferrule socket)
 static func _create_recessed_cup_interior_mesh(cup_radius: float) -> ArrayMesh:

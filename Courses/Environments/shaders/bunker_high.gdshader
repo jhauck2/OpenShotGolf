@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_schlick_ggx;
 
 // ============================================================================
 // High-Resolution Recessed 3D Bunker Shader (Sod Rim + Steep Soil Lip + Raked Sand)
@@ -17,10 +17,10 @@ uniform sampler2D normal_sand : hint_normal, filter_linear_mipmap_anisotropic, r
 uniform sampler2D tex_rough : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D normal_rough : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 
-uniform vec3 sand_tint : source_color = vec3(1.12, 1.07, 0.97);
-uniform vec3 soil_lip_color : source_color = vec3(0.42, 0.28, 0.16);
+uniform vec3 sand_tint : source_color = vec3(1.06, 0.99, 0.87);
+uniform vec3 soil_lip_color : source_color = vec3(0.36, 0.26, 0.16);
 uniform vec3 deep_root_color : source_color = vec3(0.24, 0.16, 0.09);
-uniform vec3 rough_collar_tint : source_color = vec3(0.80, 0.96, 0.74);
+uniform vec3 rough_collar_tint : source_color = vec3(0.78, 1.02, 0.66);
 
 varying vec3 v_world_pos;
 varying vec3 v_world_normal;
@@ -59,20 +59,22 @@ void fragment() {
 	vec2 uv_sand = v_world_pos.xz * 0.42;
 	vec2 uv_turf = v_world_pos.xz * 0.38;
 
-	// 1. Bright raked silica sand floor: grain, comb ripples, windblown dunes, sparkle
+	// 1. Warm fine raked silica sand floor: subtle organically curved combing & grain
 	vec3 col_sand = texture(tex_sand, uv_sand).rgb * sand_tint;
-	float rake_phase = dot(v_world_pos.xz, vec2(0.707, -0.707)) * 22.0 + gnoise(v_world_pos.xz * 0.8) * 1.6;
+	float rake_phase = dot(v_world_pos.xz, vec2(0.707, -0.707)) * 36.0 + gnoise(v_world_pos.xz * 0.35) * 4.5;
 	float rake_wave = sin(rake_phase) * 0.5 + 0.5;
-	col_sand *= mix(0.90, 1.07, rake_wave);
+	col_sand *= mix(0.97, 1.03, rake_wave);
 	float sand_grain = gnoise(v_world_pos.xz * 140.0) * 0.5 + gnoise(v_world_pos.xz * 55.0) * 0.5;
-	col_sand *= 1.0 + sand_grain * 0.07;
-	// Subtle damp-sand darkening toward the lip base and wind-blown ripple patches
+	col_sand *= 1.0 + sand_grain * 0.05;
+	// Subtle wind-blown contour patches
 	float dune = gnoise(v_world_pos.xz * 0.35) * 0.5 + 0.5;
-	col_sand = mix(col_sand, col_sand * vec3(0.93, 0.89, 0.80), smoothstep(0.55, 0.9, dune) * 0.5);
+	col_sand = mix(col_sand, col_sand * vec3(0.95, 0.91, 0.83), smoothstep(0.55, 0.9, dune) * 0.45);
 
+	float view_dist = length(VERTEX);
+	float rake_dist_fade = 1.0 - smoothstep(10.0, 42.0, view_dist);
 	vec3 n_sand = texture(normal_sand, uv_sand).rgb * 2.0 - 1.0;
-	vec2 rake_tangent = vec2(cos(rake_phase), -sin(rake_phase)) * 0.42;
-	n_sand = normalize(vec3(n_sand.xy + rake_tangent + vec2(sand_grain) * 0.10, max(n_sand.z, 0.62)));
+	vec2 rake_tangent = vec2(cos(rake_phase), -sin(rake_phase)) * 0.14 * rake_dist_fade;
+	n_sand = normalize(vec3(n_sand.xy + rake_tangent + vec2(sand_grain) * 0.08, max(n_sand.z, 0.78)));
 
 	// 2. Vertical sod / warm brown earthy lip wall with layered strata and exposed roots
 	float strata_noise = gnoise(vec2(v_world_pos.x * 3.5 + v_world_pos.z * 3.5, v_world_pos.y * 24.0));
@@ -92,26 +94,29 @@ void fragment() {
 	vec3 n_turf = mix(vec3(0.0, 0.0, 1.0), texture(normal_rough, uv_turf).rgb * 2.0 - 1.0, 0.75);
 	n_turf = normalize(n_turf + vec3(tuft * 0.25, gnoise(v_world_pos.xz * 21.0) * 0.25, 0.0));
 
-	// Ragged organic breakup between turf overhang, soil wall, and sand base
+	// Ragged organic breakup between turf overhang, root-shadowed lip, and sand face
 	float edge_breakup = gnoise(v_world_pos.xz * 4.8) * 0.14 + gnoise(v_world_pos.xz * 16.0) * 0.08;
 	float lip_mask = smoothstep(0.18, 0.62, w_lip + edge_breakup);
-	float turf_mask = smoothstep(0.20, 0.70, w_turf + edge_breakup * 0.7);
+	float turf_mask = smoothstep(0.18, 0.62, w_turf + edge_breakup * 0.6);
 
-	vec3 final_col = mix(col_sand, col_lip, lip_mask);
+	vec3 final_col = mix(col_sand, col_lip, lip_mask * 0.60);
 	final_col = mix(final_col, col_turf, turf_mask);
 
-	// Dark soil line right under the grass overhang (the turf lip's own contact shadow)
+	// Subtle dark root-shadow under the grass overhang
 	float soil_line = lip_mask * (1.0 - turf_mask) * smoothstep(0.3, 0.9, w_lip);
-	final_col *= 1.0 - soil_line * 0.25;
+	final_col *= 1.0 - soil_line * 0.22;
 
-	// Deep under-lip shadow cavity where vertical sod meets sand floor
-	float lip_sand_crevice = clamp(w_sand * w_lip * 4.2, 0.0, 1.0);
-	final_col *= (1.0 - lip_sand_crevice * 0.55);
+	// Undercut shadow cavity where overhanging grass meets steep sand wall
+	float lip_sand_crevice = clamp(w_sand * w_lip * 4.0, 0.0, 1.0);
+	final_col *= (1.0 - lip_sand_crevice * 0.30);
 
 	vec3 final_n = normalize(mix(mix(n_sand, n_lip, lip_mask), n_turf, turf_mask));
 
 	ALBEDO = clamp(final_col, 0.0, 1.0);
 	ALPHA = clamp(v_vert_color.a, 0.0, 1.0);
+	if (ALPHA < 0.01) {
+		discard;
+	}
 	NORMAL_MAP = final_n * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = 1.25;
 	ROUGHNESS = mix(mix(0.88, 0.98, lip_mask), 0.90, turf_mask);

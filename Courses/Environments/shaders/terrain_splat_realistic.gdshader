@@ -133,28 +133,33 @@ void fragment() {
 	float close_blade_fade = 1.0 - smoothstep(8.0, 18.0, cam_dist);
 
 	// -----------------------------------------------------------------------
-	// 1. Splat Sampling: smoothed boundaries (no noise jitter) so fairway/rough/green
-	//    edges are clean, consistent-width transitions rather than zigzag bleeding.
+	// 1. Splat Sampling: tight 3x3 anti-aliasing for turf + unblurred direct
+	//    sampling for bunkers so visual zone edges align 1:1 with gameplay.
+	//    (With 3.0m baked blendRadius, splat.r == 0.50 is exact 1.50m fringe edge.)
 	// -----------------------------------------------------------------------
 	vec2 splat_texel = 1.0 / vec2(textureSize(splat_map, 0));
-	vec4 raw_splat = vec4(0.0);
+	vec4 direct_splat = texture(splat_map, UV2);
+	vec4 aa_splat = vec4(0.0);
 	float tap_w_sum = 0.0;
-	for (int sx = -2; sx <= 2; sx++) {
-		for (int sy = -2; sy <= 2; sy++) {
+	for (int sx = -1; sx <= 1; sx++) {
+		for (int sy = -1; sy <= 1; sy++) {
 			vec2 o = vec2(float(sx), float(sy));
-			float tw = exp(-dot(o, o) * 0.28);
-			raw_splat += texture(splat_map, UV2 + o * splat_texel * 1.1) * tw;
+			float tw = exp(-dot(o, o) * 0.75);
+			aa_splat += texture(splat_map, UV2 + o * splat_texel * 0.45) * tw;
 			tap_w_sum += tw;
 		}
 	}
-	raw_splat /= tap_w_sum;
-	// Re-sharpen the blurred weights into a narrow, even-width transition band
-	raw_splat = vec4(
-		smoothstep(0.30, 0.70, raw_splat.r),
-		smoothstep(0.30, 0.70, raw_splat.g),
-		smoothstep(0.30, 0.70, raw_splat.b),
-		smoothstep(0.30, 0.70, raw_splat.a));
-	vec4 splat = raw_splat;
+	aa_splat /= tap_w_sum;
+	float splat_green_raw = aa_splat.r;
+	// Re-sharpen weights at exact gameplay zone boundaries:
+	//   - Green + Fringe outer edge at splat.r == 0.50 (1.50m outside green polygon)
+	//   - Fairway outer edge tightly hugging the fairway polygon
+	//   - Bunker edge unblurred at direct_splat.b == 0.50 (exact bunker polygon)
+	vec4 splat = vec4(
+		smoothstep(0.44, 0.58, aa_splat.r),
+		smoothstep(0.78, 0.94, aa_splat.g),
+		smoothstep(0.42, 0.58, direct_splat.b),
+		smoothstep(0.30, 0.70, aa_splat.a));
 
 	float raw_green   = splat.r;
 	float raw_fairway = splat.g;
@@ -414,8 +419,9 @@ void fragment() {
 		col_green *= (1.0 + (view_sheen - 0.5) * 0.16);
 
 		// Crisp distinctive putting green collar / fringe band framing the green perimeter
-		// Forms a visible intermediate ring between fairway and green putting surface
-		float fringe_w = smoothstep(0.01, 0.28, green_w) * (1.0 - smoothstep(0.42, 0.88, green_w));
+		// Pure putting green inside green polygon (splat_green_raw ~ 1.0), distinct fringe
+		// collar from 0m..1.5m outside green polygon (splat_green_raw 0.985..0.50).
+		float fringe_w = smoothstep(0.985, 0.91, splat_green_raw) * green_w;
 		vec3 col_fringe = g_fine * vec3(0.68, 0.95, 0.58);
 		vec3 green_output = mix(col_green, col_fringe, fringe_w * 0.85);
 
@@ -432,29 +438,28 @@ void fragment() {
 	// 3D. BUNKER: Crisp silica sand + deep sod/soil under-lip shadow
 	// -----------------------------------------------------------------------
 	if (bunker_w > 0.005) {
-		vec3 col_bunker = texture(tex_bunker, uv_bunker).rgb * vec3(1.12, 1.07, 0.98);
-		float rake_angle = dot(v_world_pos.xz, vec2(0.707, -0.707)) * 18.0;
+		vec3 col_bunker = texture(tex_bunker, uv_bunker).rgb * vec3(1.06, 0.99, 0.87);
+		float rake_angle = dot(v_world_pos.xz, vec2(0.707, -0.707)) * 36.0 + gnoise(v_world_pos.xz * 0.35) * 4.5;
 		float rake_wave = sin(rake_angle) * 0.5 + 0.5;
-		col_bunker = clamp(col_bunker * mix(0.95, 1.04, rake_wave), 0.0, 1.0);
+		col_bunker = clamp(col_bunker * mix(0.975, 1.025, rake_wave), 0.0, 1.0);
 
-		// Distinctive earthy bunker lip transition:
-		// Enhanced brown soil exposure around greens and fairways (matching real course reference)
+		// Subtle natural turf-to-sand root transition along bunker edge
 		float green_contact = smoothstep(0.02, 0.45, raw_green);
 		float bunker_lip = smoothstep(0.015, 0.38, bunker_w) * (1.0 - smoothstep(0.30, 0.82, bunker_w));
-		// Give bunkers abutting greens an extra rich, wider brown sod soil ledge
 		bunker_lip = max(bunker_lip, smoothstep(0.01, 0.35, bunker_w) * green_contact * (1.0 - smoothstep(0.40, 0.88, bunker_w)));
 		float lip_noise = gnoise(v_world_pos.xz * 1.5) * 0.5 + 0.5;
 		vec3 brown_soil = vec3(0.42, 0.28, 0.16) * (0.85 + 0.30 * lip_noise);
-		col_bunker = mix(col_bunker, brown_soil, bunker_lip * 0.95);
+		col_bunker = mix(col_bunker, brown_soil, bunker_lip * 0.35);
 
+		float rake_dist_fade = 1.0 - smoothstep(10.0, 42.0, length(VERTEX));
 		vec3 nr_bunker = texture(normal_bunker, uv_bunker).rgb * 2.0 - 1.0;
-		vec2 rake_tangent = vec2(cos(rake_angle), sin(rake_angle)) * 0.28;
-		nr_bunker = normalize(vec3(nr_bunker.xy + rake_tangent, max(nr_bunker.z, 0.72)));
+		vec2 rake_tangent = vec2(cos(rake_angle), sin(rake_angle)) * 0.12 * rake_dist_fade;
+		nr_bunker = normalize(vec3(nr_bunker.xy + rake_tangent, max(nr_bunker.z, 0.78)));
 
 		blended_albedo += col_bunker * bunker_w;
 		blended_normal += nr_bunker * bunker_w;
 		blended_roughness += roughness_bunker * bunker_w;
-		blended_ao += mix(0.95, 0.55, bunker_lip) * bunker_w;
+		blended_ao += mix(0.95, 0.72, bunker_lip) * bunker_w;
 	}
 
 	// -----------------------------------------------------------------------

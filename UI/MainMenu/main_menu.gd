@@ -265,6 +265,8 @@ func _update_version_label():
 	_version_label.text = "Version %s" % _version_text
 	
 func _on_settings_pressed() -> void:
+	if get_node_or_null("MainMenuSettings") != null:
+		return
 	var settings_scene = load("res://UI/Settings/RangeSettings/range_settings.tscn")
 	if settings_scene != null:
 		var inst = settings_scene.instantiate()
@@ -273,13 +275,16 @@ func _on_settings_pressed() -> void:
 		inst.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		inst.grow_vertical = Control.GROW_DIRECTION_BOTH
 		inst.close_settings_requested.connect(func():
-			inst.visible = false
-			inst.queue_free()
+			if is_instance_valid(inst):
+				inst.visible = false
+				inst.queue_free()
 		)
 		add_child(inst)
 
 
 func _on_credits_pressed() -> void:
+	if get_node_or_null("MainMenuCredits") != null:
+		return
 	var credits_scene = load("res://UI/CreditsModal/credits_modal.tscn")
 	if credits_scene != null:
 		var inst = credits_scene.instantiate()
@@ -313,6 +318,10 @@ func _on_players_pressed() -> void:
 
 func _on_minigames_pressed() -> void:
 	SceneManager.change_scene("res://UI/MiniGamesMenu/minigames_menu.tscn")
+
+
+func _on_training_pressed() -> void:
+	SceneManager.change_scene("res://UI/TrainingMenu/training_menu.tscn")
 
 
 func _check_startup_launch_monitor() -> void:

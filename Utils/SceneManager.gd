@@ -3,6 +3,8 @@ extends Node
 signal scene_changed
 
 var current_scene = null
+var _is_changing_scene: bool = false
+var _pending_scene_path: String = ""
 var _loading_screen: CanvasLayer = null
 var _loading_progress_bar: ProgressBar = null
 var _loading_percent_label: Label = null
@@ -22,33 +24,108 @@ func _ready() -> void:
 
 
 func _run_startup_course_upgrader() -> void:
+	for raw_arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		var arg := str(raw_arg).strip_edges()
+		if arg.begins_with("--screenshot=") or arg.begins_with("--capture-screenshot=") or arg == "--capture" or arg == "--write-movie":
+			return
 	await get_tree().process_frame
 	await CourseGraphicsUpgraderScript.check_and_upgrade_courses_on_startup(get_tree())
 
 
-func change_scene(path):
-	call_deferred("_deferred_change_scene", path)
+func load_main_menu() -> void:
+	change_scene("res://UI/MainMenu/main_menu.tscn")
 
 
-func _deferred_change_scene(scene_path) -> void:
-	var packed := load(str(scene_path)) as PackedScene
+func change_scene(path) -> void:
+	var target_path := str(path)
+	if target_path.is_empty():
+		return
+	# Coalesce rapid/duplicate scene switch requests within the same frame so we never
+	# tear down a newly added scene before its deferred setup completes.
+	_pending_scene_path = target_path
+	if _is_changing_scene:
+		return
+	_is_changing_scene = true
+	call_deferred("_deferred_change_scene")
+
+
+func _cleanup_ui_before_scene_change() -> void:
+	# Close any active OptionButton/PopupMenu/Window and clear modal focus locks
+	# before detaching the departing scene to prevent dangling native window/focus state.
+	if has_node("/root/UIFocusGuard"):
+		var ufg = get_node("/root/UIFocusGuard")
+		if ufg != null and ufg.has_method("reset_for_scene_change"):
+			ufg.reset_for_scene_change()
+	if has_node("/root/VirtualKeyboardManager"):
+		var vkm = get_node("/root/VirtualKeyboardManager")
+		if vkm != null and vkm.has_method("is_open") and vkm.is_open():
+			vkm.close(false)
+	var vp := get_viewport()
+	if vp != null:
+		vp.gui_release_focus()
+
+
+func _detach_and_free_scene(scene_node: Node) -> void:
+	if scene_node == null or not is_instance_valid(scene_node):
+		return
+	var parent := scene_node.get_parent()
+	if parent != null and is_instance_valid(parent):
+		parent.remove_child(scene_node)
+	if not scene_node.is_queued_for_deletion():
+		scene_node.queue_free()
+
+
+func _deferred_change_scene() -> void:
+	var scene_path := _pending_scene_path
+	_pending_scene_path = ""
+	if scene_path.is_empty():
+		_is_changing_scene = false
+		return
+
+	var packed := load(scene_path) as PackedScene
 	if packed == null:
 		push_error("Could not load scene: %s" % scene_path)
+		_is_changing_scene = false
 		return
 
 	var next_scene := packed.instantiate()
 	if next_scene == null:
 		push_error("Could not instantiate scene: %s" % scene_path)
+		_is_changing_scene = false
 		return
 
-	if current_scene != null:
-		get_tree().get_root().remove_child(current_scene)
-		current_scene.queue_free()
+	var tree := get_tree()
+	if tree == null or tree.get_root() == null:
+		next_scene.queue_free()
+		_is_changing_scene = false
+		return
+
+	_cleanup_ui_before_scene_change()
+
+	var old_scene: Node = current_scene if (current_scene != null and is_instance_valid(current_scene)) else null
+	var tree_scene: Node = tree.current_scene if (tree.current_scene != null and is_instance_valid(tree.current_scene)) else null
+
+	# Clear references before detaching so _exit_tree() and the new scene's _ready()
+	# never observe a stale/dangling current_scene pointer.
+	current_scene = null
+	tree.current_scene = null
+
+	if old_scene != null:
+		_detach_and_free_scene(old_scene)
+	if tree_scene != null and tree_scene != old_scene:
+		_detach_and_free_scene(tree_scene)
 
 	current_scene = next_scene
-	get_tree().get_root().add_child(current_scene)
-	get_tree().current_scene = next_scene
+	tree.get_root().add_child(current_scene)
+	tree.current_scene = next_scene
+	_is_changing_scene = false
 	scene_changed.emit()
+
+	# If another scene change was requested while switching, process the latest target next.
+	if not _pending_scene_path.is_empty():
+		var next_pending := _pending_scene_path
+		_pending_scene_path = ""
+		change_scene(next_pending)
 
 
 func _process(delta: float) -> void:
@@ -108,31 +185,22 @@ func close_scene():
 
 
 func _deferred_close_scene():
-	if current_scene != null:
-		get_tree().get_root().remove_child(current_scene)
-		current_scene.queue_free()
-		current_scene = null
+	_cleanup_ui_before_scene_change()
+	var old_scene: Node = current_scene if (current_scene != null and is_instance_valid(current_scene)) else null
+	current_scene = null
+	if get_tree() != null:
+		get_tree().current_scene = null
+	if old_scene != null:
+		_detach_and_free_scene(old_scene)
 
 
 func reload_scene():
-	if current_scene == null:
+	if current_scene == null or not is_instance_valid(current_scene):
 		return
 	var path: String = str(current_scene.scene_file_path)
-	var packed := load(path) as PackedScene
-	if packed == null:
-		push_error("Could not reload scene: " + path)
+	if path.is_empty():
 		return
-
-	var next_scene := packed.instantiate()
-	if next_scene == null:
-		push_error("Could not instantiate reloaded scene: " + path)
-		return
-
-	get_tree().get_root().remove_child(current_scene)
-	current_scene.queue_free()
-	current_scene = next_scene
-	get_tree().get_root().add_child(current_scene)
-	scene_changed.emit()
+	change_scene(path)
 
 
 ## Approximate time (seconds) a course takes to load; the progress bar is paced to this.

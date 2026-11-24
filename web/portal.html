@@ -181,6 +181,7 @@
       <li><a href="leaderboards.html">Leaderboards</a></li>
       <li><a href="portal.html" class="active">Player Portal</a></li>
       <li><a href="index.html#community">Community</a></li>
+      <li><a href="https://ko-fi.com/hecklegolf" target="_blank" rel="noopener">Support</a></li>
     </ul>
 
     <div class="nav-cta">
@@ -452,10 +453,12 @@
                     <select id="shot-analysis-view-mode">
                       <option value="best">Best shot</option>
                       <option value="average">Group average</option>
+                      <option value="best_overall">Best overall (distance + accuracy)</option>
                     </select>
                   </label>
                 </div>
                 <canvas id="shot-analysis-canvas" class="shot-analysis-canvas" aria-label="Shot flight and landing dispersion charts"></canvas>
+                <div id="shot-analysis-coaching" class="shot-analysis-coaching"></div>
                 <div id="shot-analysis-table" class="table-responsive"></div>
               </div>
             </div>
@@ -483,6 +486,7 @@
                     <select id="analytics-window-select" class="analytics-select">
                       <option value="last10">Last 10 vs Prior 10 Shots</option>
                       <option value="last25">Last 25 vs Prior 25 Shots</option>
+                      <option value="sessions">Latest Session vs Prior Session</option>
                       <option value="all">All Recorded Shots (First Half vs Second Half)</option>
                     </select>
                   </div>
@@ -600,6 +604,7 @@
         <a href="https://www.youtube.com/@hecklegolfsimulator" target="_blank" rel="noopener">YouTube</a>
         <a href="https://discord.gg/brHATRsFKB" target="_blank" rel="noopener">Discord</a>
         <a href="https://github.com/mmancl/HeckleGolfSim" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://ko-fi.com/hecklegolf" target="_blank" rel="noopener">Support (Ko-fi)</a>
       </div>
       <p>© 2025 Heckle Golf Simulator. All rights reserved. Built with ❤️ using <a href="https://godotengine.org" target="_blank" rel="noopener">Godot Engine</a>.</p>
     </div>
@@ -657,10 +662,10 @@
           <div class="form-group">
             <label for="select-edit-skill-level">Skill Level</label>
             <select id="select-edit-skill-level">
-              <option value="beginner">Beginner (High Handicap, 20+)</option>
-              <option value="mid_handicap">Mid Handicap (10 - 19)</option>
-              <option value="low_handicap">Low Handicap (Single Digit, 1 - 9)</option>
-              <option value="scratch">Scratch / Pro (0 or Better)</option>
+              <option value="high_handicap">High Handicap (20+ HCP)</option>
+              <option value="mid_handicap">Mid Handicap (10–19 HCP)</option>
+              <option value="scratch">Scratch / Low HCP (0–9 HCP)</option>
+              <option value="tour_pro">Tour Pro (PGA/LPGA Benchmark)</option>
             </select>
           </div>
           <div class="form-group">

@@ -638,14 +638,16 @@ func _create_green_speed_selector() -> PanelContainer:
 		val_lbl.text = "%.1f" % val
 	)
 
-	GlobalSettings.range_settings.green_speed.setting_changed.connect(func(val):
-		if slider != null and is_instance_valid(slider) and not is_equal_approx(slider.value, val):
-			slider.value = val
-		if val_lbl != null and is_instance_valid(val_lbl):
-			val_lbl.text = "%.1f" % val
-	)
+	GlobalSettings.range_settings.green_speed.setting_changed.connect(_on_green_speed_setting_changed.bind(slider, val_lbl))
 
 	return panel
+
+
+func _on_green_speed_setting_changed(val: float, slider: HSlider, val_lbl: Label) -> void:
+	if slider != null and is_instance_valid(slider) and not is_equal_approx(slider.value, val):
+		slider.value = val
+	if val_lbl != null and is_instance_valid(val_lbl):
+		val_lbl.text = "%.1f" % val
 
 
 func _create_wind_selector() -> PanelContainer:

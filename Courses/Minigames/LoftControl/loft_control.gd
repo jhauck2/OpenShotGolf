@@ -402,9 +402,16 @@ func _setup_environment() -> void:
 	env.ssao_ao_channel_affect = 0.5
 	
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.65, 0.78, 0.88)
-	env.fog_density = 0.0014
-	env.fog_sky_affect = 0.25
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_light_color = Color(0.76, 0.85, 0.95)
+	env.fog_density = 0.45
+	env.fog_sky_affect = 0.15
+	if "fog_depth_begin" in env:
+		env.set("fog_depth_begin", 380.0)
+	if "fog_depth_end" in env:
+		env.set("fog_depth_end", 1500.0)
+	if "fog_depth_curve" in env:
+		env.set("fog_depth_curve", 1.6)
 	
 	world_env.environment = env
 	add_child(world_env)

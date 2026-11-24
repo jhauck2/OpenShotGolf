@@ -14,6 +14,7 @@ namespace LaunchMonitors.Common.Bluetooth.Windows;
 internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
 {
     private readonly Dictionary<Guid, GattCharacteristic> _characteristics = [];
+    private readonly List<BluetoothGattCharacteristicInfo> _discoveredCharacteristics = [];
     private readonly List<GattDeviceService> _services = [];
     private readonly HashSet<Guid> _subscribedCharacteristicUuids = [];
     private readonly HashSet<ulong> _discoveredAddresses = [];
@@ -137,11 +138,15 @@ internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
 
         _subscribedCharacteristicUuids.Clear();
         _characteristics.Clear();
+        _discoveredCharacteristics.Clear();
         ClearServices();
         _device?.Dispose();
         _device = null;
         _isDisconnecting = false;
     }
+
+    public IReadOnlyList<BluetoothGattCharacteristicInfo> GetDiscoveredCharacteristics() =>
+        _discoveredCharacteristics.ToArray();
 
     public async Task<byte[]> ReadCharacteristicAsync(Guid characteristicUuid, CancellationToken cancellationToken)
     {
@@ -280,6 +285,7 @@ internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
         }
 
         _characteristics.Clear();
+        _discoveredCharacteristics.Clear();
         ClearServices();
 
         var servicesResult = await GetGattServicesWithRetryAsync(_device, cancellationToken).ConfigureAwait(false);
@@ -297,6 +303,10 @@ internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
             foreach (var characteristic in characteristics)
             {
                 _characteristics.TryAdd(characteristic.Uuid, characteristic);
+                _discoveredCharacteristics.Add(new BluetoothGattCharacteristicInfo(
+                    service.Uuid,
+                    characteristic.Uuid,
+                    MapProperties(characteristic.CharacteristicProperties)));
             }
         }
 
@@ -434,6 +444,22 @@ internal sealed class WindowsBluetoothGattClient : IBluetoothGattClient
 
     private bool IsDeviceNameMatch(string? name) =>
         BluetoothDeviceFilter.IsDeviceNameMatch(name, _scanOptions.DeviceNamePrefix);
+
+    private static BluetoothCharacteristicProperties MapProperties(GattCharacteristicProperties props)
+    {
+        var result = BluetoothCharacteristicProperties.None;
+        if (props.HasFlag(GattCharacteristicProperties.Read))
+            result |= BluetoothCharacteristicProperties.Read;
+        if (props.HasFlag(GattCharacteristicProperties.Write))
+            result |= BluetoothCharacteristicProperties.Write;
+        if (props.HasFlag(GattCharacteristicProperties.WriteWithoutResponse))
+            result |= BluetoothCharacteristicProperties.WriteWithoutResponse;
+        if (props.HasFlag(GattCharacteristicProperties.Notify))
+            result |= BluetoothCharacteristicProperties.Notify;
+        if (props.HasFlag(GattCharacteristicProperties.Indicate))
+            result |= BluetoothCharacteristicProperties.Indicate;
+        return result;
+    }
 
     private void OnDeviceConnectionStatusChanged(BluetoothLEDevice sender, object args)
     {

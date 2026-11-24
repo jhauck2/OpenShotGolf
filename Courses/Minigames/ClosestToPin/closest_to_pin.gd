@@ -389,9 +389,16 @@ func _setup_environment() -> void:
 			env.ssao_power = 1.5
 
 		env.fog_enabled = true
-		env.fog_light_color = Color(0.65, 0.78, 0.88)
-		env.fog_density = 0.0018
-		env.fog_sky_affect = 0.3
+		env.fog_mode = Environment.FOG_MODE_DEPTH
+		env.fog_light_color = Color(0.76, 0.85, 0.95)
+		env.fog_density = 0.45
+		env.fog_sky_affect = 0.15
+		if "fog_depth_begin" in env:
+			env.set("fog_depth_begin", 380.0)
+		if "fog_depth_end" in env:
+			env.set("fog_depth_end", 1500.0)
+		if "fog_depth_curve" in env:
+			env.set("fog_depth_curve", 1.6)
 
 		world_env.environment = env
 		add_child(world_env)
@@ -418,9 +425,9 @@ func _setup_atmospheric_fog() -> void:
 	var skydome = get_node_or_null("Sky3D/Skydome")
 	if skydome == null:
 		return
-	skydome.fog_density = 0.0018
-	skydome.fog_start = 140.0
-	skydome.fog_end = 350.0
+	skydome.fog_density = 0.00035
+	skydome.fog_start = 380.0
+	skydome.fog_end = 1400.0
 	skydome.clouds_visible = true
 	skydome.clouds_cumulus_visible = false
 	skydome.clouds_speed = 0.005

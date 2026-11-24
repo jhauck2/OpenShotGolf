@@ -1,6 +1,7 @@
 extends Node
 
 const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
+const ShotAnalyticsEngineScript = preload("res://Utils/shot_analytics_engine.gd")
 
 signal active_player_changed(player: Dictionary)
 signal hole_completed(scores: Array)
@@ -3184,7 +3185,14 @@ func set_player_ball_type(player_name: String, ball_type: String) -> bool:
 
 func get_player_skill_level(player_name: String) -> String:
 	var p = get_registered_player(player_name)
-	return p.get("skill_level", "mid_handicap")
+	var raw: String = str(p.get("skill_level", "mid_handicap")).to_lower().strip_edges()
+	if raw == "beginner":
+		return "high_handicap"
+	if raw == "low_handicap":
+		return "scratch"
+	if raw.is_empty():
+		return "mid_handicap"
+	return raw
 
 func get_player_email(player_name: String) -> String:
 	var p = get_registered_player(player_name)
@@ -4810,6 +4818,11 @@ func calculate_player_stats(player_name: String) -> Dictionary:
 			stats["single_player_completed"] = maxi(int(stats.get("single_player_completed", 0)), int(clc.get("single_player_completed", 0)))
 			stats["longest_drive"] = maxf(float(stats.get("longest_drive", 0.0)), float(clc.get("longest_drive_yds", clc.get("longest_drive", 0.0))))
 			stats["longest_putt_ft"] = maxf(float(stats.get("longest_putt_ft", 0.0)), float(clc.get("longest_putt_ft", 0.0)))
+			if not stats.get("avg_to_par_valid", false):
+				var clc_par_matches := int(clc.get("par_diff_matches", 0))
+				if clc_par_matches > 0:
+					stats["avg_to_par"] = float(clc.get("par_diff_sum", 0.0)) / float(clc_par_matches)
+					stats["avg_to_par_valid"] = true
 
 			var clc_courses = clc.get("best_courses", {})
 			if typeof(clc_courses) == TYPE_DICTIONARY:
@@ -4862,57 +4875,72 @@ func save_player_swing_issues(data: Dictionary) -> void:
 	if file != null:
 		file.store_string(JSON.stringify(data, "\t"))
 
-func record_player_swing_issues(player_name: String, recommendations: Array) -> void:
-	if player_name.is_empty() or recommendations.is_empty():
+func record_player_swing_issues(player_name: String, recommendations: Array, club_name: String = "") -> void:
+	if player_name.is_empty():
 		return
 	for p in players:
 		if p.get("name", "") == player_name and p.get("is_remote", false):
 			return
-	
-	var canonical_name = get_canonical_player_name(player_name)
-	var date_dict = Time.get_date_dict_from_system()
-	var current_month = "%04d-%02d" % [date_dict.year, date_dict.month]
-	
-	var all_data = load_player_swing_issues()
-	var matching_key = _find_matching_player_key_in_dict(all_data, canonical_name)
-	var target_key = matching_key if not matching_key.is_empty() else canonical_name
-	if not all_data.has(target_key):
+
+	var canonical_name: String = get_canonical_player_name(player_name)
+	var date_dict: Dictionary = Time.get_date_dict_from_system()
+	var current_month: String = "%04d-%02d" % [int(date_dict.year), int(date_dict.month)]
+
+	var all_data: Dictionary = load_player_swing_issues()
+	var matching_key: String = _find_matching_player_key_in_dict(all_data, canonical_name)
+	var target_key: String = matching_key if not matching_key.is_empty() else canonical_name
+	if not all_data.has(target_key) or typeof(all_data[target_key]) != TYPE_DICTIONARY:
 		all_data[target_key] = {
 			"all_time": {},
-			"monthly": {}
+			"monthly": {},
+			"monthly_meta": {}
 		}
-	
-	var p_data = all_data[target_key]
+
+	var p_data: Dictionary = all_data[target_key]
 	if not p_data.has("all_time") or typeof(p_data["all_time"]) != TYPE_DICTIONARY:
 		p_data["all_time"] = {}
 	if not p_data.has("monthly") or typeof(p_data["monthly"]) != TYPE_DICTIONARY:
 		p_data["monthly"] = {}
 	if not p_data["monthly"].has(current_month) or typeof(p_data["monthly"][current_month]) != TYPE_DICTIONARY:
 		p_data["monthly"][current_month] = {}
+	if not p_data.has("monthly_meta") or typeof(p_data["monthly_meta"]) != TYPE_DICTIONARY:
+		p_data["monthly_meta"] = {}
+	if not p_data["monthly_meta"].has(current_month) or typeof(p_data["monthly_meta"][current_month]) != TYPE_DICTIONARY:
+		p_data["monthly_meta"][current_month] = {"analyzed_shots": 0, "by_club": {}}
 
-	var recorded_any := false
+	var month_meta: Dictionary = p_data["monthly_meta"][current_month]
+	month_meta["analyzed_shots"] = int(month_meta.get("analyzed_shots", 0)) + 1
+	var clean_club: String = club_name.strip_edges()
+	if not clean_club.is_empty():
+		if not month_meta.has("by_club") or typeof(month_meta["by_club"]) != TYPE_DICTIONARY:
+			month_meta["by_club"] = {}
+		var by_club: Dictionary = month_meta["by_club"]
+		var club_code: String = ShotAnalyticsEngineScript.GolfSwingAnalyzer._classify_club_discrete(clean_club)
+		by_club[club_code] = int(by_club.get(club_code, 0)) + 1
+
+	var recorded_flaws: bool = false
 	for rec in recommendations:
 		if typeof(rec) != TYPE_DICTIONARY:
 			continue
-		var severity = str(rec.get("severity", ""))
+		var severity: String = str(rec.get("severity", ""))
 		# Skip LOW severity (pro-grade maintenance notes)
 		if severity == "LOW":
 			continue
-			
-		var issue = str(rec.get("issue_type", rec.get("category", "General Flaw")))
-		
-		var cur_at = int(p_data["all_time"].get(issue, 0))
+
+		var issue: String = str(rec.get("issue_type", rec.get("category", "General Flaw")))
+
+		var cur_at: int = int(p_data["all_time"].get(issue, 0))
 		p_data["all_time"][issue] = cur_at + 1
-		
-		var cur_mo = int(p_data["monthly"][current_month].get(issue, 0))
+
+		var cur_mo: int = int(p_data["monthly"][current_month].get(issue, 0))
 		p_data["monthly"][current_month][issue] = cur_mo + 1
-		p_data["updated_at"] = int(Time.get_unix_time_from_system())
-		recorded_any = true
-		
-	if recorded_any:
-		save_player_swing_issues(all_data)
-		if has_node("/root/CloudSync"):
-			get_node("/root/CloudSync").call("mark_profile_dirty", target_key)
+		recorded_flaws = true
+
+	p_data["updated_at"] = int(Time.get_unix_time_from_system())
+	save_player_swing_issues(all_data)
+	if has_node("/root/CloudSync"):
+		get_node("/root/CloudSync").call("mark_profile_dirty", target_key)
+	if recorded_flaws:
 		print("[MultiplayerManager] Recorded swing recommendations for %s (%s)" % [target_key, current_month])
 
 func get_player_swing_issues(player_name: String) -> Dictionary:
@@ -4920,7 +4948,12 @@ func get_player_swing_issues(player_name: String) -> Dictionary:
 	var matching_key = _find_matching_player_key_in_dict(all_data, player_name)
 	if not matching_key.is_empty() and all_data.has(matching_key):
 		return all_data[matching_key]
-	return { "all_time": {}, "monthly": {} }
+	return { "all_time": {}, "monthly": {}, "monthly_meta": {} }
+
+func get_player_swing_issues_meta(player_name: String) -> Dictionary:
+	var p_data: Dictionary = get_player_swing_issues(player_name)
+	var meta: Variant = p_data.get("monthly_meta", {})
+	return meta if meta is Dictionary else {}
 
 func clear_player_swing_issues(player_name: String) -> void:
 	var all_data = load_player_swing_issues()
@@ -4929,7 +4962,8 @@ func clear_player_swing_issues(player_name: String) -> void:
 	all_data[target_key] = {
 		"_cleared_at": int(Time.get_unix_time_from_system()),
 		"all_time": {},
-		"monthly": {}
+		"monthly": {},
+		"monthly_meta": {}
 	}
 	save_player_swing_issues(all_data)
 	if has_node("/root/CloudSync"):
@@ -4964,6 +4998,114 @@ func format_player_swing_issues_summary(player_name: String) -> String:
 		out += "  • %s: %d\n" % [issue_name, int(all_time[issue_name])]
 		
 	return out + "\n"
+
+
+# --- Coaching Goals & Milestone Progression ---
+
+const COACHING_GOALS_PATH = "user://player_coaching_goals.json"
+
+func load_player_coaching_goals() -> Dictionary:
+	if not FileAccess.file_exists(COACHING_GOALS_PATH):
+		return {}
+	var file = FileAccess.open(COACHING_GOALS_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var json = JSON.new()
+	var err = json.parse(file.get_as_text())
+	if err == OK and typeof(json.data) == TYPE_DICTIONARY:
+		return json.data
+	return {}
+
+func save_player_coaching_goals(data: Dictionary) -> void:
+	var file = FileAccess.open(COACHING_GOALS_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(data, "\t"))
+
+func get_player_coaching_goal(player_name: String) -> Dictionary:
+	if player_name.is_empty():
+		return {}
+	var canonical_name: String = get_canonical_player_name(player_name)
+	var all_goals: Dictionary = load_player_coaching_goals()
+	var matching_key: String = _find_matching_player_key_in_dict(all_goals, canonical_name)
+	if not matching_key.is_empty() and all_goals.has(matching_key) and all_goals[matching_key] is Dictionary:
+		return all_goals[matching_key]
+	return {}
+
+func set_player_coaching_goal(player_name: String, goal: Dictionary) -> void:
+	if player_name.is_empty():
+		return
+	var canonical_name: String = get_canonical_player_name(player_name)
+	var all_goals: Dictionary = load_player_coaching_goals()
+	var matching_key: String = _find_matching_player_key_in_dict(all_goals, canonical_name)
+	var target_key: String = matching_key if not matching_key.is_empty() else canonical_name
+	var clean_goal: Dictionary = goal.duplicate(true)
+	if not clean_goal.has("active_milestone"):
+		clean_goal["active_milestone"] = 1
+	if not clean_goal.has("total_reps"):
+		clean_goal["total_reps"] = 0
+	if not clean_goal.has("passed_reps"):
+		clean_goal["passed_reps"] = 0
+	if not clean_goal.has("streak"):
+		clean_goal["streak"] = 0
+	if not clean_goal.has("block_results") or not (clean_goal["block_results"] is Array):
+		clean_goal["block_results"] = []
+	clean_goal["updated_at"] = int(Time.get_unix_time_from_system())
+	all_goals[target_key] = clean_goal
+	save_player_coaching_goals(all_goals)
+	if has_node("/root/CloudSync"):
+		get_node("/root/CloudSync").call("mark_profile_dirty", target_key)
+
+func record_coaching_goal_shot(player_name: String, shot_data: Dictionary) -> Dictionary:
+	if player_name.is_empty() or shot_data.is_empty():
+		return {}
+	var goal: Dictionary = get_player_coaching_goal(player_name)
+	if goal.is_empty():
+		return {}
+
+	var club_name: String = str(shot_data.get("Club", shot_data.get("club", goal.get("club_key", "Driver"))))
+	var skill_level: String = get_player_skill_level(player_name)
+	var is_lefty: bool = get_player_handedness(player_name) == 1
+	var milestones: Array = goal.get("milestones", []) if goal.get("milestones", null) is Array else []
+	var active_idx: int = clampi(int(goal.get("active_milestone", 1)) - 1, 0, maxi(0, milestones.size() - 1))
+	var target_cfg: Dictionary = {
+		"metric_key": str(goal.get("metric_key", "absOffline")),
+		"direction": str(goal.get("direction", "lower")),
+		"unit": str(goal.get("unit", "")),
+		"target_val": float(goal.get("target_value", 12.0))
+	}
+	if active_idx < milestones.size() and milestones[active_idx] is Dictionary:
+		target_cfg["target_val"] = float((milestones[active_idx] as Dictionary).get("target_val", target_cfg["target_val"]))
+
+	var eval_res: Dictionary = ShotAnalyticsEngineScript.evaluate_drill_shot("active_focus", shot_data, club_name, skill_level, is_lefty, target_cfg)
+	var passed: bool = bool(eval_res.get("passed", false))
+	goal["total_reps"] = int(goal.get("total_reps", 0)) + 1
+	if passed:
+		goal["passed_reps"] = int(goal.get("passed_reps", 0)) + 1
+		goal["streak"] = int(goal.get("streak", 0)) + 1
+	else:
+		goal["streak"] = 0
+
+	var block: Array = goal.get("block_results", []) if goal.get("block_results", null) is Array else []
+	block.append(passed)
+	if block.size() > 10:
+		block = block.slice(block.size() - 10, block.size())
+	goal["block_results"] = block
+
+	if block.size() >= 10:
+		var pass_cnt: int = 0
+		for b in block:
+			if bool(b):
+				pass_cnt += 1
+		var cur_step: int = int(goal.get("active_milestone", 1))
+		var req: int = 8 if cur_step >= 3 else 7
+		if pass_cnt >= req and cur_step < maxi(1, milestones.size()):
+			goal["active_milestone"] = cur_step + 1
+			goal["block_results"] = []
+			eval_res["milestone_advanced"] = true
+
+	set_player_coaching_goal(player_name, goal)
+	eval_res["goal"] = goal
+	return eval_res
 
 
 static func _vec3_from_array(val: Variant) -> Vector3:

@@ -163,8 +163,57 @@ static func _classify_club_discrete(club_name: String) -> String:
 		return "7i"
 	return "driver"
 
+static func normalize_skill_level(skill_level: String) -> String:
+	var key := skill_level.strip_edges().to_lower()
+	match key:
+		"beginner", "high_handicap":
+			return "high_handicap"
+		"low_handicap", "scratch":
+			return "scratch"
+		"tour_pro", "pro":
+			return "tour_pro"
+		_:
+			return "mid_handicap"
+
+static func _get_spin_loft_bounds(club_key: String) -> Vector2:
+	match club_key:
+		"driver": return Vector2(10.0, 14.5)
+		"3w": return Vector2(13.0, 17.5)
+		"5w": return Vector2(16.0, 20.5)
+		"hybrid": return Vector2(18.0, 22.5)
+		"4i": return Vector2(20.0, 24.5)
+		"5i": return Vector2(22.0, 26.5)
+		"6i": return Vector2(24.0, 28.5)
+		"7i": return Vector2(26.0, 30.5)
+		"8i": return Vector2(28.0, 33.0)
+		"9i": return Vector2(31.0, 36.0)
+		"pw": return Vector2(34.0, 40.0)
+		"gw": return Vector2(38.0, 44.0)
+		"sw": return Vector2(42.0, 48.0)
+		"lw": return Vector2(46.0, 52.0)
+		_: return Vector2(24.0, 30.0)
+
+static func _resolve_is_lefty(shot_data: Dictionary) -> bool:
+	if shot_data.has("is_lefty"):
+		return bool(shot_data["is_lefty"])
+	if shot_data.has("is_left_handed"):
+		return bool(shot_data["is_left_handed"])
+	if shot_data.has("handedness"):
+		return int(shot_data["handedness"]) == 1
+	var p_name := str(shot_data.get("Player", shot_data.get("player", "")))
+	if not p_name.is_empty():
+		if Engine.has_singleton("MultiplayerManager"):
+			var mp = Engine.get_singleton("MultiplayerManager")
+			if mp != null and mp.has_method("get_player_handedness"):
+				return int(mp.get_player_handedness(p_name)) == 1
+		elif Engine.get_main_loop() != null and Engine.get_main_loop().root != null and Engine.get_main_loop().root.has_node("MultiplayerManager"):
+			var mp_node = Engine.get_main_loop().root.get_node_or_null("MultiplayerManager")
+			if mp_node != null and mp_node.has_method("get_player_handedness"):
+				return int(mp_node.get_player_handedness(p_name)) == 1
+	return false
+
 static func get_benchmark(club_name: String, skill_level: String = "mid_handicap") -> Dictionary:
-	var tier: String = skill_level if CLUB_BENCHMARKS.has(skill_level) else "mid_handicap"
+	var tier: String = normalize_skill_level(skill_level)
 	var club_key: String = _classify_club_discrete(club_name)
 	var tier_data: Dictionary = CLUB_BENCHMARKS.get(tier, CLUB_BENCHMARKS["mid_handicap"])
 	if tier_data.has(club_key):
@@ -176,6 +225,8 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 	if benchmark.is_empty():
 		return rows
 
+	var club_name := str(shot_data.get("Club", shot_data.get("club", "Driver")))
+	var club_key := _classify_club_discrete(club_name)
 	var club_speed = _get_float_val(shot_data, ["ClubSpeed"], 0.0)
 	var ball_speed = _get_float_val(shot_data, ["Speed", "BallSpeed"], 0.0)
 	var smash_factor = _get_float_val(shot_data, ["SmashFactor"], 0.0)
@@ -185,10 +236,18 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 	var total_spin = _get_float_val(shot_data, ["TotalSpin", "BackSpin"], 0.0)
 	var raw_aoa = _get_float_val(shot_data, ["AttackAngle", "AngleOfAttack"], 999.0)
 	var attack_angle = raw_aoa if (raw_aoa < 900.0 and abs(raw_aoa) >= 0.1) else 999.0
+	var dyn_loft = _get_float_val(shot_data, ["DynamicLoft", "dynamic_loft"], 999.0)
 	var spin_axis = _get_float_val(shot_data, ["SpinAxis", "SideSpinAxis"], 0.0)
 	var carry = _get_float_val(shot_data, ["Carry", "CarryDistance", "Distance"], 0.0)
 	var apex = _get_float_val(shot_data, ["Apex", "PeakHeight", "MaxHeight"], 0.0)
 	var land_angle = _get_float_val(shot_data, ["DescentAngle", "LandAngle", "LandingAngle"], 0.0)
+	var has_fa = shot_data.has("FaceAngle") or shot_data.has("ClubFaceAngle") or shot_data.has("RawFaceAngle")
+	var has_cp = shot_data.has("ClubPath") or shot_data.has("Path") or shot_data.has("RawClubPath")
+	var face_angle = _get_float_val(shot_data, ["RawFaceAngle", "FaceAngle", "ClubFaceAngle"], 0.0)
+	var club_path = _get_float_val(shot_data, ["RawClubPath", "ClubPath", "Path"], 0.0)
+	var ftp = _get_float_val(shot_data, ["RawFaceToPath", "FaceToPath"], 999.0)
+	if ftp > 900.0 and (has_fa or has_cp):
+		ftp = face_angle - club_path
 
 	# 1. Ball Speed
 	if ball_speed > 0.0:
@@ -206,7 +265,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%.1f mph" % ball_speed,
 			"target": "%.1f – %.1f mph" % [bs_min, bs_max],
 			"status": status,
-			"note": "Primary governor of total potential distance."
+			"note": "Primary governor of total potential distance.",
+			"player_num": ball_speed, "target_min": bs_min, "target_max": bs_max,
+			"scale_min": maxf(30.0, bs_min - 25.0), "scale_max": bs_max + 25.0, "unit": "mph"
 		})
 
 	# 2. Smash Factor
@@ -227,7 +288,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%.2f" % smash_factor,
 			"target": "%.2f – %.2f" % [sm_min, sm_max],
 			"status": status,
-			"note": "Clubface energy transfer and centered sweet-spot compression."
+			"note": "Clubface energy transfer and centered sweet-spot compression.",
+			"player_num": smash_factor, "target_min": sm_min, "target_max": sm_max,
+			"scale_min": maxf(0.85, sm_min - 0.16), "scale_max": minf(1.56, sm_max + 0.05), "unit": ""
 		})
 
 	# 3. Dynamic Launch (VLA)
@@ -243,7 +306,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 		"player": "%.1f°" % vla,
 		"target": "%.1f° – %.1f°" % [vla_min, vla_max],
 		"status": vla_status,
-		"note": "Initial vertical takeoff angle off clubface."
+		"note": "Initial vertical takeoff angle off clubface.",
+		"player_num": vla, "target_min": vla_min, "target_max": vla_max,
+		"scale_min": maxf(0.0, vla_min - 7.0), "scale_max": vla_max + 7.0, "unit": "°"
 	})
 
 	# 4. Total Spin
@@ -260,7 +325,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%.0f RPM" % total_spin,
 			"target": "%.0f – %.0f RPM" % [sp_min, sp_max],
 			"status": sp_status,
-			"note": "Aerodynamic lift, wind stability, and green-stopping control."
+			"note": "Aerodynamic lift, wind stability, and green-stopping control.",
+			"player_num": total_spin, "target_min": sp_min, "target_max": sp_max,
+			"scale_min": maxf(500.0, sp_min - 1400.0), "scale_max": sp_max + 1600.0, "unit": "RPM"
 		})
 
 	# 5. Angle of Attack (AoA)
@@ -277,7 +344,28 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%+.1f°" % attack_angle,
 			"target": "%+.1f° to %+.1f°" % [aoa_min, aoa_max],
 			"status": aoa_status,
-			"note": "Angle of clubhead path moving into the ball."
+			"note": "Angle of clubhead path moving into the ball.",
+			"player_num": attack_angle, "target_min": aoa_min, "target_max": aoa_max,
+			"scale_min": aoa_min - 5.0, "scale_max": aoa_max + 5.0, "unit": "°"
+		})
+
+	# 5b. Spin Loft (Dynamic Loft - AoA)
+	if float(dyn_loft) < 900.0 and float(attack_angle) < 900.0:
+		var spin_loft: float = float(dyn_loft) - float(attack_angle)
+		var sl_bounds: Vector2 = _get_spin_loft_bounds(club_key)
+		var sl_status: String = "OPTIMAL"
+		if spin_loft < sl_bounds.x - 3.5 or spin_loft > sl_bounds.y + 4.0:
+			sl_status = "CRITICAL"
+		elif spin_loft < sl_bounds.x - 1.0 or spin_loft > sl_bounds.y + 1.5:
+			sl_status = "SUB-OPTIMAL"
+		rows.append({
+			"metric": "Spin Loft",
+			"player": "%.1f°" % spin_loft,
+			"target": "%.1f° – %.1f°" % [sl_bounds.x, sl_bounds.y],
+			"status": sl_status,
+			"note": "Dynamic Loft minus AoA; governs ball compression and spin generation.",
+			"player_num": spin_loft, "target_min": sl_bounds.x, "target_max": sl_bounds.y,
+			"scale_min": maxf(4.0, sl_bounds.x - 8.0), "scale_max": sl_bounds.y + 8.0, "unit": "°"
 		})
 
 	# 6. Spin Axis / Direction
@@ -293,8 +381,27 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 		"player": "%+.1f°" % spin_axis,
 		"target": "-2.5° to +2.5°",
 		"status": axis_status,
-		"note": "Tilt of spin vector governing draw or slice curve."
+		"note": "Tilt of spin vector governing draw or slice curve.",
+		"player_num": spin_axis, "target_min": -2.5, "target_max": 2.5,
+		"scale_min": -14.0, "scale_max": 14.0, "unit": "°"
 	})
+
+	# 6b. Face-to-Path (when directly measured)
+	if ftp < 900.0:
+		var ftp_status := "OPTIMAL"
+		if abs(ftp) > 4.0:
+			ftp_status = "CRITICAL"
+		elif abs(ftp) > 2.5:
+			ftp_status = "SUB-OPTIMAL"
+		rows.append({
+			"metric": "Face-to-Path",
+			"player": "%+.1f°" % ftp,
+			"target": "-2.0° to +2.0°",
+			"status": ftp_status,
+			"note": "Face orientation minus swing path; primary curvature driver.",
+			"player_num": ftp, "target_min": -2.0, "target_max": 2.0,
+			"scale_min": -8.0, "scale_max": 8.0, "unit": "°"
+		})
 
 	# 7. Carry Distance
 	if carry > 0.0:
@@ -314,7 +421,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%.0f yds" % carry,
 			"target": "%.0f – %.0f yds" % [c_min, c_max],
 			"status": c_status,
-			"note": "Airborne distance traveled before ground contact."
+			"note": "Airborne distance traveled before ground contact.",
+			"player_num": carry, "target_min": c_min, "target_max": c_max,
+			"scale_min": maxf(20.0, c_min - 40.0), "scale_max": c_max + 40.0, "unit": "yds"
 		})
 
 	# 8. Apex Height (if available)
@@ -329,7 +438,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%.0f ft" % apex,
 			"target": "%.0f – %.0f ft" % [ap_min, ap_max],
 			"status": ap_status,
-			"note": "Peak trajectory altitude."
+			"note": "Peak trajectory altitude.",
+			"player_num": apex, "target_min": ap_min, "target_max": ap_max,
+			"scale_min": maxf(10.0, ap_min - 30.0), "scale_max": ap_max + 30.0, "unit": "ft"
 		})
 
 	# 9. Landing Angle (if available)
@@ -344,7 +455,9 @@ static func _build_comparison_table(shot_data: Dictionary, benchmark: Dictionary
 			"player": "%.1f°" % land_angle,
 			"target": "%.1f° – %.1f°" % [la_min, la_max],
 			"status": la_status,
-			"note": "Descent pitch governing release and green holding."
+			"note": "Descent pitch governing release and green holding.",
+			"player_num": land_angle, "target_min": la_min, "target_max": la_max,
+			"scale_min": maxf(20.0, la_min - 12.0), "scale_max": la_max + 10.0, "unit": "°"
 		})
 
 	return rows
@@ -386,13 +499,111 @@ static func _attach_video_metadata(rec: Dictionary, video_key: String) -> void:
 		rec["video_embed_url"] = v["embed"]
 		rec["video_title"] = v["title"]
 		rec["video_id"] = v["id"]
+		rec["_video_key"] = video_key
+
+static func _attach_drill_progression(rec: Dictionary, fallback_video_key: String = "") -> void:
+	if rec.has("drill_stages") and typeof(rec["drill_stages"]) == TYPE_ARRAY and not (rec["drill_stages"] as Array).is_empty():
+		return
+	var issue: String = str(rec.get("issue_type", "")).to_lower()
+	var vkey: String = str(rec.get("_video_key", fallback_video_key))
+
+	var stages: Array[Dictionary] = []
+	var proof: String = "Launch monitor shows primary target metric moving inside shaded benchmark band."
+	var watch_out: String = "Avoid rushing tempo or over-steering on full speed; lock feel at 75% first."
+	var grad: String = "Complete 8 of 10 practice shots inside target window before advancing."
+
+	if "smash" in issue or "gear" in issue or "low-face" in issue or "early extension" in issue or vkey == "low_point":
+		stages = [
+			{"stage": 1, "name": "Slow-Motion Centered Strike", "constraint": "50% speed with foot-spray or two-tee gate around clubhead", "reps": "10 balls · target center face"},
+			{"stage": 2, "name": "3/4 Tempo Maintenance", "constraint": "75% speed keeping trail glute back against chair reference", "reps": "10 balls · Smash within -0.03 of target"},
+			{"stage": 3, "name": "Full Speed Variable Club", "constraint": "Alternate target clubs under full routine", "reps": "8/10 centered strikes"}
+		]
+		proof = "Smash Factor increases by +0.03 to +0.06 and face impact cluster tightens within ±6 mm."
+		watch_out = "Hanging back to catch ball cleanly -> fat turf strikes or heel pulls."
+		grad = "Hold Smash Factor above skill minimum for 8/10 consecutive shots."
+	elif "slice" in issue or "fade" in issue or "over-the-top" in issue or vkey == "barrier_path":
+		stages = [
+			{"stage": 1, "name": "Inside Delivery Pump", "constraint": "60% speed avoiding outside barrier/headcover", "reps": "10 balls · Path neutral/in-to-out"},
+			{"stage": 2, "name": "Motorcycle Lead-Wrist Flexion", "constraint": "75% speed bowing lead wrist from P5 to P6", "reps": "10 balls · Spin Axis < +4°"},
+			{"stage": 3, "name": "Full-Swing Stock Shape", "constraint": "Target corridor ±15 yds at full speed", "reps": "8/10 balls on target fairway"}
+		]
+		proof = "Club Path neutralizes toward -1°..+3° and Face-to-Path drops under +2.0°."
+		watch_out = "Swinging overly in-to-out with closed face -> block-hooks."
+		grad = "Achieve 8/10 shots with Spin Axis under +4°."
+	elif "hook" in issue or "draw" in issue or "tempo" in issue or "hips" in issue or "shoulder turn" in issue or vkey == "downswing_sequence":
+		stages = [
+			{"stage": 1, "name": "Split-Hand & Rhythm Gather", "constraint": "50% punch swings with pause at P4 top", "reps": "10 balls · 3:1 smooth transition"},
+			{"stage": 2, "name": "Chest-Through Rotation", "constraint": "75% swings rotating lead hip & sternum together", "reps": "10 balls · Face-to-Path within ±2.0°"},
+			{"stage": 3, "name": "Course Dispersion Check", "constraint": "Pick tight target window at full speed", "reps": "8/10 balls inside corridor"}
+		]
+		proof = "Face-to-Path stabilizes near -1.5° to +1.0° without snap-hook spin spikes."
+		watch_out = "Spinning shoulders open too early -> pull-slices."
+		grad = "Keep 8/10 shots within -5°..+2° Spin Axis with controlled curvature."
+	elif "spin loft" in issue or "spin" in issue or "scoop" in issue or vkey == "shaft_lean":
+		stages = [
+			{"stage": 1, "name": "9-to-3 Impact Bag Compression", "constraint": "Half-swings gripping firm with hands ahead at impact", "reps": "10 reps · flat/flexed lead wrist"},
+			{"stage": 2, "name": "Divot Ahead of Ball", "constraint": "Place alignment rod/towel 3 inches behind ball at 75% speed", "reps": "10 balls · downward AoA"},
+			{"stage": 3, "name": "Full Iron Windowing", "constraint": "Match optimal spin loft and carry distance", "reps": "8/10 crisp strikes"}
+		]
+		proof = "Attack Angle shifts downward (irons) and Spin Loft enters club window."
+		watch_out = "Leaning chest too far forward -> steep pulls or heavy digs."
+		grad = "Produce 8/10 crisp compressions inside optimal Spin Loft band."
+	elif "aoa" in issue or "steep" in issue or "launch" in issue or "descent" in issue or "sway" in issue or vkey == "one_metric_aoa":
+		stages = [
+			{"stage": 1, "name": "Ball Position & Spine Tilt Check", "constraint": "Verify setup ball position & slight trail shoulder lower", "reps": "10 static + pump rehearsals"},
+			{"stage": 2, "name": "Launch Window Gate", "constraint": "Flight balls through target VLA window at 75% speed", "reps": "10 balls · VLA inside target band"},
+			{"stage": 3, "name": "Full Trajectory Committal", "constraint": "Full speed sweep/brush matching optimal apex", "reps": "8/10 shots matching launch window"}
+		]
+		proof = "AoA stabilizes in optimal band and VLA/Descent Angle enter green-holding range."
+		watch_out = "Tilting spine excessively backward -> fat turf contact behind ball."
+		grad = "Hit 8/10 shots matching target AoA & VLA window."
+	else:
+		stages = [
+			{"stage": 1, "name": "Alignment Rail Setup", "constraint": "Confirm toe line & clubface parallel to target stick", "reps": "10 balls · ±2° HLA"},
+			{"stage": 2, "name": "Start-Line Gate", "constraint": "Launch through narrow simulator target corridor", "reps": "10 balls · clean start line"},
+			{"stage": 3, "name": "Pressure Random Targets", "constraint": "Switch clubs & targets every ball", "reps": "8/10 within corridor"}
+		]
+		proof = "Horizontal Launch Angle stays within ±2.0° of intended start line."
+		watch_out = "Locking wrists rigidly to steer ball -> lost clubhead speed."
+		grad = "Hold 8/10 balls inside start-line gate before adding speed."
+
+	rec["drill_stages"] = stages
+	rec["monitor_proof"] = proof
+	rec["watch_out_for"] = watch_out
+	rec["graduation_target"] = grad
+
+static func _estimate_distance_loss(shot_data: Dictionary, benchmark: Dictionary, smash: float, club_speed: float, total_spin: float, spin_axis: float, carry: float) -> Dictionary:
+	var target_smash: float = float(benchmark.get("smash_min", 1.40))
+	var smash_loss: float = 0.0
+	if smash > 0.5 and smash < target_smash:
+		var spd_ref: float = club_speed if club_speed > 10.0 else (carry * 0.42 if carry > 30.0 else 90.0)
+		smash_loss = clamp((target_smash - smash) * spd_ref * 1.45, 0.0, 40.0)
+
+	var spin_loss: float = 0.0
+	var s_min: float = float(benchmark.get("spin_min", 2000.0))
+	var s_max: float = float(benchmark.get("spin_max", 7000.0))
+	if total_spin > 200.0:
+		if total_spin > s_max + 200.0:
+			spin_loss = clamp((total_spin - s_max) / 140.0, 0.0, 22.0)
+		elif total_spin < s_min - 200.0 and carry > 100.0:
+			spin_loss = clamp((s_min - total_spin) / 220.0, 0.0, 14.0)
+
+	var curve_loss: float = clamp((abs(spin_axis) - 4.0) * 0.75, 0.0, 20.0) if abs(spin_axis) > 4.0 else 0.0
+	var total_loss: float = smash_loss + spin_loss + curve_loss
+	return {
+		"smash_loss_yards": snappedf(smash_loss, 0.1),
+		"spin_loss_yards": snappedf(spin_loss, 0.1),
+		"curve_loss_yards": snappedf(curve_loss, 0.1),
+		"total_lost_yards": snappedf(total_loss, 0.1),
+		"summary": ("~%.0f yds recoverable (Contact: %.0f · Spin: %.0f · Curve: %.0f)" % [total_loss, smash_loss, spin_loss, curve_loss]) if total_loss >= 3.0 else "Minimal distance leakage (<3 yds)"
+	}
 
 # =============================================================================
 # 1. LAUNCH MONITOR BALLISTIC ANALYSIS (PHASE 1 - INSTANT DIAGNOSTICS)
 # =============================================================================
 
 ## Analyzes launch monitor data immediately while wireframe computes in background.
-## Evaluates Smash Factor, Face-to-Path, AoA, Spin Rate, Launch Window, and Club Path against club-specific benchmarks.
+## Evaluates Smash Factor, Face-to-Path, Gear Effect, Spin Loft, AoA, Spin Rate, Descent Angle, Launch Window, and Club Path.
 static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 	var recs: Array[Dictionary] = []
 	if shot_data.is_empty():
@@ -417,7 +628,12 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 	var back_spin: float = _get_float_val(shot_data, ["BackSpin"], 0.0)
 	var side_spin: float = _get_float_val(shot_data, ["SideSpin"], 0.0)
 	var spin_axis: float = _get_float_val(shot_data, ["SpinAxis", "SideSpinAxis"], 0.0)
-	
+	var offline: float = _get_float_val(shot_data, ["Offline", "OfflineDistance", "Side", "SideDistance"], 0.0)
+	var dynamic_loft: float = _get_float_val(shot_data, ["DynamicLoft", "DynamicLoftAngle"], 999.0)
+	var descent_angle: float = _get_float_val(shot_data, ["DescentAngle", "LandingAngle", "LandAngle"], 999.0)
+	var hi: float = _get_float_val(shot_data, ["ImpactHorizontal", "HorizontalImpact", "ImpactX", "FaceImpactHorizontal", "hi"], 999.0)
+	var vi: float = _get_float_val(shot_data, ["ImpactVertical", "VerticalImpact", "ImpactY", "FaceImpactVertical", "vi"], 999.0)
+
 	# Derive spin axis from side spin if needed
 	if not shot_data.has("SpinAxis") and (abs(side_spin) > 0.0 or abs(back_spin) > 0.0):
 		if back_spin > 0.0:
@@ -427,6 +643,7 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 
 	var raw_aoa: float = _get_float_val(shot_data, ["AttackAngle", "AngleOfAttack"], 999.0)
 	var attack_angle: float = raw_aoa if (raw_aoa < 900.0 and abs(raw_aoa) >= 0.1) else 999.0 # 999 indicates not directly provided or dummy
+	var spin_loft: float = (dynamic_loft - attack_angle) if (dynamic_loft < 900.0 and attack_angle < 900.0) else 999.0
 	var club_path: float = _get_float_val(shot_data, ["ClubPath", "Path"], 0.0)
 	var face_angle: float = _get_float_val(shot_data, ["FaceAngle", "ClubFaceAngle"], 0.0)
 	var face_to_path: float = _get_float_val(shot_data, ["FaceToPath"], 999.0)
@@ -442,7 +659,7 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 	if smash_factor <= 0.5 and ball_speed > 0.0 and club_speed > 0.0:
 		smash_factor = ball_speed / club_speed
 
-	# Player skill tier retrieval
+	# Player skill tier & handedness retrieval
 	var player_name: String = str(shot_data.get("Player", shot_data.get("player", "")))
 	var skill_level: String = "mid_handicap"
 	if shot_data.has("skill_level") and str(shot_data["skill_level"]) != "":
@@ -455,6 +672,9 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 		var mp_node = Engine.get_main_loop().root.get_node_or_null("MultiplayerManager")
 		if mp_node != null and mp_node.has_method("get_player_skill_level"):
 			skill_level = mp_node.get_player_skill_level(player_name)
+	skill_level = normalize_skill_level(skill_level)
+	var is_lefty: bool = _resolve_is_lefty(shot_data)
+	var is_functional_stock: bool = abs(face_to_path) <= 2.8 and abs(spin_axis) <= 9.0 and abs(offline) <= 6.5 and ((hla * spin_axis) < -0.5)
 
 	var skill_disp: String = SKILL_LEVEL_NAMES.get(skill_level, "Mid Handicap (10–19 HCP)")
 	var benchmark: Dictionary = get_benchmark(club_name, skill_level)
@@ -512,16 +732,79 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 			_attach_video_metadata(r, "low_point")
 			recs.append(r)
 
-	# ─── 2. FACE-TO-PATH & SPIN AXIS (PRIMARY ACCURACY & CURVATURE GOVERNOR) ───
-	var is_severe_slice: bool = spin_axis > 8.0 or face_to_path > 3.5
-	var is_mild_slice: bool = spin_axis > 4.0 or face_to_path > 2.0
-	var is_severe_hook: bool = spin_axis < -8.0 or face_to_path < -3.5
-	var is_mild_hook: bool = spin_axis < -4.0 or face_to_path < -2.0
+	# ─── 2. FACE-TO-PATH, GEAR EFFECT & SPIN AXIS (PRIMARY ACCURACY & CURVATURE GOVERNOR) ───
+	var slice_sign: float = -1.0 if is_lefty else 1.0
+	var directed_axis: float = spin_axis * slice_sign
+	var directed_ftp: float = face_to_path * slice_sign
+	var slice_side: String = "left" if is_lefty else "right"
+	var hook_side: String = "right" if is_lefty else "left"
+
+	var is_toe_gear_hook: bool = (club_cat in ["driver", "wood", "hybrid"]) and (hi < 900.0 and hi >= 10.0) and directed_axis < -4.0 and abs(face_to_path) <= 2.5
+	var is_heel_gear_slice: bool = (club_cat in ["driver", "wood", "hybrid"]) and (hi < 900.0 and hi <= -10.0) and directed_axis > 4.0 and abs(face_to_path) <= 2.5
+	var is_low_face_spin: bool = (club_cat == "driver") and (vi < 900.0 and vi <= -8.0) and total_spin > 3000.0
+
+	var is_severe_slice: bool = (not is_heel_gear_slice) and (directed_axis > 8.0 or directed_ftp > 3.5)
+	var is_mild_slice: bool = (not is_heel_gear_slice) and (not is_functional_stock) and (directed_axis > 4.0 or directed_ftp > 2.0)
+	var is_severe_hook: bool = (not is_toe_gear_hook) and (directed_axis < -8.0 or directed_ftp < -3.5)
+	var is_mild_hook: bool = (not is_toe_gear_hook) and (not is_functional_stock) and (directed_axis < -4.0 or directed_ftp < -2.0)
+
+	if is_toe_gear_hook:
+		var r = {
+			"priority": 1,
+			"score": 89,
+			"severity": "HIGH",
+			"category": "IMPACT & GEAR EFFECT",
+			"issue_type": "Toe Gear-Effect Hook",
+			"title": "Toe Gear-Effect Draw/Hook (+%.0f mm Toe Strike)" % hi,
+			"camera_flaw": "Face-to-Path (%+.1f°) was near neutral, but impact on the toe triggered bulge-and-roll gear effect." % face_to_path,
+			"launch_effect": "Toe contact drops ball speed and imparts hook spin toward the %s." % hook_side,
+			"player_val": "Face Impact: +%.0f mm Toe | FTP: %+.1f° | Axis: %+.1f°" % [hi, face_to_path, spin_axis],
+			"benchmark_val": "Target: Strike within ±6 mm of center | ±2.0° FTP",
+			"fix_instruction": "Stand half an inch closer at address or check posture so the club returns to the middle of the face rather than swinging out to the toe.",
+			"drill": "⛳ Two-Tee Face Centering Gate: Set tees just outside toe and heel at 50% speed; groove center impact before swinging at full speed."
+		}
+		_attach_video_metadata(r, "low_point")
+		recs.append(r)
+	elif is_heel_gear_slice:
+		var r = {
+			"priority": 1,
+			"score": 90,
+			"severity": "HIGH",
+			"category": "IMPACT & GEAR EFFECT",
+			"issue_type": "Heel Gear-Effect Slice",
+			"title": "Heel Gear-Effect Fade/Slice (%.0f mm Heel Strike)" % hi,
+			"camera_flaw": "Face-to-Path (%+.1f°) was near neutral, but heel impact caused horizontal gear-effect slice spin." % face_to_path,
+			"launch_effect": "Heel contact reduces Smash Factor and imparts slice spin curving %s." % slice_side,
+			"player_val": "Face Impact: %.0f mm Heel | FTP: %+.1f° | Axis: %+.1f°" % [hi, face_to_path, spin_axis],
+			"benchmark_val": "Target: Strike within ±6 mm of center | ±2.0° FTP",
+			"fix_instruction": "Give arms slightly more room at address and maintain hip depth instead of lunging the pelvis toward the ball.",
+			"drill": "⛳ Outside-Ball Clearance Gate: Place a soft headcover 1 inch outside the toe to keep contact centered instead of drifting to the heel."
+		}
+		_attach_video_metadata(r, "low_point")
+		recs.append(r)
+
+	if is_low_face_spin:
+		var r = {
+			"priority": 1,
+			"score": 88,
+			"severity": "HIGH",
+			"category": "STRIKE LOCATION & SPIN",
+			"issue_type": "Low-Face Driver Spin Spike",
+			"title": "Low-Face Driver Strike Spiking Spin (%.0f RPM)" % total_spin,
+			"camera_flaw": "Impact registered %.0f mm below horizontal sweet spot, triggering vertical gear-effect backspin." % abs(vi),
+			"launch_effect": "Vertical gear effect spikes spin and costs both ball speed and fairway rollout.",
+			"player_val": "Vertical Strike: %.0f mm Low | Spin: %.0f RPM" % [vi, total_spin],
+			"benchmark_val": "Target: Center-to-Slightly-High Face | 2,000–2,600 RPM",
+			"fix_instruction": "Tee half the ball above the driver crown and sweep gently upward (+2° to +4° AoA).",
+			"drill": "⛳ High-Tee Upward Sweep Drill: Hit 10 drivers at 75% speed off a slightly higher tee focusing on brushing above center."
+		}
+		_attach_video_metadata(r, "one_metric_aoa")
+		recs.append(r)
 
 	if is_severe_slice:
 		var has_retrieved_path: bool = (shot_data.has("ClubPath") or shot_data.has("Path") or shot_data.has("RawClubPath")) and str(shot_data.get("ClubPath", shot_data.get("Path", shot_data.get("RawClubPath", "")))) != "---" and str(shot_data.get("ClubPath", shot_data.get("Path", shot_data.get("RawClubPath", "")))) != "N/A"
-		var path_str = ("%.1f° Out-to-In" % abs(club_path)) if club_path < 0 else ("%.1f° In-to-Out" % club_path)
-		var pv_str = "Spin Axis: +%.1f° | Face-to-Path: %+.1f°" % [spin_axis, face_to_path]
+		var path_str = ("%.1f° Out-to-In" % abs(club_path)) if (club_path * slice_sign) < 0 else ("%.1f° In-to-Out" % abs(club_path))
+		var pv_str = "Spin Axis: %+.1f° | Face-to-Path: %+.1f°" % [spin_axis, face_to_path]
 		if has_retrieved_path:
 			pv_str += " | Path: %s" % path_str
 		var r = {
@@ -530,9 +813,9 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 			"severity": "CRITICAL",
 			"category": "CLUB FACE & SWING PATH",
 			"issue_type": "Slice / Open Face-to-Path",
-			"title": "Open Face Relative to Path (+%.1f° Spin Axis Slice)" % spin_axis,
+			"title": "Open Face Relative to Path (%+.1f° Spin Axis Slice)" % spin_axis,
 			"camera_flaw": "Clubface delivered open relative to swing path at impact.",
-			"launch_effect": "Face-to-Path of %+.1f° creates heavy clockwise sidespin, slicing ball offline right." % face_to_path,
+			"launch_effect": "Face-to-Path of %+.1f° creates heavy slice sidespin, curving ball offline %s." % [face_to_path, slice_side],
 			"player_val": pv_str,
 			"benchmark_val": "Target: -2.0° to +2.0° Face-to-Path | ±3.0° Axis",
 			"fix_instruction": "Strengthen lead hand grip slightly. At transition, shallow the club onto an inside delivery path and train lead wrist flexion (flatter wrist) into impact.",
@@ -547,10 +830,10 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 			"severity": "HIGH",
 			"category": "CLUB FACE & SWING PATH",
 			"issue_type": "Fade / Open Face",
-			"title": "Slightly Open Face-to-Path (+%.1f° Axis Fade)" % spin_axis,
+			"title": "Slightly Open Face-to-Path (%+.1f° Axis Fade)" % spin_axis,
 			"camera_flaw": "Face open relative to swing path producing mild fade spin.",
-			"launch_effect": "Gentle curve to the right (+%.1f° spin axis); monitor face angle at impact." % spin_axis,
-			"player_val": "Spin Axis: +%.1f° | Face-to-Path: %+.1f°" % [spin_axis, face_to_path],
+			"launch_effect": "Gentle curve to the %s (%+.1f° spin axis); monitor face angle at impact." % [slice_side, spin_axis],
+			"player_val": "Spin Axis: %+.1f° | Face-to-Path: %+.1f°" % [spin_axis, face_to_path],
 			"benchmark_val": "Target: ±2.0° Face-to-Path",
 			"fix_instruction": "Ensure clubface is square at address and maintain quiet, stable wrists through transition to keep face-to-path neutral.",
 			"drill": "⛳ HackMotion Alignment Gate & Barrier Drill: Practice launching ball along target line between alignment rods while keeping swing path within ±2° neutral."
@@ -565,8 +848,8 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 			"category": "CLUB FACE & SWING PATH",
 			"issue_type": "Hook / Closed Face-to-Path",
 			"title": "Closed Face Relative to Path (%.1f° Spin Axis Hook)" % spin_axis,
-			"camera_flaw": "Clubface closed relative to path, causing rapid leftward curvature.",
-			"launch_effect": "Face-to-Path of %+.1f° produces counter-clockwise sidespin hook taking ball left." % face_to_path,
+			"camera_flaw": "Clubface closed relative to path, causing rapid curvature %s." % hook_side,
+			"launch_effect": "Face-to-Path of %+.1f° produces heavy hook sidespin taking ball %s." % [face_to_path, hook_side],
 			"player_val": "Spin Axis: %.1f° | Face-to-Path: %+.1f°" % [spin_axis, face_to_path],
 			"benchmark_val": "Target: -2.0° to +2.0° Face-to-Path | ±3.0° Axis",
 			"fix_instruction": "Check that grip is not excessively strong. Rotate chest and torso through impact in sequence rather than rolling forearms and flipping hands early.",
@@ -583,7 +866,7 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 			"issue_type": "Draw / Closed Face",
 			"title": "Moderate Draw Curvature (%.1f° Spin Axis)" % spin_axis,
 			"camera_flaw": "Face delivered slightly closed relative to path.",
-			"launch_effect": "Ball draws left of intended flight line.",
+			"launch_effect": "Ball curves %s of intended flight line." % hook_side,
 			"player_val": "Spin Axis: %.1f° | Face-to-Path: %+.1f°" % [spin_axis, face_to_path],
 			"benchmark_val": "Target: ±2.0° Face-to-Path",
 			"fix_instruction": "Keep trail wrist extended slightly longer through impact zone and rotate the torso through to the finish.",
@@ -844,21 +1127,60 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 				}
 				_attach_video_metadata(r, "shaft_lean")
 				recs.append(r)
-		elif club_cat == "mid_iron":
-			if total_spin < 4800.0 and total_spin > 1000.0:
+		elif club_cat in ["mid_iron", "long_iron"]:
+			var iron_min_spin: float = float(benchmark.get("spin_min", 4200.0 if club_cat == "long_iron" else 5500.0))
+			var iron_max_spin: float = float(benchmark.get("spin_max", 5600.0 if club_cat == "long_iron" else 7200.0))
+			if total_spin < (iron_min_spin - 900.0) and total_spin > 900.0:
+				var r = {
+					"priority": 3,
+					"score": 76,
+					"severity": "MEDIUM",
+					"category": "SPIN DYNAMICS",
+					"issue_type": "Low Iron Spin",
+					"title": "Low %s Spin (%.0f RPM Won't Hold Green)" % [club_disp, total_spin],
+					"camera_flaw": "Insufficient backspin to hold approach shots on firmer greens.",
+					"launch_effect": "Ball lands flat and releases off green instead of checking near pitch mark.",
+					"player_val": "Spin: %.0f RPM (Target: %.0f–%.0f RPM)" % [total_spin, iron_min_spin, iron_max_spin],
+					"benchmark_val": "Target: %.0f–%.0f RPM" % [iron_min_spin, iron_max_spin],
+					"fix_instruction": "Hit down cleanly on a dry groove with centered contact rather than sweeping thin or delofting excessively.",
+					"drill": "⛳ HackMotion Shaft Lean & Compression Bag Drill: Practice hitting into impact bag with hands leading clubhead cleanly."
+				}
+				_attach_video_metadata(r, "shaft_lean")
+				recs.append(r)
+			elif total_spin > (iron_max_spin + 1100.0):
+				var r = {
+					"priority": 3,
+					"score": 72,
+					"severity": "MEDIUM",
+					"category": "SPIN DYNAMICS",
+					"issue_type": "High Iron Spin / Glancing",
+					"title": "Excessive %s Spin (%.0f RPM Ballooning)" % [club_disp, total_spin],
+					"camera_flaw": "Overly open face or steep chop imparting excess backspin and lost carry.",
+					"launch_effect": "Iron shot balloons into wind and finishes 10–15 yards short.",
+					"player_val": "Spin: %.0f RPM (Target: %.0f–%.0f RPM)" % [total_spin, iron_min_spin, iron_max_spin],
+					"benchmark_val": "Target: %.0f–%.0f RPM" % [iron_min_spin, iron_max_spin],
+					"fix_instruction": "Deliver slightly more forward shaft lean and shallow the transition to lower spin loft.",
+					"drill": "⛳ 9-to-3 Pitch Punch Compression Drill: Hit controlled 75% swings keeping handle slightly ahead of clubhead."
+				}
+				_attach_video_metadata(r, "shaft_lean")
+				recs.append(r)
+		elif club_cat == "wedge":
+			var w_min_spin: float = float(benchmark.get("spin_min", 7200.0))
+			var w_max_spin: float = float(benchmark.get("spin_max", 9800.0))
+			if total_spin < (w_min_spin - 1500.0) and total_spin > 900.0:
 				var r = {
 					"priority": 3,
 					"score": 75,
 					"severity": "MEDIUM",
 					"category": "SPIN DYNAMICS",
-					"issue_type": "Low Iron Spin",
-					"title": "Low %s Spin (%.0f RPM Won't Hold Green)" % [club_disp, total_spin],
-					"camera_flaw": "Insufficient backspin to stop approach shots on greens.",
-					"launch_effect": "Ball will land flat and roll out off green rather than checking up.",
-					"player_val": "Spin: %.0f RPM (Target: 6,000–7,000 RPM)" % total_spin,
-					"benchmark_val": "Target: 6,000–7,000 RPM (Rule of Thumb: Club # × 1,000)",
-					"fix_instruction": "Hit down on ball with forward shaft lean to compress grooves against ball cover.",
-					"drill": "⛳ HackMotion Shaft Lean & Compression Bag Drill: Practice hitting into impact bag with hands leading clubhead to deliver optimal dynamic loft."
+					"issue_type": "Low Wedge Spin",
+					"title": "Low %s Spin (%.0f RPM Reduced Bite)" % [club_disp, total_spin],
+					"camera_flaw": "High-face thin strike or scooped contact reduced groove friction.",
+					"launch_effect": "Wedge releases farther than intended instead of checking on greens.",
+					"player_val": "Spin: %.0f RPM (Target: %.0f–%.0f RPM)" % [total_spin, w_min_spin, w_max_spin],
+					"benchmark_val": "Target: %.0f–%.0f RPM" % [w_min_spin, w_max_spin],
+					"fix_instruction": "Accelerate chest through impact and strike grooves 2–4 cleanly with shallow descending turf brush.",
+					"drill": "⛳ Low-Flight Spinner Wedge Drill: Hit 40–60 yd wedges focusing on clean ball-first nip with rotating torso."
 				}
 				_attach_video_metadata(r, "shaft_lean")
 				recs.append(r)
@@ -941,10 +1263,88 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 			}
 			_attach_video_metadata(r, "shaft_lean")
 			recs.append(r)
+	elif club_cat in ["long_iron", "mid_iron", "wedge"]:
+		var b_vla_min: float = float(benchmark.get("vla_min", 14.0))
+		var b_vla_max: float = float(benchmark.get("vla_max", 22.0))
+		if vla > 2.0 and vla < (b_vla_min - 3.5):
+			var r = {
+				"priority": 4,
+				"score": 71,
+				"severity": "MEDIUM",
+				"category": "LAUNCH WINDOW",
+				"issue_type": "Low Iron / Wedge Launch",
+				"title": "Low Launch Trajectory on %s (%.1f° VLA)" % [club_disp, vla],
+				"camera_flaw": "Ball launched lower than optimal approach window.",
+				"launch_effect": "Produces flatter descent and excessive rollout on approach shots.",
+				"player_val": "VLA: %.1f°" % vla,
+				"benchmark_val": "Target: %.1f°–%.1f°" % [b_vla_min, b_vla_max],
+				"fix_instruction": "Avoid overly hooding the face or dragging hands too far ahead of a thin strike.",
+				"drill": "⛳ Trajectory Gate Drill: Launch shots cleanly over an intermediate target height to restore optimal apex."
+			}
+			_attach_video_metadata(r, "one_metric_aoa")
+			recs.append(r)
+		elif vla > (b_vla_max + 4.5):
+			var r = {
+				"priority": 4,
+				"score": 70,
+				"severity": "MEDIUM",
+				"category": "LAUNCH WINDOW",
+				"issue_type": "High Iron / Wedge Scoop",
+				"title": "High Scooped Launch on %s (%.1f° VLA)" % [club_disp, vla],
+				"camera_flaw": "Excessive dynamic loft added at impact by flipping wrists.",
+				"launch_effect": "High weak flight loses distance into any headwind.",
+				"player_val": "VLA: %.1f°" % vla,
+				"benchmark_val": "Target: %.1f°–%.1f°" % [b_vla_min, b_vla_max],
+				"fix_instruction": "Keep pressure forward and hands ahead of clubhead through impact.",
+				"drill": "⛳ Shaft Lean Compression Drill: Hit 9-to-3 punches keeping trail palm facing target."
+			}
+			_attach_video_metadata(r, "shaft_lean")
+			recs.append(r)
+
+	# ─── 5B. SPIN LOFT & DESCENT ANGLE (GREEN-HOLDING & COMPRESSION) ───
+	if spin_loft < 900.0 and club_cat in ["long_iron", "mid_iron", "wedge", "hybrid"]:
+		var sl_bounds: Vector2 = _get_spin_loft_bounds(_classify_club_discrete(club_name))
+		if spin_loft > sl_bounds.y + 3.5:
+			var r = {
+				"priority": 2,
+				"score": 81,
+				"severity": "HIGH",
+				"category": "COMPRESSION & SHAFT LEAN",
+				"issue_type": "High Spin Loft / Flipping",
+				"title": "High Spin Loft on %s (%.1f° Glancing Blow)" % [club_disp, spin_loft],
+				"camera_flaw": "Large gap between dynamic loft (%.1f°) and AoA (%.1f°) indicates flipping/adding loft." % [dynamic_loft, attack_angle],
+				"launch_effect": "Energy deflects upward instead of forward, sacrificing 8–18 yds and wind stability.",
+				"player_val": "Spin Loft: %.1f°" % spin_loft,
+				"benchmark_val": "Target: %.1f°–%.1f° Spin Loft" % [sl_bounds.x, sl_bounds.y],
+				"fix_instruction": "Preserve lead wrist flexion and rotate chest through impact rather than casting the clubhead.",
+				"drill": "⛳ 9-to-3 Impact Bag & Pump Drill: Stop at P6 with hands forward, then turn torso cleanly through ball."
+			}
+			_attach_video_metadata(r, "shaft_lean")
+			recs.append(r)
+
+	if descent_angle < 900.0 and descent_angle > 5.0 and descent_angle < 38.0 and club_cat in ["long_iron", "mid_iron", "wedge", "hybrid"]:
+		var r = {
+			"priority": 3,
+			"score": 77,
+			"severity": "MEDIUM",
+			"category": "TRAJECTORY & STOPPING POWER",
+			"issue_type": "Low Descent Angle / Won't Hold Green",
+			"title": "Shallow Landing Angle on %s (%.1f°)" % [club_disp, descent_angle],
+			"camera_flaw": "Ball descends under 38°, limiting greenside stopping power.",
+			"launch_effect": "Approach shots tend to bounce and release through greens.",
+			"player_val": "Descent Angle: %.1f°" % descent_angle,
+			"benchmark_val": "Green-Holding Target: 43.0°–52.0°",
+			"fix_instruction": "Optimize speed and launch window with centered groove contact rather than delofted thin bullets.",
+			"drill": "⛳ Trajectory Window Ladder Drill: Launch mid-irons cleanly through a higher initial window."
+		}
+		_attach_video_metadata(r, "one_metric_aoa")
+		recs.append(r)
 
 	# ─── 6. SWING PATH & HORIZONTAL LAUNCH DIRECTION (HLA) ───
-	if abs(hla) > 3.2:
-		var dir_str = "Push Right" if hla > 0 else "Pull Left"
+	if abs(hla) > 3.2 and not is_functional_stock:
+		var is_push: bool = (hla < 0.0) if is_lefty else (hla > 0.0)
+		var hla_side: String = ("Left" if hla < 0.0 else "Right")
+		var dir_str = ("Push " + hla_side) if is_push else ("Pull " + hla_side)
 		var r = {
 			"priority": 4,
 			"score": 65,
@@ -962,20 +1362,21 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 		_attach_video_metadata(r, "sim_improvement")
 		recs.append(r)
 
-	# If no major flaws, acknowledge solid execution
+	# If no major flaws, acknowledge solid execution (or Functional Stock Flight)
 	if recs.is_empty():
+		var is_stock_note: bool = is_functional_stock and abs(spin_axis) > 1.5
 		var r = {
 			"priority": 1,
 			"score": 30,
 			"severity": "LOW",
 			"category": "BALL FLIGHT MAINTENANCE",
 			"issue_type": "Pure Ball Strike",
-			"title": "Pro-Grade Ball Launch & Face Control!",
-			"camera_flaw": "Clean contact and square club delivery.",
+			"title": ("Functional Stock Curve to Target!" if is_stock_note else "Pro-Grade Ball Launch & Face Control!"),
+			"camera_flaw": ("Playable stock curve (HLA %+.1f°, Spin Axis %+.1f°) finished near target." % [hla, spin_axis]) if is_stock_note else "Clean contact and square club delivery.",
 			"launch_effect": "Solid smash (%.2f), clean spin axis (%+.1f°), and carry (%.0f yds)." % [smash_factor, spin_axis, carry],
 			"player_val": "Smash: %.2f | Spin Axis: %+.1f°" % [smash_factor, spin_axis],
 			"benchmark_val": "Pro Benchmark: Matched",
-			"fix_instruction": "Maintain consistent tempo, rhythm, and pre-shot visualization.",
+			"fix_instruction": "Commit to your predictable stock shape—avoid chasing dead-zero spin when the ball finishes on target." if is_stock_note else "Maintain consistent tempo, rhythm, and pre-shot visualization.",
 			"drill": "⛳ HackMotion Full-Bag Audit & Distance Game: Hit 10 shots with target carry distance scoring 1 point per yard off target; practice consistent routine."
 		}
 		_attach_video_metadata(r, "sim_improvement")
@@ -986,11 +1387,14 @@ static func analyze_launch_monitor(shot_data: Dictionary) -> Array[Dictionary]:
 		recs[idx]["priority"] = idx + 1
 
 	var comp_table: Array[Dictionary] = _build_comparison_table(shot_data, benchmark, skill_level)
+	var loss_breakdown: Dictionary = _estimate_distance_loss(shot_data, benchmark, smash_factor, club_speed, total_spin, spin_axis, carry)
 	for r in recs:
 		r["skill_level"] = skill_level
 		r["skill_level_display"] = skill_disp
 		r["comparison_table"] = comp_table
 		r["four_tier_diagnosis"] = _build_four_tier_diagnosis(r, shot_data, benchmark)
+		r["distance_loss_breakdown"] = loss_breakdown
+		_attach_drill_progression(r)
 
 	return recs
 
@@ -1176,9 +1580,14 @@ static func detect_key_phases(recorded_frames: Array) -> Dictionary:
 ## - Downswing Transition: Kinematic sequencing (hips clearing vs shoulder cast)
 ## - Impact (P7): Spine angle retention (early extension), hip clearance angle, shoulder alignment, lead arm structure
 ## Returns a detailed biomechanical dictionary.
-static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallback_telemetry: Dictionary = {}) -> Dictionary:
+static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallback_telemetry: Dictionary = {}, is_lefty: bool = false) -> Dictionary:
 	var result: Dictionary = {
 		"has_valid_data": false,
+		"is_lefty": is_lefty,
+		"camera_view": "face_on",
+		"frame_count": 0,
+		"swing_tempo_ratio": 0.0,
+		"head_vertical_drift": 0.0,
 		"address_shoulder_tilt": 0.0,
 		"address_shoulder_hip_alignment": 0.0, # degrees open/closed at setup
 		"top_shoulder_turn": 0.0,
@@ -1223,16 +1632,16 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 	result["top_frame_progress"] = phases["top_progress"]
 	result["impact_frame_progress"] = phases["impact_progress"]
 	var total_f = valid_frames.size()
+	result["frame_count"] = total_f
 
 	# ─── 1. ADDRESS PHASE (P1) ───
-	# Sample first 2-4 frames
-	var addr_count: int = min(4, total_f / 4)
+	var addr_count: int = min(4, max(1, total_f / 4))
 	var base_ls := Vector2.ZERO
 	var base_rs := Vector2.ZERO
 	var base_lh := Vector2.ZERO
 	var base_rh := Vector2.ZERO
-	var base_ls_z: float = 0.0
-	var base_rs_z: float = 0.0
+	var base_nose := Vector2.ZERO
+	var nose_addr_count: int = 0
 
 	for i in range(addr_count):
 		var lm = valid_frames[i]["landmarks"]
@@ -1240,15 +1649,16 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 		base_rs += Vector2(float(lm["right_shoulder"].get("x", 0)), float(lm["right_shoulder"].get("y", 0)))
 		base_lh += Vector2(float(lm["left_hip"].get("x", 0)), float(lm["left_hip"].get("y", 0)))
 		base_rh += Vector2(float(lm["right_hip"].get("x", 0)), float(lm["right_hip"].get("y", 0)))
-		base_ls_z += float(lm["left_shoulder"].get("z", 0.0))
-		base_rs_z += float(lm["right_shoulder"].get("z", 0.0))
+		if lm.has("nose"):
+			base_nose += Vector2(float(lm["nose"].get("x", 0)), float(lm["nose"].get("y", 0)))
+			nose_addr_count += 1
 
 	base_ls /= float(addr_count)
 	base_rs /= float(addr_count)
 	base_lh /= float(addr_count)
 	base_rh /= float(addr_count)
-	base_ls_z /= float(addr_count)
-	base_rs_z /= float(addr_count)
+	if nose_addr_count > 0:
+		base_nose /= float(nose_addr_count)
 
 	var base_s_mid = (base_ls + base_rs) * 0.5
 	var base_h_mid = (base_lh + base_rh) * 0.5
@@ -1256,9 +1666,20 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 	var base_shoulder_width: float = max(0.01, base_ls.distance_to(base_rs))
 	var base_hip_width: float = max(0.01, base_lh.distance_to(base_rh))
 
+	# Camera View Auto-Detection: DTL shows shoulders stacked nearly on top of each other vertically
+	var sw_ratio: float = base_shoulder_width / torso_scale
+	result["camera_view"] = "dtl" if sw_ratio < 0.28 else "face_on"
+
+	# Tempo Ratio (Backswing frames : Downswing frames)
+	if total_f >= 12 and impact_idx > top_idx and top_idx > addr_count:
+		var bs_frames: float = float(max(1, top_idx - addr_count + 1))
+		var ds_frames: float = float(max(1, impact_idx - top_idx))
+		result["swing_tempo_ratio"] = bs_frames / ds_frames
+
 	# Address Shoulder Tilt: Trail shoulder lower than lead shoulder
-	# In screen coords, Y increases downward. (base_rs.y - base_ls.y) > 0 means trail shoulder lower.
-	var shoulder_tilt_rad: float = atan2(base_rs.y - base_ls.y, abs(base_rs.x - base_ls.x))
+	# In screen coords, Y increases downward.
+	var trail_minus_lead_y: float = (base_ls.y - base_rs.y) if is_lefty else (base_rs.y - base_ls.y)
+	var shoulder_tilt_rad: float = atan2(trail_minus_lead_y, max(0.001, abs(base_rs.x - base_ls.x)))
 	var addr_shoulder_tilt_deg: float = rad_to_deg(shoulder_tilt_rad)
 	result["address_shoulder_tilt"] = addr_shoulder_tilt_deg
 
@@ -1289,7 +1710,6 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 	# Shoulder turn from cosine foreshortening + z
 	var s_ratio = clamp(top_sw / base_shoulder_width, 0.0, 1.0)
 	var top_s_turn = rad_to_deg(acos(s_ratio))
-	# Z-depth refinement if present
 	if top_lm["left_shoulder"].has("z") and top_lm["right_shoulder"].has("z"):
 		var dz = abs(float(top_lm["left_shoulder"]["z"]) - float(top_lm["right_shoulder"]["z"]))
 		var z_turn = rad_to_deg(atan2(dz, max(0.001, top_sw)))
@@ -1306,18 +1726,16 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 	var x_factor = max(0.0, top_s_turn - top_h_turn)
 	result["top_x_factor"] = x_factor
 
-	# Lateral Hip Sway at Top
-	var sway = ((top_h_mid.x - base_h_mid.x) / torso_scale) * 10.0
-	result["top_hip_sway"] = sway
+	# Lateral Hip Sway at Top (negative = away from target for RH, flipped for LH)
+	var raw_sway: float = ((top_h_mid.x - base_h_mid.x) / torso_scale) * 10.0
+	result["top_hip_sway"] = -raw_sway if is_lefty else raw_sway
 
 	# Reverse Spine Angle at Top
-	# If shoulder midpoint leans towards target relative to hips
 	var top_spine_vec = top_s_mid - top_h_mid
-	var top_spine_tilt = rad_to_deg(atan2(top_spine_vec.x - base_spine_vec.x, -top_spine_vec.y))
-	result["top_reverse_spine_tilt"] = top_spine_tilt
+	var raw_top_tilt: float = rad_to_deg(atan2(top_spine_vec.x - base_spine_vec.x, -top_spine_vec.y))
+	result["top_reverse_spine_tilt"] = -raw_top_tilt if is_lefty else raw_top_tilt
 
 	# ─── 4. TRANSITION SEQUENCING (P4 -> P6) ───
-	# Check if shoulders uncoil before hips move
 	var shoulders_uncoiled_first: bool = false
 	if top_idx + 2 < impact_idx:
 		var mid_t_idx = top_idx + 1
@@ -1328,7 +1746,6 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 		var mid_rh = Vector2(float(mid_lm["right_hip"].get("x", 0)), float(mid_lm["right_hip"].get("y", 0)))
 		var mid_sw = mid_ls.distance_to(mid_rs)
 		var mid_hw = mid_lh.distance_to(mid_rh)
-		# If shoulder width expanded (uncoiled) before hip width expanded
 		if (mid_sw - top_sw) > 0.02 and (mid_hw - top_hw) <= 0.005:
 			shoulders_uncoiled_first = true
 	result["transition_shoulder_cast"] = shoulders_uncoiled_first
@@ -1342,6 +1759,11 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 	var imp_s_mid = (imp_ls + imp_rs) * 0.5
 	var imp_h_mid = (imp_lh + imp_rh) * 0.5
 
+	# Head Vertical Drift (Dip positive, Lift negative)
+	if nose_addr_count > 0 and imp_lm.has("nose"):
+		var imp_nose = Vector2(float(imp_lm["nose"].get("x", 0)), float(imp_lm["nose"].get("y", 0)))
+		result["head_vertical_drift"] = ((imp_nose.y - base_nose.y) / torso_scale) * 10.0
+
 	# Early Extension (Pelvic thrust forward / spine angle rise)
 	var imp_spine_vec = imp_s_mid - imp_h_mid
 	var imp_spine_angle = rad_to_deg(atan2(abs(imp_spine_vec.x), -imp_spine_vec.y))
@@ -1351,19 +1773,20 @@ static func analyze_skeleton_sequence(recorded_frames: Array[Dictionary], fallba
 	var pelvic_thrust = ((base_h_mid.y - imp_h_mid.y) / torso_scale) * 10.0
 	result["impact_early_extension"] = pelvic_thrust
 
-	# Hip Clearance at Impact:
-	# At impact, hips should be 30°–45° open to target line
+	# Hip Clearance at Impact
 	var imp_hw = imp_lh.distance_to(imp_rh)
 	var imp_h_ratio = clamp(imp_hw / base_hip_width, 0.0, 1.0)
 	var hip_clearance_deg = rad_to_deg(acos(imp_h_ratio))
 	result["impact_hip_clearance"] = hip_clearance_deg
 
-	# Lead Arm Chicken Wing Check:
-	# Measure angle at left elbow (left_shoulder -> left_elbow -> left_wrist)
-	if imp_lm.has("left_shoulder") and imp_lm.has("left_elbow") and imp_lm.has("left_wrist"):
-		var le_s = Vector2(float(imp_lm["left_shoulder"].get("x", 0)), float(imp_lm["left_shoulder"].get("y", 0)))
-		var le_e = Vector2(float(imp_lm["left_elbow"].get("x", 0)), float(imp_lm["left_elbow"].get("y", 0)))
-		var le_w = Vector2(float(imp_lm["left_wrist"].get("x", 0)), float(imp_lm["left_wrist"].get("y", 0)))
+	# Lead Arm Chicken Wing Check (Left arm for RH, Right arm for LH)
+	var lead_s_key: String = "right_shoulder" if is_lefty else "left_shoulder"
+	var lead_e_key: String = "right_elbow" if is_lefty else "left_elbow"
+	var lead_w_key: String = "right_wrist" if is_lefty else "left_wrist"
+	if imp_lm.has(lead_s_key) and imp_lm.has(lead_e_key) and imp_lm.has(lead_w_key):
+		var le_s = Vector2(float(imp_lm[lead_s_key].get("x", 0)), float(imp_lm[lead_s_key].get("y", 0)))
+		var le_e = Vector2(float(imp_lm[lead_e_key].get("x", 0)), float(imp_lm[lead_e_key].get("y", 0)))
+		var le_w = Vector2(float(imp_lm[lead_w_key].get("x", 0)), float(imp_lm[lead_w_key].get("y", 0)))
 		var v1 = (le_s - le_e).normalized()
 		var v2 = (le_w - le_e).normalized()
 		var elbow_angle = rad_to_deg(acos(clamp(v1.dot(v2), -1.0, 1.0)))
@@ -1392,13 +1815,14 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 	var is_tee: bool = bool(shot_data.get("is_tee", shot_data.get("lie_type", "") == "teebox"))
 	if not shot_data.has("is_tee") and not shot_data.has("lie_type"):
 		is_tee = (club_cat == "driver")
-	var lie_type: String = str(shot_data.get("lie_type", "teebox" if is_tee else "fairway")).to_lower()
 	var club_disp: String = get_club_display_name(club_name)
+	var is_lefty: bool = _resolve_is_lefty(shot_data)
+	var slice_sign: float = -1.0 if is_lefty else 1.0
+	var is_dtl: bool = str(skeleton.get("camera_view", "face_on")) == "dtl"
 
 	var spine_loss: float = skeleton.get("impact_spine_loss", 0.0)
 	var early_ext: float = skeleton.get("impact_early_extension", 0.0)
 	var s_turn: float = skeleton.get("top_shoulder_turn", 85.0)
-	var h_turn: float = skeleton.get("top_hip_turn", 40.0)
 	var x_factor: float = skeleton.get("top_x_factor", 45.0)
 	var hip_sway: float = skeleton.get("top_hip_sway", 0.0)
 	var shoulder_tilt: float = skeleton.get("address_shoulder_tilt", 8.0)
@@ -1406,8 +1830,12 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 	var shoulder_cast: bool = skeleton.get("transition_shoulder_cast", false)
 	var hip_clearance: float = skeleton.get("impact_hip_clearance", 35.0)
 	var chicken_wing: bool = skeleton.get("impact_chicken_wing", false)
+	var tempo_ratio: float = float(skeleton.get("swing_tempo_ratio", 0.0))
+	var head_drift: float = float(skeleton.get("head_vertical_drift", 0.0))
+	var frame_count: int = int(skeleton.get("frame_count", 0))
 
-	var spin_axis: float = _get_float_val(shot_data, ["SpinAxis"], 0.0)
+	var spin_axis: float = _get_float_val(shot_data, ["SpinAxis", "SideSpinAxis"], 0.0)
+	var directed_axis: float = spin_axis * slice_sign
 	var ball_speed: float = _get_float_val(shot_data, ["Speed", "BallSpeed"], 0.0)
 	var club_speed: float = _get_float_val(shot_data, ["ClubSpeed"], 0.0)
 	var smash: float = _get_float_val(shot_data, ["SmashFactor"], 0.0)
@@ -1416,7 +1844,25 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 	var has_smash_data: bool = smash > 0.5
 	var raw_aoa: float = _get_float_val(shot_data, ["AttackAngle", "AngleOfAttack"], 999.0)
 	var aoa: float = raw_aoa if (raw_aoa < 900.0 and abs(raw_aoa) >= 0.1) else 999.0
+	var total_spin: float = _get_float_val(shot_data, ["TotalSpin", "BackSpin"], 0.0)
 	var carry: float = _get_float_val(shot_data, ["Carry", "CarryDistance"], 0.0)
+
+	var player_name: String = str(shot_data.get("Player", shot_data.get("player", "")))
+	var skill_level: String = "mid_handicap"
+	if shot_data.has("skill_level") and str(shot_data["skill_level"]) != "":
+		skill_level = str(shot_data["skill_level"])
+	elif Engine.has_singleton("MultiplayerManager"):
+		var mp_mgr = Engine.get_singleton("MultiplayerManager")
+		if mp_mgr != null and mp_mgr.has_method("get_player_skill_level"):
+			skill_level = mp_mgr.get_player_skill_level(player_name)
+	elif Engine.get_main_loop() != null and Engine.get_main_loop().root != null and Engine.get_main_loop().root.has_node("MultiplayerManager"):
+		var mp_node = Engine.get_main_loop().root.get_node_or_null("MultiplayerManager")
+		if mp_node != null and mp_node.has_method("get_player_skill_level"):
+			skill_level = mp_node.get_player_skill_level(player_name)
+	skill_level = normalize_skill_level(skill_level)
+	var skill_disp: String = SKILL_LEVEL_NAMES.get(skill_level, "Mid Handicap (10–19 HCP)")
+	var benchmark: Dictionary = get_benchmark(club_name, skill_level)
+	var loss_breakdown: Dictionary = _estimate_distance_loss(shot_data, benchmark, smash, club_speed, total_spin, spin_axis, carry)
 
 	var used_lm_types: Array[String] = []
 
@@ -1462,7 +1908,7 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 		final_recs.append(r)
 
 	# ─── CORRELATION 2: SLICE / OPEN FACE + OVER-THE-TOP SEQUENCE & SETUP ───
-	var has_slice: bool = spin_axis > 5.0
+	var has_slice: bool = directed_axis > 5.0
 	var has_ott_body: bool = shoulder_cast or shoulder_align > 5.0 or chicken_wing
 
 	if has_slice and has_ott_body:
@@ -1482,10 +1928,10 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 			"severity": "CRITICAL",
 			"category": "SWING PLANE & KINEMATICS",
 			"issue_type": "Over-the-Top Slice",
-			"title": "Over-The-Top Downswing (+%.1f° Spin Axis Slice)" % spin_axis,
+			"title": "Over-The-Top Downswing (%+.1f° Spin Axis Slice)" % spin_axis,
 			"camera_flaw": cause_desc.strip_edges(),
 			"launch_effect": "Forces club onto out-to-in steep path with open face relative to path.",
-			"player_val": "Spin Axis: +%.1f° | Shoulder Setup: %+.1f°" % [spin_axis, shoulder_align],
+			"player_val": "Spin Axis: %+.1f° | Shoulder Setup: %+.1f°" % [spin_axis, shoulder_align],
 			"benchmark_val": "Target: -2° to +2° Path | Square Shoulders",
 			"fix_instruction": "Square shoulders parallel to target line at setup. Start downswing by shifting weight onto lead heel, letting arms drop inside.",
 			"drill": "⛳ HackMotion Barrier & Armpit Glove Drill: Place a barrier 5 inches outside ball and glove under trail armpit; hit balls keeping path inside-to-out."
@@ -1493,8 +1939,8 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 		_attach_video_metadata(r, "barrier_path")
 		final_recs.append(r)
 
-	# ─── CORRELATION 3: DRIVER STEEP AOA + FLAT ADDRESS SHOULDERS / REVERSE TILT ───
-	if club_cat == "driver" and is_tee and aoa < -1.0 and aoa > -20.0 and aoa < 900.0:
+	# ─── CORRELATION 3: DRIVER STEEP AOA + FLAT ADDRESS SHOULDERS (FACE-ON ONLY) ───
+	if not is_dtl and club_cat == "driver" and is_tee and aoa < -1.0 and aoa > -20.0 and aoa < 900.0:
 		if shoulder_tilt < 4.0:
 			used_lm_types.append("Steep Driver Attack Angle")
 			var yds_recov = int(abs(aoa - 3.0) * 4.2)
@@ -1539,8 +1985,8 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 		_attach_video_metadata(r, "one_metric_aoa")
 		final_recs.append(r)
 
-	# ─── CORRELATION 4: RESTRICTED SHOULDER TURN & POWER LEAK ───
-	if s_turn < 75.0:
+	# ─── CORRELATION 4: RESTRICTED SHOULDER TURN & POWER LEAK (FACE-ON ONLY) ───
+	if not is_dtl and s_turn < 75.0:
 		used_lm_types.append("Low Ball Speed")
 		var r = {
 			"priority": 3,
@@ -1559,8 +2005,8 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 		_attach_video_metadata(r, "downswing_sequence")
 		final_recs.append(r)
 
-	# ─── CORRELATION 5: LATERAL HIP SWAY ───
-	if abs(hip_sway) > 3.0:
+	# ─── CORRELATION 5: LATERAL HIP SWAY (FACE-ON ONLY) ───
+	if not is_dtl and abs(hip_sway) > 3.0:
 		var dir_txt = "away from target" if hip_sway < 0 else "toward target"
 		var r = {
 			"priority": 3,
@@ -1569,7 +2015,7 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 			"category": "LOWER BODY STABILITY",
 			"issue_type": "Lateral Hip Sway",
 			"title": "Lateral Hip Sway (%.1f units %s)" % [abs(hip_sway), dir_txt],
-			"camera_flaw": "Hips slid %.1f units laterally instead of pivoting within foot foundation." % [abs(hip_sway), dir_txt],
+			"camera_flaw": "Hips slid %.1f units laterally %s instead of pivoting within foot foundation." % [abs(hip_sway), dir_txt],
 			"launch_effect": "Shifts swing low point unpredictably, causing fat or thin strikes.",
 			"player_val": "Hip Sway: %.1f units" % abs(hip_sway),
 			"benchmark_val": "Target: Centered Pivot (< 1.5 units sway)",
@@ -1580,7 +2026,7 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 		final_recs.append(r)
 
 	# ─── CORRELATION 6: STALLED HIPS AT IMPACT ───
-	if hip_clearance < 18.0 and not has_smash_issue:
+	if not is_dtl and hip_clearance < 18.0 and not has_smash_issue:
 		var r = {
 			"priority": 4,
 			"score": 68,
@@ -1598,10 +2044,49 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 		_attach_video_metadata(r, "downswing_sequence")
 		final_recs.append(r)
 
+	# ─── CORRELATION 7: RUSHED DOWNSWING TEMPO ───
+	if frame_count >= 12 and tempo_ratio > 0.0 and tempo_ratio < 1.85:
+		var r = {
+			"priority": 3,
+			"score": 76,
+			"severity": "MEDIUM",
+			"category": "TEMPO & RHYTHM",
+			"issue_type": "Rushed Downswing Tempo",
+			"title": "Hurried Transition Tempo (%.1f:1 vs 3.0:1 Pro)" % tempo_ratio,
+			"camera_flaw": "Backswing-to-downswing ratio measured %.1f:1, indicating a rushed transition from the top." % tempo_ratio,
+			"launch_effect": "Steepens the shaft prematurely and disrupts kinetic sequencing into impact.",
+			"player_val": "Tempo Ratio: %.1f:1" % tempo_ratio,
+			"benchmark_val": "Tour Target: ~3.0:1 Backswing:Downswing",
+			"fix_instruction": "Give the club a split-second gather at the top before letting hips unwind.",
+			"drill": "⛳ 1-2-3 Pause-at-Top Metronome Drill: Count 1-2 to top of backswing, slight pause, swing through on 3."
+		}
+		_attach_video_metadata(r, "downswing_sequence")
+		final_recs.append(r)
+
+	# ─── CORRELATION 8: HEAD POSTURE DIP / LIFT ───
+	if abs(head_drift) > 1.8:
+		var drift_dir: String = "dipped down" if head_drift > 0.0 else "lifted up"
+		var r = {
+			"priority": 3,
+			"score": 74,
+			"severity": "MEDIUM",
+			"category": "POSTURE STABILITY",
+			"issue_type": "Head Posture Dip / Lift",
+			"title": "Head Level Shifted (%.1f units %s)" % [abs(head_drift), drift_dir],
+			"camera_flaw": "Head %s %.1f normalized units between address and impact." % [drift_dir, abs(head_drift)],
+			"launch_effect": "Changes swing bottom arc mid-swing, producing alternating thin and heavy strikes.",
+			"player_val": "Vertical Head Drift: %+.1f units" % head_drift,
+			"benchmark_val": "Target: < ±1.2 units vertical head drift",
+			"fix_instruction": "Maintain eyes level through the strike while rotating ribs cleanly around a stable spine.",
+			"drill": "⛳ Head-Steady Half-Swing Drill: Rehearse 7-iron punch swings keeping head level against a backdrop marker."
+		}
+		_attach_video_metadata(r, "sim_improvement")
+		final_recs.append(r)
+
 	# Add any launch monitor recommendations that weren't subsumed by cross-correlations
 	for r in lm_recs:
 		var t = str(r.get("issue_type", ""))
-		if not t in used_lm_types and t != "Pure Ball Strike":
+		if not t in used_lm_types and t != "Pure Ball Strike" and t != "Functional Stock Flight":
 			final_recs.append(r)
 
 	if final_recs.is_empty():
@@ -1611,23 +2096,7 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 	for idx in range(final_recs.size()):
 		final_recs[idx]["priority"] = idx + 1
 
-	var player_name: String = str(shot_data.get("Player", shot_data.get("player", "")))
-	var skill_level: String = "mid_handicap"
-	if shot_data.has("skill_level") and str(shot_data["skill_level"]) != "":
-		skill_level = str(shot_data["skill_level"])
-	elif Engine.has_singleton("MultiplayerManager"):
-		var mp_mgr = Engine.get_singleton("MultiplayerManager")
-		if mp_mgr != null and mp_mgr.has_method("get_player_skill_level"):
-			skill_level = mp_mgr.get_player_skill_level(player_name)
-	elif Engine.get_main_loop() != null and Engine.get_main_loop().root != null and Engine.get_main_loop().root.has_node("MultiplayerManager"):
-		var mp_node = Engine.get_main_loop().root.get_node_or_null("MultiplayerManager")
-		if mp_node != null and mp_node.has_method("get_player_skill_level"):
-			skill_level = mp_node.get_player_skill_level(player_name)
-
-	var skill_disp: String = SKILL_LEVEL_NAMES.get(skill_level, "Mid Handicap (10–19 HCP)")
-	var benchmark: Dictionary = get_benchmark(club_name, skill_level)
 	var comp_table: Array[Dictionary] = _build_comparison_table(shot_data, benchmark, skill_level)
-
 	for r in final_recs:
 		if not r.has("skill_level"):
 			r["skill_level"] = skill_level
@@ -1636,6 +2105,9 @@ static func analyze_shot_unified(shot_data: Dictionary, skeleton: Dictionary) ->
 			r["comparison_table"] = comp_table
 		if not r.has("four_tier_diagnosis"):
 			r["four_tier_diagnosis"] = _build_four_tier_diagnosis(r, shot_data, benchmark)
+		if not r.has("distance_loss_breakdown"):
+			r["distance_loss_breakdown"] = loss_breakdown
+		_attach_drill_progression(r)
 
 	return final_recs
 
@@ -1714,11 +2186,11 @@ static func _classify_club(club_name: String) -> String:
 		return "wood"
 	if c in ["2h", "3h", "4h", "5h", "hybrid", "rescue"] or "hybrid" in c:
 		return "hybrid"
-	if c in ["pw", "gw", "sw", "lw", "aw", "pitching", "sand", "gap", "approach", "lob", "wedge"] or "wedge" in c or c in ["9i", "9-iron"]:
+	if c in ["pw", "gw", "sw", "lw", "aw", "pitching", "sand", "gap", "approach", "lob", "wedge"] or "wedge" in c:
 		return "wedge"
 	if c in ["1i", "2i", "3i", "4i", "5i", "1-iron", "2-iron", "3-iron", "4-iron", "5-iron"]:
 		return "long_iron"
-	if c in ["6i", "7i", "8i", "6-iron", "7-iron", "8-iron"] or "iron" in c:
+	if c in ["6i", "7i", "8i", "9i", "6-iron", "7-iron", "8-iron", "9-iron", "6 iron", "7 iron", "8 iron", "9 iron"] or "iron" in c:
 		return "mid_iron"
 	return "driver"
 
@@ -1991,7 +2463,98 @@ static func get_issue_info(issue_name: String) -> Dictionary:
 		info["drill"] = "⛳ HackMotion Hip Clearance Step Drill: Focus on clearing lead hip 35°–45° open at impact; rehearse step-through finish to let body rotation lead swing."
 		video_key = "downswing_sequence"
 
+	elif "toe gear" in lower or "toe_gear_hook" in lower:
+		info["category"] = "IMPACT & GEAR EFFECT"
+		info["severity"] = "HIGH"
+		info["title"] = "Toe Gear-Effect Hook"
+		info["camera_flaw"] = "Face and path were close to neutral, but strike location shifted onto the toe."
+		info["launch_effect"] = "Bulge/roll gear effect imparts draw/hook spin and drops ball speed without an over-closed path."
+		info["fix_instruction"] = "Check standing distance to ball (avoid reaching) and spray face to center contact on the middle groove."
+		info["drill"] = "⛳ Two-Tee Face Centering Gate: Set tees just outside toe and heel at 50% speed; groove center impact before swinging at full speed."
+		video_key = "low_point"
+
+	elif "heel gear" in lower or "heel_gear_slice" in lower:
+		info["category"] = "IMPACT & GEAR EFFECT"
+		info["severity"] = "HIGH"
+		info["title"] = "Heel Gear-Effect Slice"
+		info["camera_flaw"] = "Strike contacted the heel side near the hosel even though swing path was near neutral."
+		info["launch_effect"] = "Heel gear effect adds slice curvature, loses 10–25 yds, and increases shanks or weak flares."
+		info["fix_instruction"] = "Give hands half an inch more room at address and maintain hip depth rather than lunging pelvis toward the ball."
+		info["drill"] = "⛳ Inside Approach / Outside-Ball Clearance Drill: Place a soft headcover 1 inch outside the toe to keep path centered instead of lunging into the heel."
+		video_key = "low_point"
+
+	elif "low-face" in lower or "low_face_spin" in lower:
+		info["category"] = "STRIKE LOCATION & SPIN"
+		info["severity"] = "HIGH"
+		info["title"] = "Low-Face Driver Spin Spike"
+		info["camera_flaw"] = "Strike contact occurred below the horizontal sweet spot on driver face."
+		info["launch_effect"] = "Vertical gear effect spikes backspin (+600–1200 RPM) and steals carry/rollout distance."
+		info["fix_instruction"] = "Tee half the ball above the driver crown and sweep gently upward (+2° to +4° AoA)."
+		info["drill"] = "⛳ High-Tee Upward Sweep Drill: Hit 10 drivers at 75% speed off a higher tee focusing on brushing above the sweet spot."
+		video_key = "one_metric_aoa"
+
+	elif "spin loft" in lower or "flipping" in lower or "high_spin_loft" in lower:
+		info["category"] = "COMPRESSION & SHAFT LEAN"
+		info["severity"] = "HIGH"
+		info["title"] = "High Spin Loft / Glancing Strike"
+		info["camera_flaw"] = "Dynamic loft exceeded optimal angle relative to attack angle (hands flipping past clubhead)."
+		info["launch_effect"] = "Energy transfers upward instead of forward, costing distance and wind stability."
+		info["fix_instruction"] = "Preserve slight forward shaft lean and lead wrist flexion through impact with rotating body."
+		info["drill"] = "⛳ 9-to-3 Impact Bag & Pump Drill: Stop at P6 with lead wrist bowed/flat, then turn torso cleanly through ball."
+		video_key = "shaft_lean"
+
+	elif "descent angle" in lower or "won't hold green" in lower or "low_descent" in lower:
+		info["category"] = "TRAJECTORY & STOPPING POWER"
+		info["severity"] = "MEDIUM"
+		info["title"] = "Shallow Descent Angle (Low Stopping Power)"
+		info["camera_flaw"] = "Shot launched or spun too low, producing a shallow landing angle under 38°."
+		info["launch_effect"] = "Approach shots bounce and release off greens instead of holding near pitch mark."
+		info["fix_instruction"] = "Catch ball centered on grooves with crisp downward blow and natural loft rather than excessively hooded face."
+		info["drill"] = "⛳ Trajectory Window Ladder Drill: Hit 6-iron/7-iron shots flighting over an intermediate height gate to restore 43°+ landing angle."
+		video_key = "one_metric_aoa"
+
+	elif "tempo" in lower or "rushed_tempo" in lower:
+		info["category"] = "TEMPO & RHYTHM"
+		info["severity"] = "MEDIUM"
+		info["title"] = "Rushed Downswing Tempo"
+		info["camera_flaw"] = "Transition from top of backswing to impact was overly hurried (< 1.8:1 ratio)."
+		info["launch_effect"] = "Rushing from the top steepens shaft, hurts sequence, and increases dispersion."
+		info["fix_instruction"] = "Add a brief, smooth breath/pause at top of backswing before unwinding from the ground up."
+		info["drill"] = "⛳ 1-2-3 Pause-at-Top Metronome Drill: Count 1-2 to the top, pause a hairline beat, and swing through on 3."
+		video_key = "downswing_sequence"
+
+	elif "head posture" in lower or "head_drift" in lower:
+		info["category"] = "POSTURE STABILITY"
+		info["severity"] = "MEDIUM"
+		info["title"] = "Head Posture Dip / Lift"
+		info["camera_flaw"] = "Notable vertical head displacement between address and impact."
+		info["launch_effect"] = "Moves swing radius up or down mid-swing, leading to alternating fat and thin strikes."
+		info["fix_instruction"] = "Keep eyes level and maintain steady spine inclination until well after impact."
+		info["drill"] = "⛳ Head-Steady Centerness Drill: Hit half-wedge and 7-iron shots keeping sternum height steady against backdrop reference."
+		video_key = "sim_improvement"
+
+	elif "two-way miss" in lower or "two_way_miss" in lower or "face instability" in lower:
+		info["category"] = "DISPERSION & FACE CONTROL"
+		info["severity"] = "HIGH"
+		info["title"] = "Two-Way Miss / Face Instability"
+		info["camera_flaw"] = "Wide swing in both Face-to-Path and Start Direction across shots."
+		info["launch_effect"] = "Produces unpredictable misses both left and right, making course alignment difficult."
+		info["fix_instruction"] = "Commit to one stock curve (gentle draw or fade), neutralize grip pressure, and train start-line control first."
+		info["drill"] = "⛳ 10-Ball Start-Line Gate Drill: Hit 10 balls through a ±2° HLA gate at 80% speed before pushing speed."
+		video_key = "sim_improvement"
+
+	elif "fatigue" in lower or "fatigue_drift" in lower:
+		info["category"] = "SESSION STAMINA & FOCUS"
+		info["severity"] = "MEDIUM"
+		info["title"] = "Late-Session Fatigue Drift"
+		info["camera_flaw"] = "Late-session Smash Factor and offline accuracy degraded noticeably compared to early shots."
+		info["launch_effect"] = "Tired swings lead to rushed tempo, sloppy contact, and ingraining compensatory habits."
+		info["fix_instruction"] = "Take a 30-second reset between shots late in practice and stop full-speed swings once smash drops > 0.04."
+		info["drill"] = "⛳ Quality-Over-Volume 5-Ball Blocks: Play 5-ball purposeful target blocks with full pre-shot routine rather than rapid-fire raking."
+		video_key = "sim_improvement"
+
 	_attach_video_metadata(info, video_key)
+	_attach_drill_progression(info, video_key)
 	return info
 
 

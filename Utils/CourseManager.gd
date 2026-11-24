@@ -212,8 +212,11 @@ func _load_course_packed_scene(path: String) -> PackedScene:
 func _ensure_course_details(course_scene: Node) -> void:
 	if course_scene == null:
 		return
+	var details_baked := bool(course_scene.get_meta("course_details_baked", false))
 	var reeds := course_scene.get_node_or_null("ShorelineReedsMultiMesh")
-	if reeds == null or course_graphics_version < CourseGraphicsUpgraderScript.CURRENT_COURSE_GRAPHICS_VERSION:
+	if details_baked and course_graphics_version >= CourseGraphicsUpgraderScript.CURRENT_COURSE_GRAPHICS_VERSION:
+		CourseDetailEnhancerScript.ensure_deep_rough_map(course_scene)
+	elif reeds == null or course_graphics_version < CourseGraphicsUpgraderScript.CURRENT_COURSE_GRAPHICS_VERSION:
 		CourseDetailEnhancerScript.enhance_course_scene(course_scene, false)
 	else:
 		# Ensure thick rough distance map is computed up front during loading screen

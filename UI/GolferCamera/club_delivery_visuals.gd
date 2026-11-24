@@ -16,6 +16,7 @@ const TEX_IRON_FACE = preload("res://assets/images/clubs/iron_face.png")
 const TEX_DRIVER_FACE = preload("res://assets/images/clubs/driver_face.png")
 const TEX_IRON_TOP = preload("res://assets/images/clubs/iron_top.png")
 const TEX_DRIVER_TOP = preload("res://assets/images/clubs/driver_top.png")
+const ShotAnalyticsEngineScript = preload("res://Utils/shot_analytics_engine.gd")
 
 static func create_panel(data: Dictionary = {}, is_profile: bool = false, is_lefty: Variant = null) -> PanelContainer:
 	return ClubDeliveryVisualsPanel.new(data, is_profile, is_lefty)
@@ -280,16 +281,37 @@ class ImpactLocationVisual extends Control:
 		# In front view of iron & driver: Toe is on LEFT (-X), Heel is on RIGHT (+X).
 		# High is UP (-Y), Low is DOWN (+Y).
 		if is_heatmap_mode and not impact_points.is_empty():
+			var px_pts: Array[Vector2] = []
 			for pt in impact_points:
 				var h_offset = -float(pt.get("h", 0.0)) * mm_scale
 				var v_offset = -float(pt.get("v", 0.0)) * mm_scale
 				var pt_pos = sweet_spot + Vector2(h_offset, v_offset)
+				px_pts.append(pt_pos)
 
 				# Translucent multi-hit heat bloom
 				draw_circle(pt_pos, 15.0, Color(0.1, 0.45, 0.9, 0.12))
 				draw_circle(pt_pos, 9.0, Color(0.3, 0.85, 0.3, 0.22))
 				draw_circle(pt_pos, 4.5, Color(1.0, 0.35, 0.1, 0.48))
 				draw_circle(pt_pos, 2.2, Color(1.0, 0.9, 0.3, 0.78))
+
+			if px_pts.size() >= 3:
+				var ell: Dictionary = ShotAnalyticsEngineScript.compute_covariance_ellipse(px_pts)
+				if bool(ell.get("valid", false)):
+					var mean_pos: Vector2 = ell.get("mean", sweet_spot)
+					var rx: float = clampf(float(ell.get("std_major", 4.0)) * 1.515, 4.0, w * 0.42)
+					var ry: float = clampf(float(ell.get("std_minor", 4.0)) * 1.515, 4.0, h * 0.42)
+					var ang: float = float(ell.get("angle_rad", 0.0))
+					var poly: PackedVector2Array = PackedVector2Array()
+					for s_idx in range(33):
+						var th: float = (float(s_idx) / 32.0) * TAU
+						var lx: float = cos(th) * rx
+						var ly: float = sin(th) * ry
+						var r_pt: Vector2 = Vector2(lx * cos(ang) - ly * sin(ang), lx * sin(ang) + ly * cos(ang))
+						poly.append(mean_pos + r_pt)
+					draw_colored_polygon(poly, Color(0.25, 0.88, 0.65, 0.14))
+					draw_polyline(poly, Color(0.35, 0.95, 0.75, 0.75), 1.5, true)
+					draw_line(mean_pos + Vector2(-6.0, 0.0), mean_pos + Vector2(6.0, 0.0), Color.WHITE, 1.8)
+					draw_line(mean_pos + Vector2(0.0, -6.0), mean_pos + Vector2(0.0, 6.0), Color.WHITE, 1.8)
 
 			if font != null:
 				var hit_text = "%d SHOTS HEATMAP" % impact_points.size()

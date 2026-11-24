@@ -75,7 +75,7 @@ static func enhance_course_scene(scene_root: Node, persist_for_save: bool = fals
 			gen_cart_paths = bool(cfg.get_value("course_generation", "generate_cart_paths", true))
 
 	if gen_cart_paths:
-		result["cart_paths"] = _build_cart_paths(scene_root, height_map, persist_for_save)
+		result["cart_paths"] = _build_cart_paths(scene_root, height_map, persist_for_save, force_rebuild)
 	else:
 		result["cart_paths"] = false
 
@@ -98,6 +98,9 @@ static func enhance_course_scene(scene_root: Node, persist_for_save: bool = fals
 
 	ensure_deep_rough_map(scene_root)
 	_upgrade_water_materials(scene_root)
+	if persist_for_save:
+		scene_root.set_meta("course_details_baked", true)
+		scene_root.set_meta("course_details_version", 23)
 	return result
 
 
@@ -129,6 +132,23 @@ static func _strip_legacy_grass_nodes(scene_root: Node) -> void:
 			r.free()
 
 
+static func _find_terrain_mesh_instance(scene_root: Node) -> MeshInstance3D:
+	if scene_root == null:
+		return null
+	var terrain: MeshInstance3D = null
+	for tname in ["UnifiedTerrain", "DynamicGround", "RoughGround", "Terrain", "TerrainMesh"]:
+		terrain = scene_root.find_child(tname, true, false) as MeshInstance3D
+		if terrain != null and terrain.mesh != null and terrain.mesh.get_surface_count() > 0:
+			return terrain
+	for child in scene_root.find_children("*", "MeshInstance3D", true, false):
+		var cn := child.name.to_lower()
+		if (cn.contains("terrain") or cn.contains("ground")) and not cn.contains("preview"):
+			var mi := child as MeshInstance3D
+			if mi.mesh != null and mi.mesh.get_surface_count() > 0:
+				return mi
+	return null
+
+
 static func _build_terrain_height_lookup(scene_root: Node) -> Dictionary:
 	var info := {
 		"min_x": -300.0,
@@ -138,19 +158,7 @@ static func _build_terrain_height_lookup(scene_root: Node) -> Dictionary:
 		"avg_edge_y": 0.0,
 		"grid": {}
 	}
-	var terrain: MeshInstance3D = null
-	for tname in ["UnifiedTerrain", "DynamicGround", "RoughGround", "Terrain", "TerrainMesh"]:
-		terrain = scene_root.find_child(tname, true, false) as MeshInstance3D
-		if terrain != null and terrain.mesh != null and terrain.mesh.get_surface_count() > 0:
-			break
-	if terrain == null:
-		for child in scene_root.find_children("*", "MeshInstance3D", true, false):
-			var cn := child.name.to_lower()
-			if (cn.contains("terrain") or cn.contains("ground")) and not cn.contains("preview"):
-				var mi := child as MeshInstance3D
-				if mi.mesh != null and mi.mesh.get_surface_count() > 0:
-					terrain = mi
-					break
+	var terrain := _find_terrain_mesh_instance(scene_root)
 	if terrain == null or terrain.mesh == null or terrain.mesh.get_surface_count() == 0:
 		return info
 
@@ -203,7 +211,20 @@ static func _build_terrain_height_lookup(scene_root: Node) -> Dictionary:
 				edge_sum += wv.y
 				edge_cnt += 1
 
+		var diag_ur_dl := true
+		if arrays.size() > Mesh.ARRAY_INDEX and arrays[Mesh.ARRAY_INDEX] != null:
+			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			if indices.size() >= 3:
+				var i0 := indices[0]
+				var i1 := indices[1]
+				var i2 := indices[2]
+				var has_0 := (i0 == 0 or i1 == 0 or i2 == 0)
+				var has_diag := (i0 == cols + 1 or i1 == cols + 1 or i2 == cols + 1)
+				if has_0 and has_diag:
+					diag_ur_dl = false
+
 		info["is_regular_grid"] = true
+		info["diag_ur_dl"] = diag_ur_dl
 		info["cols"] = cols
 		info["rows"] = rows
 		info["grid_min_x"] = min_vx
@@ -266,7 +287,13 @@ static func _sample_height(wx: float, wz: float, info: Dictionary, fallback_y: f
 				var h10 := h_arr[r0 * cols + c0 + 1]
 				var h01 := h_arr[(r0 + 1) * cols + c0]
 				var h11 := h_arr[(r0 + 1) * cols + c0 + 1]
-				return lerpf(lerpf(h00, h10, tc), lerpf(h01, h11, tc), tr)
+				if bool(info.get("diag_ur_dl", true)):
+					if tc + tr <= 1.0:
+						return h00 + tc * (h10 - h00) + tr * (h01 - h00)
+					return h11 + (1.0 - tc) * (h01 - h11) + (1.0 - tr) * (h10 - h11)
+				if tc >= tr:
+					return h00 + tc * (h10 - h00) + tr * (h11 - h10)
+				return h00 + tr * (h01 - h00) + tc * (h11 - h01)
 
 	var grid: Dictionary = info.get("grid", {})
 	if grid.is_empty():
@@ -294,6 +321,16 @@ static func _sample_height(wx: float, wz: float, info: Dictionary, fallback_y: f
 	var h01: float = grid.get(Vector2i(ix, iz + 1), h00)
 	var h11: float = grid.get(Vector2i(ix + 1, iz + 1), h00)
 	return lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)
+
+
+static func _sample_normal(wx: float, wz: float, info: Dictionary) -> Vector3:
+	var eps := 0.5
+	var center := _sample_height(wx, wz, info, 0.0)
+	var h_l := _sample_height(wx - eps, wz, info, center)
+	var h_r := _sample_height(wx + eps, wz, info, center)
+	var h_d := _sample_height(wx, wz - eps, info, center)
+	var h_u := _sample_height(wx, wz + eps, info, center)
+	return Vector3(h_l - h_r, 2.0 * eps, h_d - h_u).normalized()
 
 
 static func _build_recessed_3d_bunkers(scene_root: Node, height_info: Dictionary, persist_for_save: bool, force_rebuild: bool = false) -> int:
@@ -378,6 +415,7 @@ static func _build_recessed_3d_bunkers(scene_root: Node, height_info: Dictionary
 								polygons.append(hull)
 								base_heights.append((child as Node3D).position.y)
 
+	var had_mapped_bunkers := not polygons.is_empty()
 	if polygons.is_empty():
 		# If the course scene has no bunker static bodies mapped, synthesize realistic greenside
 		# sand traps around each green so greens are authentically defended.
@@ -467,6 +505,13 @@ static func _build_recessed_3d_bunkers(scene_root: Node, height_info: Dictionary
 	if polygons.is_empty():
 		return 0
 
+	if persist_for_save and force_rebuild:
+		if _sculpt_concave_bunkers_into_terrain(scene_root, polygons, had_mapped_bunkers):
+			var refreshed_info := _build_terrain_height_lookup(scene_root)
+			height_info.clear()
+			height_info.merge(refreshed_info, true)
+		_refresh_bunker_splat_and_ao_maps(scene_root, polygons, height_info)
+
 	var container := Node3D.new()
 	container.name = "HighFidelityBunkers"
 	scene_root.add_child(container)
@@ -476,7 +521,7 @@ static func _build_recessed_3d_bunkers(scene_root: Node, height_info: Dictionary
 	var bunker_mat := _create_bunker_high_material()
 	var built := 0
 	for idx in range(polygons.size()):
-		var poly := _subdivide_and_orient_ccw(polygons[idx], 0.95)
+		var poly := _sanitize_and_smooth_bunker_polygon(polygons[idx], 0.65)
 		if poly.size() < 4:
 			continue
 
@@ -488,13 +533,24 @@ static func _build_recessed_3d_bunkers(scene_root: Node, height_info: Dictionary
 		var mi := MeshInstance3D.new()
 		mi.name = "RecessedBunker_%d" % idx
 		mi.mesh = mesh
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		mi.set_meta("boundary_polygon", poly)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visibility_range_end = 420.0
 		mi.visibility_range_end_margin = 30.0
 		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		container.add_child(mi)
 		if persist_for_save:
 			mi.owner = scene_root
+		if not had_mapped_bunkers:
+			var sb := StaticBody3D.new()
+			sb.name = "bunker_Static_synthetic_%d" % idx
+			sb.set_meta("surface_type", 5)
+			sb.set_meta("is_sand", true)
+			sb.set_meta("boundary_polygon", poly)
+			sb.add_to_group("bunkers")
+			scene_root.add_child(sb)
+			if persist_for_save:
+				sb.owner = scene_root
 		built += 1
 
 	var mmi := MultiMeshInstance3D.new()
@@ -513,6 +569,408 @@ static func _build_recessed_3d_bunkers(scene_root: Node, height_info: Dictionary
 
 	return built
 
+
+
+static func _quintic_smoothstep(t: float) -> float:
+	var c := clampf(t, 0.0, 1.0)
+	return c * c * c * (c * (c * 6.0 - 15.0) + 10.0)
+
+
+static func _sculpt_concave_bunkers_into_terrain(
+	scene_root: Node,
+	polygons: Array[PackedVector2Array],
+	had_mapped_bunkers: bool = true
+) -> bool:
+	if scene_root == null or polygons.is_empty():
+		return false
+	var terrain := _find_terrain_mesh_instance(scene_root)
+	if terrain == null or not (terrain.mesh is ArrayMesh) or terrain.mesh.get_surface_count() == 0:
+		return false
+	if bool(terrain.get_meta("concave_bunkers_baked", false)):
+		return false
+
+	var am := terrain.mesh as ArrayMesh
+	var arrays := am.surface_get_arrays(0)
+	if arrays.size() <= Mesh.ARRAY_VERTEX:
+		return false
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var num_verts := verts.size()
+	if num_verts < 4:
+		return false
+
+	var z0 := verts[0].z
+	var cols := 0
+	for i in range(1, num_verts):
+		if absf(verts[i].z - z0) > 0.001:
+			cols = i
+			break
+	if cols < 2 or (num_verts % cols) != 0:
+		return false
+	var rows := num_verts / cols
+
+	var norms := PackedVector3Array()
+	if arrays.size() > Mesh.ARRAY_NORMAL and arrays[Mesh.ARRAY_NORMAL] != null and (arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array).size() == num_verts:
+		norms = (arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array).duplicate()
+	else:
+		norms.resize(num_verts)
+		norms.fill(Vector3.UP)
+
+	var t_xform := terrain.global_transform if terrain.is_inside_tree() else terrain.transform
+	var inv_xform := t_xform.affine_inverse()
+
+	var bunker_aabbs: Array[Rect2] = []
+	for poly in polygons:
+		if poly.size() < 3:
+			bunker_aabbs.append(Rect2())
+			continue
+		var min_p := poly[0]
+		var max_p := poly[0]
+		for pt in poly:
+			min_p.x = minf(min_p.x, pt.x)
+			min_p.y = minf(min_p.y, pt.y)
+			max_p.x = maxf(max_p.x, pt.x)
+			max_p.y = maxf(max_p.y, pt.y)
+		bunker_aabbs.append(Rect2(min_p - Vector2(3.6, 3.6), (max_p - min_p) + Vector2(7.2, 7.2)))
+
+	var features := _extract_course_features(scene_root)
+	var green_tee_entries: Array = []
+	green_tee_entries.append_array(features.get("greens", []))
+	green_tee_entries.append_array(features.get("tees", []))
+
+	var dirty_mask := PackedByteArray()
+	dirty_mask.resize(num_verts)
+	dirty_mask.fill(0)
+	var any_modified := false
+
+	for i in range(num_verts):
+		var wv := t_xform * verts[i]
+		var p2 := Vector2(wv.x, wv.z)
+
+		var any_aabb := false
+		for b_idx in range(polygons.size()):
+			if polygons[b_idx].size() >= 3 and bunker_aabbs[b_idx].has_point(p2):
+				any_aabb = true
+				break
+		if not any_aabb:
+			continue
+
+		var in_bunker := false
+		var max_concave := 0.0
+		var max_lip_factor := 0.0
+		var old_dep := 0.0
+
+		for b_idx in range(polygons.size()):
+			var poly := polygons[b_idx]
+			if poly.size() < 3 or not bunker_aabbs[b_idx].has_point(p2):
+				continue
+			var inside := Geometry2D.is_point_in_polygon(p2, poly)
+			var dist := _edge_distance_to_polygon_2d(p2, poly)
+			if inside:
+				in_bunker = true
+				var t := clampf(dist / 3.2, 0.0, 1.0)
+				max_concave = maxf(max_concave, 1.0 - pow(1.0 - t, 2.2))
+				if had_mapped_bunkers:
+					var old_t := clampf(dist / 7.0, 0.0, 1.0)
+					old_dep = maxf(old_dep, _quintic_smoothstep(old_t) * 1.0)
+			elif dist < 3.5:
+				max_lip_factor = maxf(max_lip_factor, 1.0 - _quintic_smoothstep(dist / 3.5))
+
+		if not in_bunker and max_lip_factor <= 0.0:
+			continue
+
+		var gt_weight := 0.0
+		for gt in green_tee_entries:
+			var g_aabb: Rect2 = gt["aabb"]
+			if not g_aabb.grow(6.0).has_point(p2):
+				continue
+			var g_poly: PackedVector2Array = gt["poly"]
+			var g_in := Geometry2D.is_point_in_polygon(p2, g_poly)
+			var g_dist := _edge_distance_to_polygon_2d(p2, g_poly)
+			var sd := g_dist if g_in else -g_dist
+			if sd >= 5.0:
+				gt_weight = 1.0
+				break
+			elif sd > -6.0:
+				gt_weight = maxf(gt_weight, _quintic_smoothstep((sd + 6.0) / 11.0))
+
+		var lip_h := 0.28 * (1.0 - clampf(gt_weight, 0.0, 1.0))
+		var new_offset := (lip_h - (lip_h + 1.05) * max_concave) if in_bunker else (lip_h * max_lip_factor)
+		var old_offset := -old_dep
+		var delta := new_offset - old_offset
+		if absf(delta) > 1e-5:
+			wv.y += delta
+			verts[i] = inv_xform * wv
+			any_modified = true
+			var r := i / cols
+			var c := i % cols
+			dirty_mask[i] = 1
+			if c > 0: dirty_mask[i - 1] = 1
+			if c < cols - 1: dirty_mask[i + 1] = 1
+			if r > 0: dirty_mask[i - cols] = 1
+			if r < rows - 1: dirty_mask[i + cols] = 1
+
+	if any_modified:
+		for idx in range(num_verts):
+			if dirty_mask[idx] == 0:
+				continue
+			var r := idx / cols
+			var c := idx % cols
+			var v_l := verts[r * cols + maxi(0, c - 1)]
+			var v_r := verts[r * cols + mini(cols - 1, c + 1)]
+			var v_d := verts[maxi(0, r - 1) * cols + c]
+			var v_u := verts[mini(rows - 1, r + 1) * cols + c]
+			var n := (v_u - v_d).cross(v_r - v_l)
+			if n.length_squared() > 1e-8:
+				norms[idx] = n.normalized()
+
+		arrays[Mesh.ARRAY_VERTEX] = verts
+		arrays[Mesh.ARRAY_NORMAL] = norms
+		var old_mat := am.surface_get_material(0)
+		var new_mesh := ArrayMesh.new()
+		new_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		if old_mat != null:
+			new_mesh.surface_set_material(0, old_mat)
+		terrain.mesh = new_mesh
+
+		var terrain_static := scene_root.find_child("TerrainStatic", true, false) as StaticBody3D
+		if terrain_static != null:
+			for sub in terrain_static.get_children():
+				if sub is CollisionShape3D:
+					var concave := ConcavePolygonShape3D.new()
+					concave.set_faces(new_mesh.get_faces())
+					(sub as CollisionShape3D).shape = concave
+					break
+
+	terrain.set_meta("concave_bunkers_baked", true)
+	return any_modified
+
+
+static func _refresh_bunker_splat_and_ao_maps(
+	scene_root: Node,
+	polygons: Array[PackedVector2Array],
+	height_info: Dictionary
+) -> bool:
+	if scene_root == null or polygons.is_empty():
+		return false
+	var terrain := _find_terrain_mesh_instance(scene_root)
+	if terrain == null or terrain.mesh == null or terrain.mesh.get_surface_count() == 0:
+		return false
+	if bool(terrain.get_meta("bunker_splat_v23_baked", false)):
+		return false
+
+	var mat: ShaderMaterial = terrain.material_override as ShaderMaterial
+	var surf_mat: ShaderMaterial = terrain.mesh.surface_get_material(0) as ShaderMaterial
+	if mat == null:
+		mat = surf_mat
+	if mat == null:
+		terrain.set_meta("bunker_splat_v23_baked", true)
+		return false
+
+	var splat_tex: Texture2D = mat.get_shader_parameter("splat_map") as Texture2D
+	if splat_tex == null and surf_mat != null and surf_mat != mat:
+		splat_tex = surf_mat.get_shader_parameter("splat_map") as Texture2D
+	if splat_tex == null and terrain.has_meta("orig_splat_map"):
+		splat_tex = terrain.get_meta("orig_splat_map") as Texture2D
+	if splat_tex == null:
+		terrain.set_meta("bunker_splat_v23_baked", true)
+		return false
+
+	var src_img := splat_tex.get_image()
+	if src_img == null or src_img.get_width() < 2 or src_img.get_height() < 2:
+		terrain.set_meta("bunker_splat_v23_baked", true)
+		return false
+	var img := src_img.duplicate() as Image
+	if img.is_compressed():
+		img.decompress()
+	if img.get_format() != Image.FORMAT_RGBA8:
+		img.convert(Image.FORMAT_RGBA8)
+
+	var min_x := float(height_info.get("min_x", -300.0))
+	var max_x := float(height_info.get("max_x", 300.0))
+	var min_z := float(height_info.get("min_z", -300.0))
+	var max_z := float(height_info.get("max_z", 300.0))
+	var span_x := max_x - min_x
+	var span_z := max_z - min_z
+	if span_x <= 0.001 or span_z <= 0.001:
+		terrain.set_meta("bunker_splat_v23_baked", true)
+		return false
+
+	var w := img.get_width()
+	var h := img.get_height()
+	var denom_x := float(maxi(w - 1, 1))
+	var denom_y := float(maxi(h - 1, 1))
+
+	var bunker_aabbs: Array[Rect2] = []
+	for poly in polygons:
+		if poly.size() < 3:
+			bunker_aabbs.append(Rect2())
+			continue
+		var min_p := poly[0]
+		var max_p := poly[0]
+		for pt in poly:
+			min_p.x = minf(min_p.x, pt.x)
+			min_p.y = minf(min_p.y, pt.y)
+			max_p.x = maxf(max_p.x, pt.x)
+			max_p.y = maxf(max_p.y, pt.y)
+		bunker_aabbs.append(Rect2(min_p - Vector2(4.0, 4.0), (max_p - min_p) + Vector2(8.0, 8.0)))
+
+	var dirty_pixels := PackedByteArray()
+	dirty_pixels.resize(w * h)
+	dirty_pixels.fill(0)
+	for b_idx in range(polygons.size()):
+		if polygons[b_idx].size() < 3:
+			continue
+		var r2: Rect2 = bunker_aabbs[b_idx]
+		var px0 := clampi(int(floor(((r2.position.x - min_x) / span_x) * denom_x)), 0, w - 1)
+		var px1 := clampi(int(ceil(((r2.end.x - min_x) / span_x) * denom_x)), 0, w - 1)
+		var py0 := clampi(int(floor(((r2.position.y - min_z) / span_z) * denom_y)), 0, h - 1)
+		var py1 := clampi(int(ceil(((r2.end.y - min_z) / span_z) * denom_y)), 0, h - 1)
+		for py in range(py0, py1 + 1):
+			var row_off := py * w
+			for px in range(px0, px1 + 1):
+				dirty_pixels[row_off + px] = 1
+
+	var features := _extract_course_features(scene_root)
+	var green_tee_entries: Array = []
+	green_tee_entries.append_array(features.get("greens", []))
+	green_tee_entries.append_array(features.get("tees", []))
+	var fairway_entries: Array = features.get("fairways", [])
+	const BLEND_RADIUS := 3.0
+	var texel_m := maxf(span_x / denom_x, span_z / denom_y)
+	var bunker_aa := clampf(texel_m * 0.85, 0.30, 0.75)
+
+	var any_splat_changed := false
+	for py in range(h):
+		var row_off := py * w
+		var wz := min_z + (float(py) / denom_y) * span_z
+		for px in range(w):
+			if dirty_pixels[row_off + px] == 0:
+				continue
+			var wx := min_x + (float(px) / denom_x) * span_x
+			var p2 := Vector2(wx, wz)
+
+			var b_target := 0.0
+			for b_idx in range(polygons.size()):
+				var b_poly := polygons[b_idx]
+				if b_poly.size() < 3 or not bunker_aabbs[b_idx].has_point(p2):
+					continue
+				var inside := Geometry2D.is_point_in_polygon(p2, b_poly)
+				var edist := _edge_distance_to_polygon_2d(p2, b_poly)
+				if edist >= bunker_aa:
+					if inside:
+						b_target = 1.0
+						break
+				else:
+					var sd := edist if inside else -edist
+					b_target = maxf(b_target, clampf(0.5 + 0.5 * (sd / bunker_aa), 0.0, 1.0))
+
+			var old_col := img.get_pixel(px, py)
+			var bunker_occ := clampf((b_target - 0.42) / 0.58, 0.0, 1.0)
+			if bunker_occ >= 1.0:
+				if old_col.r > 0.005 or old_col.g > 0.005 or old_col.b < 0.995:
+					img.set_pixel(px, py, Color(0.0, 0.0, 1.0, old_col.a))
+					any_splat_changed = true
+			elif b_target > 0.001 or old_col.b > 0.001:
+				var green_w := 0.0
+				for gt in green_tee_entries:
+					var g_aabb: Rect2 = gt["aabb"]
+					if not g_aabb.grow(BLEND_RADIUS).has_point(p2):
+						continue
+					var g_poly: PackedVector2Array = gt["poly"]
+					if Geometry2D.is_point_in_polygon(p2, g_poly):
+						green_w = 1.0
+						break
+					var g_dist := _edge_distance_to_polygon_2d(p2, g_poly)
+					if g_dist < BLEND_RADIUS:
+						green_w = maxf(green_w, _quintic_smoothstep(1.0 - (g_dist / BLEND_RADIUS)))
+
+				var fairway_w := 0.0
+				if green_w < 1.0:
+					if not fairway_entries.is_empty():
+						for fw in fairway_entries:
+							var f_aabb: Rect2 = fw["aabb"]
+							if not f_aabb.grow(BLEND_RADIUS).has_point(p2):
+								continue
+							var f_poly: PackedVector2Array = fw["poly"]
+							if Geometry2D.is_point_in_polygon(p2, f_poly):
+								fairway_w = 1.0
+								break
+							var f_dist := _edge_distance_to_polygon_2d(p2, f_poly)
+							if f_dist < BLEND_RADIUS:
+								fairway_w = maxf(fairway_w, _quintic_smoothstep(1.0 - (f_dist / BLEND_RADIUS)))
+					elif old_col.g > 0.01:
+						fairway_w = clampf(old_col.g / maxf(1.0 - old_col.b, 0.05), 0.0, 1.0)
+					fairway_w = minf(fairway_w, 1.0 - green_w)
+
+				if bunker_occ > 0.0:
+					green_w *= (1.0 - bunker_occ)
+					fairway_w *= (1.0 - bunker_occ)
+
+				var new_col := Color(green_w, fairway_w, b_target, old_col.a)
+				if absf(new_col.r - old_col.r) > 0.004 or absf(new_col.g - old_col.g) > 0.004 or absf(new_col.b - old_col.b) > 0.004:
+					img.set_pixel(px, py, new_col)
+					any_splat_changed = true
+
+	if any_splat_changed:
+		var new_splat := ImageTexture.create_from_image(img)
+		mat.set_shader_parameter("splat_map", new_splat)
+		if surf_mat != null and surf_mat != mat:
+			surf_mat.set_shader_parameter("splat_map", new_splat)
+		if terrain.has_meta("orig_splat_map"):
+			terrain.set_meta("orig_splat_map", new_splat)
+
+	var ao_tex: Texture2D = mat.get_shader_parameter("terrain_ao_map") as Texture2D
+	if ao_tex == null and surf_mat != null and surf_mat != mat:
+		ao_tex = surf_mat.get_shader_parameter("terrain_ao_map") as Texture2D
+	if ao_tex != null:
+		var src_ao := ao_tex.get_image()
+		if src_ao != null and src_ao.get_width() >= 2 and src_ao.get_height() >= 2:
+			var ao_img := src_ao.duplicate() as Image
+			if ao_img.is_compressed():
+				ao_img.decompress()
+			var aw := ao_img.get_width()
+			var ah := ao_img.get_height()
+			var aden_x := float(maxi(aw - 1, 1))
+			var aden_y := float(maxi(ah - 1, 1))
+			var ao_dirty := PackedByteArray()
+			ao_dirty.resize(aw * ah)
+			ao_dirty.fill(0)
+			for b_idx in range(polygons.size()):
+				if polygons[b_idx].size() < 3:
+					continue
+				var r2: Rect2 = bunker_aabbs[b_idx]
+				var px0 := clampi(int(floor(((r2.position.x - min_x) / span_x) * aden_x)), 0, aw - 1)
+				var px1 := clampi(int(ceil(((r2.end.x - min_x) / span_x) * aden_x)), 0, aw - 1)
+				var py0 := clampi(int(floor(((r2.position.y - min_z) / span_z) * aden_y)), 0, ah - 1)
+				var py1 := clampi(int(ceil(((r2.end.y - min_z) / span_z) * aden_y)), 0, ah - 1)
+				for py in range(py0, py1 + 1):
+					var ro := py * aw
+					for px in range(px0, px1 + 1):
+						ao_dirty[ro + px] = 1
+			var ring_dirs := PackedVector2Array()
+			for k in range(12):
+				var ang := float(k) * (PI / 6.0)
+				ring_dirs.append(Vector2(cos(ang) * 6.0, sin(ang) * 6.0))
+			for py in range(ah):
+				var ro := py * aw
+				var wz := min_z + (float(py) / aden_y) * span_z
+				for px in range(aw):
+					if ao_dirty[ro + px] == 0:
+						continue
+					var wx := min_x + (float(px) / aden_x) * span_x
+					var hc := _sample_height(wx, wz, height_info, 0.0)
+					var hsum := 0.0
+					for d in ring_dirs:
+						hsum += _sample_height(wx + d.x, wz + d.y, height_info, hc)
+					var ao := clampf(1.0 + (hc - hsum / 12.0) * 0.45, 0.55, 1.0)
+					ao_img.set_pixel(px, py, Color(ao, ao, ao, 1.0))
+			var new_ao := ImageTexture.create_from_image(ao_img)
+			mat.set_shader_parameter("terrain_ao_map", new_ao)
+			if surf_mat != null and surf_mat != mat:
+				surf_mat.set_shader_parameter("terrain_ao_map", new_ao)
+
+	terrain.set_meta("bunker_splat_v23_baked", true)
+	return any_splat_changed
 
 
 static func _create_synthetic_bunker_polygon(center: Vector2, length: float, width: float, angle_rad: float, seed_val: int) -> PackedVector2Array:
@@ -755,6 +1213,87 @@ static func _subdivide_and_orient_ccw(poly: PackedVector2Array, max_seg_len: flo
 	return subdiv
 
 
+static func _sanitize_and_smooth_bunker_polygon(poly: PackedVector2Array, max_seg_len: float = 0.65) -> PackedVector2Array:
+	if poly.size() < 3:
+		return poly
+
+	# 1. Orient CCW in XZ so inward normals (-dz, dx) point inside
+	var ordered := _subdivide_and_orient_ccw(poly, 10000.0)
+
+	# 2. Remove near-duplicate consecutive vertices (< 0.25m)
+	var dedup := PackedVector2Array()
+	for pt in ordered:
+		if dedup.is_empty() or dedup[dedup.size() - 1].distance_squared_to(pt) >= 0.0625:
+			dedup.append(pt)
+	while dedup.size() > 3 and dedup[dedup.size() - 1].distance_squared_to(dedup[0]) < 0.0625:
+		dedup.remove_at(dedup.size() - 1)
+	if dedup.size() < 3:
+		return ordered
+
+	# 3. Remove hairpin spikes (e1.dot(e2) < -0.75) that fold edges across sand
+	var unspiked := dedup
+	for _pass in range(4):
+		if unspiked.size() <= 4:
+			break
+		var next_poly := PackedVector2Array()
+		var cnt := unspiked.size()
+		var removed_any := false
+		for i in range(cnt):
+			var prev_p := unspiked[(i - 1 + cnt) % cnt]
+			var curr_p := unspiked[i]
+			var next_p := unspiked[(i + 1) % cnt]
+			var v1 := curr_p - prev_p
+			var v2 := next_p - curr_p
+			if v1.length_squared() < 0.0001 or v2.length_squared() < 0.0001:
+				removed_any = true
+				continue
+			if v1.normalized().dot(v2.normalized()) < -0.75:
+				removed_any = true
+				continue
+			next_poly.append(curr_p)
+		if next_poly.size() >= 3:
+			unspiked = next_poly
+		if not removed_any:
+			break
+
+	# 4. Preserve exact boundary vertices (no Chaikin corner-cutting) so RecessedBunker matches splat_map 1:1
+	return _subdivide_and_orient_ccw(unspiked, max_seg_len)
+
+
+static func _unfold_offset_ring(ring2d: PackedVector2Array, base_poly: PackedVector2Array) -> PackedVector2Array:
+	var count := mini(ring2d.size(), base_poly.size())
+	var out := ring2d.duplicate()
+	for _pass in range(4):
+		for i in range(count):
+			var ni := (i + 1) % count
+			var edge_ref := base_poly[ni] - base_poly[i]
+			var edge_ring := out[ni] - out[i]
+			if edge_ring.dot(edge_ref) <= 0.0:
+				out[i] = out[i].lerp(base_poly[i], 0.60)
+				out[ni] = out[ni].lerp(base_poly[ni], 0.60)
+	return out
+
+
+static func _push_point_side_of_poly(
+	p: Vector2,
+	dir: Vector2,
+	dist_init: float,
+	poly: PackedVector2Array,
+	want_inside: bool,
+	fallback_dist: float
+) -> float:
+	var d := dist_init
+	var pt := p + dir * d
+	if Geometry2D.is_point_in_polygon(pt, poly) == want_inside:
+		return d
+	for _h in range(4):
+		d *= 0.5
+		pt = p + dir * d
+		if Geometry2D.is_point_in_polygon(pt, poly) == want_inside:
+			return d
+	return fallback_dist
+
+
 static func _create_single_bunker_lip_and_bowl_mesh(
 	poly: PackedVector2Array,
 	height_info: Dictionary,
@@ -764,35 +1303,34 @@ static func _create_single_bunker_lip_and_bowl_mesh(
 	if count < 4:
 		return null
 
-	var centroid := Vector2.ZERO
-	for p in poly:
-		centroid += p
-	centroid /= float(count)
-
-	# Compute inward unit normals at each vertex.
+	# Compute inward unit normals and local turning curvature at each vertex.
 	# For any strictly CCW polygon in (X, Z), inward normal to (dx, dz) is (-dz, dx).
 	var inward_dirs := PackedVector2Array()
 	inward_dirs.resize(count)
+	var cross_vals := PackedFloat32Array()
+	cross_vals.resize(count)
+	var dot_vals := PackedFloat32Array()
+	dot_vals.resize(count)
+	var min_adj_edges := PackedFloat32Array()
+	min_adj_edges.resize(count)
+
 	for i in range(count):
 		var prev := poly[(i - 1 + count) % count]
 		var curr := poly[i]
 		var next := poly[(i + 1) % count]
-		var e1 := (curr - prev).normalized()
-		var e2 := (next - curr).normalized()
+		var v1 := curr - prev
+		var v2 := next - curr
+		var l1 := v1.length()
+		var l2 := v2.length()
+		var e1 := v1 / l1 if l1 > 0.0001 else Vector2(1.0, 0.0)
+		var e2 := v2 / l2 if l2 > 0.0001 else e1
 		var n1 := Vector2(-e1.y, e1.x)
 		var n2 := Vector2(-e2.y, e2.x)
 		var sum_n := n1 + n2
-		var avg_n := sum_n.normalized() if sum_n.length_squared() > 0.0001 else n1
-		inward_dirs[i] = avg_n
-
-	var ring_outer := PackedVector3Array()
-	var ring_rim := PackedVector3Array()
-	var ring_wall_base := PackedVector3Array()
-	var ring_sand_inner := PackedVector3Array()
-	ring_outer.resize(count)
-	ring_rim.resize(count)
-	ring_wall_base.resize(count)
-	ring_sand_inner.resize(count)
+		inward_dirs[i] = sum_n.normalized() if sum_n.length_squared() > 0.0001 else n1
+		cross_vals[i] = e1.x * e2.y - e1.y * e2.x
+		dot_vals[i] = clampf(e1.dot(e2), -1.0, 1.0)
+		min_adj_edges[i] = minf(l1, l2)
 
 	# Calculate distance to opposite boundary along inward ray to strictly prevent
 	# inward insets from crossing narrow tongues, fingers, or opposite shores
@@ -818,58 +1356,178 @@ static func _create_single_bunker_lip_and_bowl_mesh(
 						min_opp = t
 		opp_dists[i] = min_opp
 
+	var pts_out := PackedVector2Array()
+	var pts_wall := PackedVector2Array()
+	var pts_sand := PackedVector2Array()
+	pts_out.resize(count)
+	pts_wall.resize(count)
+	pts_sand.resize(count)
+
 	for i in range(count):
 		var p := poly[i]
 		var in_d := inward_dirs[i]
 		var opp := opp_dists[i]
-		var max_safe := minf(0.65, opp * 0.35) if opp < 900.0 else 0.65
+		var max_safe := minf(0.42, opp * 0.28) if opp < 900.0 else 0.42
+		if cross_vals[i] > 0.05:
+			var half_angle := 0.5 * acos(dot_vals[i])
+			max_safe = minf(max_safe, 0.42 * min_adj_edges[i] / maxf(tan(half_angle), 0.1))
 
-		var inset_wall := clampf(max_safe * 0.30, 0.04, 0.16)
-		var inset_sand := clampf(max_safe, 0.12, 0.65)
-		var collar_out := clampf(minf(0.42, opp * 0.30), 0.10, 0.42)
+		var inset_sand := _push_point_side_of_poly(p, in_d, clampf(max_safe, 0.02, 0.42), poly, true, 0.02)
 
-		var p_out := p - in_d * collar_out
-		var p_rim := p
-		var p_wall := p + in_d * inset_wall
-		var p_sand := p + in_d * inset_sand
+		var collar_out_target := clampf(minf(0.16, opp * 0.16), 0.05, 0.16)
+		if cross_vals[i] < -0.05:
+			var half_angle_out := 0.5 * acos(dot_vals[i])
+			collar_out_target = minf(collar_out_target, maxf(0.02, 0.42 * min_adj_edges[i] / maxf(tan(half_angle_out), 0.1)))
+		var collar_out := _push_point_side_of_poly(p, -in_d, collar_out_target, poly, false, 0.02)
 
-		# Bunker perimeter elevation profiles:
-		# p_out is in outer turf; p_rim is at cut boundary; p_wall & p_sand are inset lip apron
-		var y_out := _sample_height(p_out.x, p_out.y, height_info, fallback_y) + 0.010
-		var y_rim := _sample_height(p_rim.x, p_rim.y, height_info, fallback_y) + 0.015
-		var y_sand := _sample_height(p_sand.x, p_sand.y, height_info, fallback_y) + 0.005
-		# Lip drop gently steps down to sand floor without penetrating into or cutting across terrain
-		var y_wall := clampf(y_rim - 0.06, y_sand, y_rim)
+		pts_out[i] = p - in_d * collar_out
+		pts_sand[i] = p + in_d * inset_sand
+
+	# Eliminate any self-crossing / folded offset edges, then derive intermediate wall ring strictly inside boundary
+	pts_out = _unfold_offset_ring(pts_out, poly)
+	pts_sand = _unfold_offset_ring(pts_sand, poly)
+	for i in range(count):
+		pts_wall[i] = poly[i].lerp(pts_sand[i], 0.35)
+
+	var ring_outer := PackedVector3Array()
+	var ring_rim := PackedVector3Array()
+	var ring_wall_base := PackedVector3Array()
+	var ring_sand_inner := PackedVector3Array()
+	ring_outer.resize(count)
+	ring_rim.resize(count)
+	ring_wall_base.resize(count)
+	ring_sand_inner.resize(count)
+
+	for i in range(count):
+		var p_out := pts_out[i]
+		var p_rim := poly[i]
+		var p_wall := pts_wall[i]
+		var p_sand := pts_sand[i]
+
+		var y_out := _sample_height(p_out.x, p_out.y, height_info, fallback_y) + 0.008
+		var y_rim := _sample_height(p_rim.x, p_rim.y, height_info, fallback_y) + 0.032
+		var y_wall := _sample_height(p_wall.x, p_wall.y, height_info, fallback_y) + 0.018
+		var y_sand := _sample_height(p_sand.x, p_sand.y, height_info, fallback_y) + 0.008
 
 		ring_outer[i] = Vector3(p_out.x, y_out, p_out.y)
 		ring_rim[i] = Vector3(p_rim.x, y_rim, p_rim.y)
 		ring_wall_base[i] = Vector3(p_wall.x, y_wall, p_wall.y)
 		ring_sand_inner[i] = Vector3(p_sand.x, y_sand, p_sand.y)
 
+	# 1-pass midpoint clearance lift on collar edges so subtle cut-lip never clips convex ridges
+	var ring_max_off := [0.06, 0.10, 0.08, 0.06]
+	var ring_lifts := [PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()]
+	for r_idx in range(4):
+		var arr: PackedFloat32Array = ring_lifts[r_idx]
+		arr.resize(count)
+		arr.fill(0.0)
+	var rings_snap := [ring_outer, ring_rim, ring_wall_base, ring_sand_inner]
+	for i in range(count):
+		var ni := (i + 1) % count
+		for r_idx in range(4):
+			var rg: PackedVector3Array = rings_snap[r_idx]
+			var mid := (rg[i] + rg[ni]) * 0.5
+			var deficit := (_sample_height(mid.x, mid.z, height_info, fallback_y) + 0.006) - mid.y
+			if deficit > 0.0:
+				var rl: PackedFloat32Array = ring_lifts[r_idx]
+				if deficit > rl[i]: rl[i] = deficit
+				if deficit > rl[ni]: rl[ni] = deficit
+		for r_idx in range(3):
+			var ra: PackedVector3Array = rings_snap[r_idx]
+			var rb: PackedVector3Array = rings_snap[r_idx + 1]
+			var mid := (ra[i] + rb[i]) * 0.5
+			var deficit := (_sample_height(mid.x, mid.z, height_info, fallback_y) + 0.006) - mid.y
+			if deficit > 0.0:
+				var rla: PackedFloat32Array = ring_lifts[r_idx]
+				var rlb: PackedFloat32Array = ring_lifts[r_idx + 1]
+				if deficit > rla[i]: rla[i] = deficit
+				if deficit > rlb[i]: rlb[i] = deficit
+	for r_idx in range(4):
+		var rg := (rings_snap[r_idx] as PackedVector3Array).duplicate()
+		var rl: PackedFloat32Array = ring_lifts[r_idx]
+		for i in range(count):
+			if rl[i] > 0.0:
+				var v := rg[i]
+				var max_y := _sample_height(v.x, v.z, height_info, fallback_y) + float(ring_max_off[r_idx])
+				v.y = minf(v.y + rl[i], max_y)
+				rg[i] = v
+		rings_snap[r_idx] = rg
+	ring_outer = rings_snap[0]
+	ring_rim = rings_snap[1]
+	ring_wall_base = rings_snap[2]
+	ring_sand_inner = rings_snap[3]
+
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Color encoding: R = sand, G = vertical soil lip, B = turf collar, A = alpha
+	# Color encoding: R = sand, G = undercut lip/soil, B = subtle turf cut edge, A = alpha
 	var col_outer := Color(0.0, 0.0, 1.0, 0.0)
-	var col_rim := Color(0.0, 0.40, 0.60, 0.85)
-	var col_wall := Color(0.25, 0.75, 0.0, 0.95)
+	var col_rim := Color(0.10, 0.72, 0.18, 0.72)
+	var col_wall := Color(0.72, 0.28, 0.0, 0.65)
 	var col_sand := Color(1.0, 0.0, 0.0, 0.0)
 
 	for i in range(count):
 		var ni := (i + 1) % count
-		# Band 1: Outer turf feather collar up to sod lip crest
-		_add_quad(st, ring_outer[i], ring_outer[ni], ring_rim[ni], ring_rim[i], col_outer, col_outer, col_rim, col_rim, Vector3.UP)
-		# Band 2: Warm earthy brown soil lip apron (tucks down to sand level)
-		var wall_n := Vector3(inward_dirs[i].x, 0.50, inward_dirs[i].y).normalized()
+		var mid_edge := (poly[i] + poly[ni]) * 0.5
+		var terrain_n := _sample_normal(mid_edge.x, mid_edge.y, height_info)
+		var mid_in := (inward_dirs[i] + inward_dirs[ni]).normalized()
+		if mid_in.length_squared() < 0.0001:
+			mid_in = inward_dirs[i]
+		var rim_n := (terrain_n * 0.65 + Vector3(mid_in.x, 0.65, mid_in.y).normalized() * 0.35).normalized()
+		var wall_n := (terrain_n * 0.45 + Vector3(mid_in.x, 0.45, mid_in.y).normalized() * 0.55).normalized()
+
+		# Band 1: Feathered grass-to-lip cut edge hugging exact boundary
+		_add_quad(st, ring_outer[i], ring_outer[ni], ring_rim[ni], ring_rim[i], col_outer, col_outer, col_rim, col_rim, rim_n)
+		# Band 2: Subtle shadowed root/soil cut lip onto upper concave sand face
 		_add_quad(st, ring_rim[i], ring_rim[ni], ring_wall_base[ni], ring_wall_base[i], col_rim, col_rim, col_wall, col_wall, wall_n)
-		# Band 3: Transition apron feathering into sand floor (alpha feathers to 0.0 to seamlessly hand off to UnifiedTerrain)
-		_add_quad(st, ring_wall_base[i], ring_wall_base[ni], ring_sand_inner[ni], ring_sand_inner[i], col_wall, col_wall, col_sand, col_sand, Vector3.UP)
+		# Band 3: Soft transition apron feathering smoothly into UnifiedTerrain sand
+		_add_quad(st, ring_wall_base[i], ring_wall_base[ni], ring_sand_inner[ni], ring_sand_inner[i], col_wall, col_wall, col_sand, col_sand, terrain_n)
 
-	# The interior bunker sand floor is rendered directly by UnifiedTerrain with the realistic
-	# splat shader (and bowl depression), avoiding planar chord protrusions or Z-fighting across
-	# undulating sand terrain. The lip perimeter mesh provides the authentic 3D turf/soil transition lip.
-
+	# The interior bunker sand floor and surrounding raised grass bank are rendered directly
+	# by UnifiedTerrain with matched fairway/green/rough shading and concave bowl geometry.
 	return st.commit()
+
+
+static func _add_tri_upward(
+	st: SurfaceTool,
+	v0: Vector3,
+	v1: Vector3,
+	v2: Vector3,
+	c0: Color,
+	c1: Color,
+	c2: Color,
+	n: Vector3
+) -> void:
+	# Godot 4 CW front-face normal for (v0, v1, v2) is (v2 - v0).cross(v1 - v0)
+	var front_n := (v2 - v0).cross(v1 - v0)
+	if front_n.length_squared() < 1e-10:
+		return
+	if front_n.y < 0.0:
+		st.set_normal(n)
+		st.set_color(c0)
+		st.set_uv(Vector2(v0.x * 0.2, v0.z * 0.2))
+		st.add_vertex(v0)
+		st.set_normal(n)
+		st.set_color(c2)
+		st.set_uv(Vector2(v2.x * 0.2, v2.z * 0.2))
+		st.add_vertex(v2)
+		st.set_normal(n)
+		st.set_color(c1)
+		st.set_uv(Vector2(v1.x * 0.2, v1.z * 0.2))
+		st.add_vertex(v1)
+	else:
+		st.set_normal(n)
+		st.set_color(c0)
+		st.set_uv(Vector2(v0.x * 0.2, v0.z * 0.2))
+		st.add_vertex(v0)
+		st.set_normal(n)
+		st.set_color(c1)
+		st.set_uv(Vector2(v1.x * 0.2, v1.z * 0.2))
+		st.add_vertex(v1)
+		st.set_normal(n)
+		st.set_color(c2)
+		st.set_uv(Vector2(v2.x * 0.2, v2.z * 0.2))
+		st.add_vertex(v2)
 
 
 static func _add_quad(
@@ -884,60 +1542,8 @@ static func _add_quad(
 	cd: Color,
 	n: Vector3
 ) -> void:
-	# Ensure winding produces upward/outward normal matching `n`
-	var tri_n := (b - a).cross(c - a)
-	if tri_n.dot(n) < 0.0:
-		st.set_normal(n)
-		st.set_color(ca)
-		st.set_uv(Vector2(a.x * 0.2, a.z * 0.2))
-		st.add_vertex(a)
-		st.set_normal(n)
-		st.set_color(cc)
-		st.set_uv(Vector2(c.x * 0.2, c.z * 0.2))
-		st.add_vertex(c)
-		st.set_normal(n)
-		st.set_color(cb)
-		st.set_uv(Vector2(b.x * 0.2, b.z * 0.2))
-		st.add_vertex(b)
-
-		st.set_normal(n)
-		st.set_color(ca)
-		st.set_uv(Vector2(a.x * 0.2, a.z * 0.2))
-		st.add_vertex(a)
-		st.set_normal(n)
-		st.set_color(cd)
-		st.set_uv(Vector2(d.x * 0.2, d.z * 0.2))
-		st.add_vertex(d)
-		st.set_normal(n)
-		st.set_color(cc)
-		st.set_uv(Vector2(c.x * 0.2, c.z * 0.2))
-		st.add_vertex(c)
-	else:
-		st.set_normal(n)
-		st.set_color(ca)
-		st.set_uv(Vector2(a.x * 0.2, a.z * 0.2))
-		st.add_vertex(a)
-		st.set_normal(n)
-		st.set_color(cb)
-		st.set_uv(Vector2(b.x * 0.2, b.z * 0.2))
-		st.add_vertex(b)
-		st.set_normal(n)
-		st.set_color(cc)
-		st.set_uv(Vector2(c.x * 0.2, c.z * 0.2))
-		st.add_vertex(c)
-
-		st.set_normal(n)
-		st.set_color(ca)
-		st.set_uv(Vector2(a.x * 0.2, a.z * 0.2))
-		st.add_vertex(a)
-		st.set_normal(n)
-		st.set_color(cc)
-		st.set_uv(Vector2(c.x * 0.2, c.z * 0.2))
-		st.add_vertex(c)
-		st.set_normal(n)
-		st.set_color(cd)
-		st.set_uv(Vector2(d.x * 0.2, d.z * 0.2))
-		st.add_vertex(d)
+	_add_tri_upward(st, a, b, c, ca, cb, cc, n)
+	_add_tri_upward(st, a, c, d, ca, cc, cd, n)
 
 
 static func _create_bunker_high_material() -> ShaderMaterial:
@@ -1514,8 +2120,522 @@ static func _upgrade_water_materials(scene_root: Node) -> void:
 					sm.set_shader_parameter("height_scale", 0.025)
 
 
-static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist_for_save: bool) -> bool:
-	# 1. If scene already has cartpath MeshInstances (e.g. from OsmMapLoader), upgrade them to cart_path.gdshader
+static func _build_5col_cart_path_mesh_from_runs(runs: Array, height_info: Dictionary, base_y: float) -> ArrayMesh:
+	var col_us := [0.0, 0.25, 0.5, 0.75, 1.0]
+	var col_offsets := [0.022, 0.030, 0.034, 0.030, 0.022]
+	var cols := 5
+
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+
+	for run in runs:
+		var left_pts: PackedVector2Array = run.get("left", PackedVector2Array())
+		var right_pts: PackedVector2Array = run.get("right", PackedVector2Array())
+		var row_count := mini(left_pts.size(), right_pts.size())
+		if row_count < 2:
+			continue
+
+		var base_vert := verts.size()
+		var cum_dist := 0.0
+		var prev_mid := (left_pts[0] + right_pts[0]) * 0.5
+		for r in range(row_count):
+			var lp := left_pts[r]
+			var rp := right_pts[r]
+			var mid := (lp + rp) * 0.5
+			if r > 0:
+				cum_dist += prev_mid.distance_to(mid)
+			prev_mid = mid
+			var v_coord := cum_dist * 0.25
+			for c in range(cols):
+				var p2 := lp.lerp(rp, float(col_us[c]))
+				var y := _sample_height(p2.x, p2.y, height_info, base_y) + float(col_offsets[c])
+				verts.append(Vector3(p2.x, y, p2.y))
+				normals.append(_sample_normal(p2.x, p2.y, height_info))
+				uvs.append(Vector2(float(col_us[c]), v_coord))
+
+		# 2-pass convex-crease midpoint clearance lift so sharp terrain ridges cannot cut slits across the cart path
+		var run_vert_count := row_count * cols
+		for _pass in range(2):
+			var lifts := PackedFloat32Array()
+			lifts.resize(run_vert_count)
+			lifts.fill(0.0)
+			for seg in range(row_count - 1):
+				var ra := seg * cols
+				var rb := (seg + 1) * cols
+				for c in range(cols - 1):
+					var i00 := ra + c
+					var i10 := ra + c + 1
+					var i01 := rb + c
+					var i11 := rb + c + 1
+					var pairs := [
+						[i00, i01, 0.018 if c == 0 else 0.024],
+						[i10, i11, 0.018 if c == cols - 2 else 0.024],
+						[i00, i10, 0.022],
+						[i01, i11, 0.022],
+						[i00, i11, 0.024],
+						[i10, i01, 0.024]
+					]
+					for pair in pairs:
+						var ia: int = int(pair[0])
+						var ib: int = int(pair[1])
+						var min_clear: float = float(pair[2])
+						var va := verts[base_vert + ia]
+						var vb := verts[base_vert + ib]
+						var mx := (va.x + vb.x) * 0.5
+						var mz := (va.z + vb.z) * 0.5
+						var my := (va.y + vb.y) * 0.5
+						var deficit := (_sample_height(mx, mz, height_info, base_y) + min_clear) - my
+						if deficit > 0.0:
+							if deficit > lifts[ia]: lifts[ia] = deficit
+							if deficit > lifts[ib]: lifts[ib] = deficit
+			for vi in range(run_vert_count):
+				if lifts[vi] > 0.0:
+					var v := verts[base_vert + vi]
+					v.y += lifts[vi]
+					verts[base_vert + vi] = v
+
+		# Determine winding so triangle front faces point +Y
+		var a0 := Vector3(left_pts[0].x, 0.0, left_pts[0].y)
+		var b0 := Vector3(right_pts[0].x, 0.0, right_pts[0].y)
+		var c0 := Vector3(left_pts[1].x, 0.0, left_pts[1].y)
+		var flip_winding := (b0 - a0).cross(c0 - a0).y < 0.0
+
+		for seg in range(row_count - 1):
+			var row_a := base_vert + seg * cols
+			var row_b := base_vert + (seg + 1) * cols
+			for c in range(cols - 1):
+				if flip_winding:
+					indices.append(row_a + c)
+					indices.append(row_b + c)
+					indices.append(row_a + c + 1)
+					indices.append(row_a + c + 1)
+					indices.append(row_b + c)
+					indices.append(row_b + c + 1)
+				else:
+					indices.append(row_a + c)
+					indices.append(row_a + c + 1)
+					indices.append(row_b + c)
+					indices.append(row_a + c + 1)
+					indices.append(row_b + c + 1)
+					indices.append(row_b + c)
+
+	if verts.is_empty() or indices.is_empty():
+		return null
+
+	var mesh_arrays := []
+	mesh_arrays.resize(Mesh.ARRAY_MAX)
+	mesh_arrays[Mesh.ARRAY_VERTEX] = verts
+	mesh_arrays[Mesh.ARRAY_NORMAL] = normals
+	mesh_arrays[Mesh.ARRAY_TEX_UV] = uvs
+	mesh_arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mesh_arrays)
+	return mesh
+
+
+static func _update_cart_path_collision(cart_body: StaticBody3D, path_mesh: ArrayMesh) -> void:
+	if cart_body == null or path_mesh == null:
+		return
+	var col_faces := path_mesh.get_faces()
+	for fi in range(col_faces.size()):
+		var fv := col_faces[fi]
+		fv.y -= 0.010
+		col_faces[fi] = fv
+	for sub in cart_body.get_children():
+		if sub is CollisionShape3D:
+			var concave := ConcavePolygonShape3D.new()
+			concave.backface_collision = true
+			concave.set_faces(col_faces)
+			(sub as CollisionShape3D).shape = concave
+			break
+
+
+static func _extract_runs_from_existing_cart_path(am: ArrayMesh) -> Array:
+	var runs: Array = []
+	if am == null or am.get_surface_count() == 0:
+		return runs
+	var arrays := am.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var uvs = arrays[Mesh.ARRAY_TEX_UV]
+	var indices = arrays[Mesh.ARRAY_INDEX]
+	if verts.size() < 4:
+		return runs
+
+	var cols := 2
+	if uvs != null and uvs.size() == verts.size() and verts.size() >= 5 and is_equal_approx(uvs[0].x, 0.0) and is_equal_approx(uvs[1].x, 0.25) and is_equal_approx(uvs[4].x, 1.0):
+		cols = 5
+	if (verts.size() % cols) != 0:
+		return runs
+
+	var num_rows := verts.size() / cols
+	if num_rows < 2:
+		return runs
+
+	var connected := PackedByteArray()
+	connected.resize(num_rows - 1)
+	if indices != null and indices is PackedInt32Array and (indices as PackedInt32Array).size() >= 3:
+		connected.fill(0)
+		var idx_arr: PackedInt32Array = indices
+		var tri_count := idx_arr.size() / 3
+		for t in range(tri_count):
+			var r0 := idx_arr[t * 3] / cols
+			var r1 := idx_arr[t * 3 + 1] / cols
+			var r2 := idx_arr[t * 3 + 2] / cols
+			var min_r := mini(r0, mini(r1, r2))
+			var max_r := maxi(r0, maxi(r1, r2))
+			if max_r == min_r + 1 and min_r < connected.size():
+				connected[min_r] = 1
+	else:
+		connected.fill(1)
+
+	var r := 0
+	while r < num_rows - 1:
+		if connected[r] == 0:
+			r += 1
+			continue
+		var run_start := r
+		while r < num_rows - 1 and connected[r] == 1:
+			r += 1
+		var run_end := r
+
+		var left_pts := PackedVector2Array()
+		var right_pts := PackedVector2Array()
+		var l_first := verts[run_start * cols]
+		var r_first := verts[run_start * cols + cols - 1]
+		left_pts.append(Vector2(l_first.x, l_first.z))
+		right_pts.append(Vector2(r_first.x, r_first.z))
+
+		for ri in range(run_start, run_end):
+			var l0_3 := verts[ri * cols]
+			var r0_3 := verts[ri * cols + cols - 1]
+			var l1_3 := verts[(ri + 1) * cols]
+			var r1_3 := verts[(ri + 1) * cols + cols - 1]
+			var l0 := Vector2(l0_3.x, l0_3.z)
+			var r0 := Vector2(r0_3.x, r0_3.z)
+			var l1 := Vector2(l1_3.x, l1_3.z)
+			var r1 := Vector2(r1_3.x, r1_3.z)
+			var mid0 := (l0 + r0) * 0.5
+			var mid1 := (l1 + r1) * 0.5
+			var steps := maxi(1, int(ceil(mid0.distance_to(mid1) / 0.4)))
+			for s in range(1, steps + 1):
+				var t := float(s) / float(steps)
+				left_pts.append(l0.lerp(l1, t))
+				right_pts.append(r0.lerp(r1, t))
+
+		runs.append({"left": left_pts, "right": right_pts})
+
+	return runs
+
+
+static func _extract_bridge_abutments(scene_root: Node) -> Array[Dictionary]:
+	var abutments: Array[Dictionary] = []
+	if scene_root == null:
+		return abutments
+
+	var bridge_meshes := {}
+	var bridge_statics := {}
+	for child in scene_root.get_children():
+		var lname := child.name.to_lower()
+		if child is MeshInstance3D and lname.begins_with("cartbridge_") and not lname.begins_with("cartbridge_static_"):
+			bridge_meshes[lname.substr(11)] = child
+		elif child is StaticBody3D and lname.begins_with("cartbridge_static_"):
+			bridge_statics[lname.substr(18)] = child
+
+	var processed_suffixes := {}
+	for suffix in bridge_meshes.keys():
+		processed_suffixes[suffix] = true
+		var bmi: MeshInstance3D = bridge_meshes[suffix]
+		if bmi.has_meta("bridge_start") and bmi.has_meta("bridge_end") and bmi.has_meta("bridge_start_dir") and bmi.has_meta("bridge_end_dir"):
+			var hw := float(bmi.get_meta("bridge_half_width", 1.25))
+			var s_c: Vector2 = bmi.get_meta("bridge_start")
+			var s_d: Vector2 = (bmi.get_meta("bridge_start_dir") as Vector2).normalized()
+			if s_d.length_squared() > 0.5:
+				var s_perp := Vector2(-s_d.y, s_d.x)
+				abutments.append({
+					"left": s_c - s_perp * hw,
+					"right": s_c + s_perp * hw,
+					"center": s_c,
+					"inward_dir": s_d
+				})
+			var e_c: Vector2 = bmi.get_meta("bridge_end")
+			var e_d: Vector2 = (bmi.get_meta("bridge_end_dir") as Vector2).normalized()
+			if e_d.length_squared() > 0.5:
+				var e_perp := Vector2(-e_d.y, e_d.x)
+				abutments.append({
+					"left": e_c - e_perp * hw,
+					"right": e_c + e_perp * hw,
+					"center": e_c,
+					"inward_dir": e_d
+				})
+			continue
+
+		var sb: StaticBody3D = bridge_statics.get(suffix, null) as StaticBody3D
+		if sb != null:
+			_append_abutments_from_bridge_static(sb, abutments)
+
+	for suffix in bridge_statics.keys():
+		if processed_suffixes.has(suffix):
+			continue
+		var sb: StaticBody3D = bridge_statics[suffix] as StaticBody3D
+		if sb != null:
+			_append_abutments_from_bridge_static(sb, abutments)
+
+	return abutments
+
+
+static func _append_abutments_from_bridge_static(sb: StaticBody3D, abutments: Array[Dictionary]) -> void:
+	for sub in sb.get_children():
+		if sub is CollisionShape3D and (sub as CollisionShape3D).shape is ConcavePolygonShape3D:
+			var faces := ((sub as CollisionShape3D).shape as ConcavePolygonShape3D).get_faces()
+			if faces.size() < 6 or (faces.size() % 6) != 0:
+				break
+			var xform := (sb as Node3D).transform * (sub as Node3D).transform
+			# Start quad vertices from CreateCartPathBridge: [aL, bL, aR, aR, bL, bR]
+			var s0 := xform * faces[0]
+			var s1 := xform * faces[1]
+			var s2 := xform * faces[2]
+			var s5 := xform * faces[5]
+			var s_l := Vector2(s0.x, s0.z)
+			var s_r := Vector2(s2.x, s2.z)
+			var s_center := (s_l + s_r) * 0.5
+			var s_next := (Vector2(s1.x, s1.z) + Vector2(s5.x, s5.z)) * 0.5
+			var s_vec := s_next - s_center
+			if s_l.distance_to(s_r) > 0.2 and s_vec.length_squared() > 0.0001:
+				abutments.append({
+					"left": s_l,
+					"right": s_r,
+					"center": s_center,
+					"inward_dir": s_vec.normalized()
+				})
+
+			# End quad vertices: [aL_prev, bL_end, aR_prev, aR_prev, bL_end, bR_end]
+			var last := faces.size() - 6
+			var e0 := xform * faces[last]
+			var e1 := xform * faces[last + 1]
+			var e2 := xform * faces[last + 2]
+			var e5 := xform * faces[last + 5]
+			var e_l := Vector2(e1.x, e1.z)
+			var e_r := Vector2(e5.x, e5.z)
+			var e_center := (e_l + e_r) * 0.5
+			var e_prev := (Vector2(e0.x, e0.z) + Vector2(e2.x, e2.z)) * 0.5
+			var e_vec := e_prev - e_center
+			if e_l.distance_to(e_r) > 0.2 and e_vec.length_squared() > 0.0001:
+				abutments.append({
+					"left": e_l,
+					"right": e_r,
+					"center": e_center,
+					"inward_dir": e_vec.normalized()
+				})
+			break
+
+
+static func _extend_run_endpoint(
+	run: Dictionary,
+	is_end: bool,
+	t_left_in: Vector2,
+	t_right_in: Vector2,
+	tuck_dir: Vector2 = Vector2.ZERO,
+	tuck_dist: float = 0.0
+) -> void:
+	var left_pts: PackedVector2Array = run["left"]
+	var right_pts: PackedVector2Array = run["right"]
+	var n := mini(left_pts.size(), right_pts.size())
+	if n < 2:
+		return
+
+	var end_idx := n - 1 if is_end else 0
+	var end_l := left_pts[end_idx]
+	var end_r := right_pts[end_idx]
+	var t_left := t_left_in
+	var t_right := t_right_in
+	if (end_r - end_l).dot(t_right - t_left) < 0.0:
+		var swap := t_left
+		t_left = t_right
+		t_right = swap
+
+	var span_d := maxf(end_l.distance_to(t_left), end_r.distance_to(t_right))
+	var steps := maxi(1, int(ceil(span_d / 0.4))) if span_d > 0.05 else 0
+
+	if is_end:
+		for s in range(1, steps + 1):
+			var frac := float(s) / float(steps)
+			left_pts.append(end_l.lerp(t_left, frac))
+			right_pts.append(end_r.lerp(t_right, frac))
+		if tuck_dist > 0.01 and tuck_dir.length_squared() > 0.5:
+			left_pts.append(t_left + tuck_dir * tuck_dist)
+			right_pts.append(t_right + tuck_dir * tuck_dist)
+		run["left"] = left_pts
+		run["right"] = right_pts
+	else:
+		var new_l := PackedVector2Array()
+		var new_r := PackedVector2Array()
+		if tuck_dist > 0.01 and tuck_dir.length_squared() > 0.5:
+			new_l.append(t_left + tuck_dir * tuck_dist)
+			new_r.append(t_right + tuck_dir * tuck_dist)
+		if steps > 0:
+			new_l.append(t_left)
+			new_r.append(t_right)
+			for s in range(1, steps):
+				var frac := float(s) / float(steps)
+				new_l.append(t_left.lerp(end_l, frac))
+				new_r.append(t_right.lerp(end_r, frac))
+		elif tuck_dist > 0.01 and tuck_dir.length_squared() > 0.5:
+			new_l.append(t_left)
+			new_r.append(t_right)
+		new_l.append_array(left_pts)
+		new_r.append_array(right_pts)
+		run["left"] = new_l
+		run["right"] = new_r
+
+
+static func _connect_cart_path_runs_to_bridges_and_gaps(
+	cp_entries: Array,
+	abutments: Array[Dictionary],
+	water_entries: Array
+) -> void:
+	if cp_entries.is_empty():
+		return
+
+	var connected_ends := {}
+
+	# Phase 1: Connect nearby cart path run endpoints seamlessly into wooden bridge abutments
+	for ab in abutments:
+		var ab_center: Vector2 = ab["center"]
+		var ab_inward: Vector2 = ab["inward_dir"]
+		var best_dist := 6.0
+		var best_match := {}
+
+		for cp_idx in range(cp_entries.size()):
+			var runs: Array = cp_entries[cp_idx]["runs"]
+			for run_idx in range(runs.size()):
+				var run: Dictionary = runs[run_idx]
+				var lp: PackedVector2Array = run["left"]
+				var rp: PackedVector2Array = run["right"]
+				var n := mini(lp.size(), rp.size())
+				if n < 2:
+					continue
+				for end_flag in range(2):
+					var is_end := end_flag == 1
+					var end_key := "%d:%d:%d" % [cp_idx, run_idx, end_flag]
+					if connected_ends.has(end_key):
+						continue
+					var ei := n - 1 if is_end else 0
+					var pi := n - 2 if is_end else 1
+					var end_mid := (lp[ei] + rp[ei]) * 0.5
+					var prev_mid := (lp[pi] + rp[pi]) * 0.5
+					var dist := end_mid.distance_to(ab_center)
+					if dist > best_dist:
+						continue
+					var along_inward := ab_inward.dot(end_mid - ab_center)
+					if along_inward > 1.2:
+						continue
+					if dist >= 0.8:
+						var app_vec := end_mid - prev_mid
+						if app_vec.length_squared() > 0.0001:
+							var to_br := (ab_center - end_mid) / dist
+							if app_vec.normalized().dot(to_br) <= -0.25:
+								continue
+					best_dist = dist
+					best_match = {
+						"cp_idx": cp_idx,
+						"run_idx": run_idx,
+						"is_end": is_end,
+						"key": end_key,
+						"along_inward": along_inward,
+						"dist": dist
+					}
+
+		if not best_match.is_empty():
+			connected_ends[best_match["key"]] = true
+			var run: Dictionary = cp_entries[best_match["cp_idx"]]["runs"][best_match["run_idx"]]
+			var already_tucked: bool = float(best_match["along_inward"]) >= 0.25 and float(best_match["dist"]) < 0.8
+			if not already_tucked:
+				_extend_run_endpoint(
+					run,
+					bool(best_match["is_end"]),
+					ab["left"],
+					ab["right"],
+					ab_inward,
+					0.40
+				)
+
+	# Phase 2: Stitch small dry-land gaps (0.15m..3.5m) between aligned dangling run endpoints
+	var candidates: Array[Dictionary] = []
+	for cp_idx in range(cp_entries.size()):
+		var runs: Array = cp_entries[cp_idx]["runs"]
+		for run_idx in range(runs.size()):
+			var run: Dictionary = runs[run_idx]
+			var lp: PackedVector2Array = run["left"]
+			var rp: PackedVector2Array = run["right"]
+			var n := mini(lp.size(), rp.size())
+			if n < 2:
+				continue
+			for end_flag in range(2):
+				var end_key := "%d:%d:%d" % [cp_idx, run_idx, end_flag]
+				if connected_ends.has(end_key):
+					continue
+				var ei := n - 1 if end_flag == 1 else 0
+				var pi := n - 2 if end_flag == 1 else 1
+				var end_mid := (lp[ei] + rp[ei]) * 0.5
+				var prev_mid := (lp[pi] + rp[pi]) * 0.5
+				var out_vec := end_mid - prev_mid
+				if out_vec.length_squared() < 0.0001:
+					continue
+				candidates.append({
+					"cp_idx": cp_idx,
+					"run_idx": run_idx,
+					"is_end": end_flag == 1,
+					"key": end_key,
+					"mid": end_mid,
+					"dir": out_vec.normalized(),
+					"left": lp[ei],
+					"right": rp[ei]
+				})
+
+	for a in range(candidates.size()):
+		var ca: Dictionary = candidates[a]
+		if connected_ends.has(ca["key"]):
+			continue
+		var best_b := -1
+		var best_d := 3.5
+		for b in range(a + 1, candidates.size()):
+			var cb: Dictionary = candidates[b]
+			if connected_ends.has(cb["key"]):
+				continue
+			if ca["cp_idx"] == cb["cp_idx"] and ca["run_idx"] == cb["run_idx"]:
+				continue
+			var d := (ca["mid"] as Vector2).distance_to(cb["mid"] as Vector2)
+			if d < 0.15 or d > best_d:
+				continue
+			var across := ((cb["mid"] as Vector2) - (ca["mid"] as Vector2)) / d
+			if (ca["dir"] as Vector2).dot(across) <= 0.45 or (cb["dir"] as Vector2).dot(-across) <= 0.45:
+				continue
+			var gap_mid := ((ca["mid"] as Vector2) + (cb["mid"] as Vector2)) * 0.5
+			var in_water := false
+			for w_entry in water_entries:
+				var w_aabb: Rect2 = w_entry["aabb"]
+				if w_aabb.has_point(gap_mid) and Geometry2D.is_point_in_polygon(gap_mid, w_entry["poly"]):
+					in_water = true
+					break
+			if in_water:
+				continue
+			best_d = d
+			best_b = b
+
+		if best_b >= 0:
+			var cb: Dictionary = candidates[best_b]
+			connected_ends[ca["key"]] = true
+			connected_ends[cb["key"]] = true
+			var run_a: Dictionary = cp_entries[ca["cp_idx"]]["runs"][ca["run_idx"]]
+			_extend_run_endpoint(run_a, bool(ca["is_end"]), cb["left"], cb["right"])
+
+
+static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist_for_save: bool, force_rebuild: bool = false) -> bool:
+	var base_y := float(height_info.get("avg_edge_y", 0.0))
+
+	# 1. If scene already has cartpath MeshInstances (e.g. from OsmMapLoader), upgrade shader & optionally re-drape
 	var existing_cartpaths: Array[MeshInstance3D] = []
 	for child in scene_root.get_children():
 		if child is MeshInstance3D and child.name.to_lower().begins_with("cartpath_") and not child.name.to_lower().begins_with("cartpath_static_"):
@@ -1525,6 +2645,48 @@ static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist
 		var shader_res: Shader = null
 		if ResourceLoader.exists("res://Courses/Environments/shaders/cart_path.gdshader"):
 			shader_res = load("res://Courses/Environments/shaders/cart_path.gdshader") as Shader
+
+		var static_by_lower_name := {}
+		if force_rebuild:
+			for child in scene_root.get_children():
+				if child is StaticBody3D and child.name.to_lower().begins_with("cartpath_static_"):
+					static_by_lower_name[child.name.to_lower()] = child
+
+			var cp_entries: Array = []
+			for cp_mi in existing_cartpaths:
+				var mat: Material = cp_mi.get_surface_override_material(0)
+				if mat == null and cp_mi.mesh != null and cp_mi.mesh.get_surface_count() > 0:
+					mat = cp_mi.mesh.surface_get_material(0)
+				var sm: ShaderMaterial = mat as ShaderMaterial
+				if sm == null or sm.shader != shader_res:
+					if shader_res != null:
+						sm = ShaderMaterial.new()
+						sm.shader = shader_res
+						cp_mi.set_surface_override_material(0, sm)
+						if cp_mi.mesh != null:
+							cp_mi.mesh.surface_set_material(0, sm)
+				if cp_mi.mesh is ArrayMesh and (cp_mi.mesh as ArrayMesh).get_surface_count() > 0:
+					var am := cp_mi.mesh as ArrayMesh
+					var extracted_runs := _extract_runs_from_existing_cart_path(am)
+					if not extracted_runs.is_empty():
+						cp_entries.append({ "cp_mi": cp_mi, "sm": sm, "runs": extracted_runs })
+
+			if not cp_entries.is_empty():
+				var abutments := _extract_bridge_abutments(scene_root)
+				var water_entries: Array = _extract_course_features(scene_root).get("water", [])
+				_connect_cart_path_runs_to_bridges_and_gaps(cp_entries, abutments, water_entries)
+				for entry in cp_entries:
+					var cp_mi: MeshInstance3D = entry["cp_mi"]
+					var sm: ShaderMaterial = entry["sm"]
+					var redraped := _build_5col_cart_path_mesh_from_runs(entry["runs"], height_info, base_y)
+					if redraped != null:
+						if sm != null:
+							redraped.surface_set_material(0, sm)
+						cp_mi.mesh = redraped
+						var suffix := cp_mi.name.substr(9).to_lower()
+						var static_body: StaticBody3D = static_by_lower_name.get("cartpath_static_" + suffix, null) as StaticBody3D
+						_update_cart_path_collision(static_body, redraped)
+				return true
 
 		for cp_mi in existing_cartpaths:
 			var mat: Material = cp_mi.get_surface_override_material(0)
@@ -1539,9 +2701,20 @@ static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist
 					if cp_mi.mesh != null:
 						cp_mi.mesh.surface_set_material(0, sm)
 
-			# Ensure mesh has valid UV coordinates so the shader feathering and packed stone texture render correctly
 			if cp_mi.mesh is ArrayMesh:
 				var am := cp_mi.mesh as ArrayMesh
+				if force_rebuild and am.get_surface_count() > 0:
+					var extracted_runs := _extract_runs_from_existing_cart_path(am)
+					var redraped := _build_5col_cart_path_mesh_from_runs(extracted_runs, height_info, base_y)
+					if redraped != null:
+						if sm != null:
+							redraped.surface_set_material(0, sm)
+						cp_mi.mesh = redraped
+						var suffix := cp_mi.name.substr(9).to_lower()
+						var static_body: StaticBody3D = static_by_lower_name.get("cartpath_static_" + suffix, null) as StaticBody3D
+						_update_cart_path_collision(static_body, redraped)
+						continue
+
 				if am.get_surface_count() > 0:
 					var arrays := am.surface_get_arrays(0)
 					var uvs = arrays[Mesh.ARRAY_TEX_UV]
@@ -1585,11 +2758,8 @@ static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist
 	if polylines.is_empty():
 		return false
 
-	var base_y := float(height_info.get("avg_edge_y", 0.0))
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half_width := 1.1
-	var seg_built := 0
+	var runs: Array = []
 
 	for raw_line in polylines:
 		if not (raw_line is PackedVector2Array or raw_line is Array) or raw_line.size() < 2:
@@ -1603,22 +2773,19 @@ static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist
 		if pts.size() < 2:
 			continue
 
-		# Subdivide long segments tightly (0.5m) so ribbon drapes smoothly over terrain undulations without floating
+		# Subdivide long segments tightly (0.4m) so ribbon drapes smoothly over terrain undulations without floating
 		var dense := PackedVector2Array()
 		dense.append(pts[0])
 		for i in range(pts.size() - 1):
 			var a := pts[i]
 			var b := pts[i + 1]
 			var dist := a.distance_to(b)
-			var steps := maxi(1, int(ceil(dist / 0.5)))
+			var steps := maxi(1, int(ceil(dist / 0.4)))
 			for s in range(1, steps + 1):
 				dense.append(a.lerp(b, float(s) / float(steps)))
 
-		var cum_dist := 0.0
-		var prev_left := Vector3.ZERO
-		var prev_right := Vector3.ZERO
-		var prev_v := 0.0
-
+		var left_pts := PackedVector2Array()
+		var right_pts := PackedVector2Array()
 		for i in range(dense.size()):
 			var cur := dense[i]
 			var tangent := Vector2.ZERO
@@ -1631,48 +2798,15 @@ static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist
 			if tangent.length_squared() < 0.001:
 				tangent = Vector2(1.0, 0.0)
 			var perp := Vector2(-tangent.y, tangent.x)
+			left_pts.append(cur - perp * half_width)
+			right_pts.append(cur + perp * half_width)
 
-			if i > 0:
-				cum_dist += dense[i - 1].distance_to(cur)
-			var v_coord := cum_dist * 0.25
+		runs.append({"left": left_pts, "right": right_pts})
 
-			var lp2 := cur - perp * half_width
-			var rp2 := cur + perp * half_width
-			var ly := _sample_height(lp2.x, lp2.y, height_info, base_y) + 0.080
-			var ry := _sample_height(rp2.x, rp2.y, height_info, base_y) + 0.080
-			var cur_left := Vector3(lp2.x, ly, lp2.y)
-			var cur_right := Vector3(rp2.x, ry, rp2.y)
-
-			if i > 0:
-				st.set_normal(Vector3.UP)
-				st.set_uv(Vector2(0.0, prev_v))
-				st.add_vertex(prev_left)
-				st.set_normal(Vector3.UP)
-				st.set_uv(Vector2(1.0, prev_v))
-				st.add_vertex(prev_right)
-				st.set_normal(Vector3.UP)
-				st.set_uv(Vector2(1.0, v_coord))
-				st.add_vertex(cur_right)
-
-				st.set_normal(Vector3.UP)
-				st.set_uv(Vector2(0.0, prev_v))
-				st.add_vertex(prev_left)
-				st.set_normal(Vector3.UP)
-				st.set_uv(Vector2(1.0, v_coord))
-				st.add_vertex(cur_right)
-				st.set_normal(Vector3.UP)
-				st.set_uv(Vector2(0.0, v_coord))
-				st.add_vertex(cur_left)
-				seg_built += 1
-
-			prev_left = cur_left
-			prev_right = cur_right
-			prev_v = v_coord
-
-	if seg_built == 0:
+	var path_mesh := _build_5col_cart_path_mesh_from_runs(runs, height_info, base_y)
+	if path_mesh == null:
 		return false
 
-	var path_mesh := st.commit()
 	if ResourceLoader.exists("res://Courses/Environments/shaders/cart_path.gdshader"):
 		var mat := ShaderMaterial.new()
 		mat.shader = load("res://Courses/Environments/shaders/cart_path.gdshader") as Shader
@@ -1689,26 +2823,27 @@ static func _build_cart_paths(scene_root: Node, height_info: Dictionary, persist
 	if persist_for_save:
 		path_mi.owner = scene_root
 
-	# Ensure physics collision exists for cart path bounce
-	var has_cart_static := false
-	for child in scene_root.find_children("*", "StaticBody3D", true, false):
-		if child.has_meta("is_cart_path") or child.name.to_lower().contains("cartpath"):
-			has_cart_static = true
-			break
-	if not has_cart_static:
-		var cart_body := StaticBody3D.new()
+	# Ensure physics collision exists and matches the draped cart path mesh
+	var cart_body: StaticBody3D = scene_root.get_node_or_null("CartPath_Static") as StaticBody3D
+	if cart_body == null:
+		for child in scene_root.find_children("*", "StaticBody3D", true, false):
+			if child.has_meta("is_cart_path") or child.name.to_lower().contains("cartpath"):
+				cart_body = child as StaticBody3D
+				break
+	if cart_body == null:
+		cart_body = StaticBody3D.new()
 		cart_body.name = "CartPath_Static"
 		cart_body.set_meta("surface_type", 6) # PhysicsEnums.SurfaceType.CART_PATH
 		cart_body.set_meta("is_cart_path", true)
 		var col_shape := CollisionShape3D.new()
-		var concave := ConcavePolygonShape3D.new()
-		concave.set_faces(path_mesh.get_faces())
-		col_shape.shape = concave
 		cart_body.add_child(col_shape)
 		scene_root.add_child(cart_body)
 		if persist_for_save:
 			cart_body.owner = scene_root
 			col_shape.owner = scene_root
+		_update_cart_path_collision(cart_body, path_mesh)
+	elif force_rebuild:
+		_update_cart_path_collision(cart_body, path_mesh)
 
 	return true
 
@@ -2574,11 +3709,9 @@ static func _is_point_in_thick_rough(pt: Vector2, features: Dictionary, height_i
 	return true
 
 
-static func _distance_to_polygon_2d(pt: Vector2, poly: PackedVector2Array) -> float:
+static func _edge_distance_to_polygon_2d(pt: Vector2, poly: PackedVector2Array) -> float:
 	if poly.size() < 3:
 		return 99999.0
-	if Geometry2D.is_point_in_polygon(pt, poly):
-		return 0.0
 	var min_d_sq := 99999999.0
 	var n := poly.size()
 	for i in range(n):
@@ -2588,6 +3721,14 @@ static func _distance_to_polygon_2d(pt: Vector2, poly: PackedVector2Array) -> fl
 		if d_sq < min_d_sq:
 			min_d_sq = d_sq
 	return sqrt(min_d_sq)
+
+
+static func _distance_to_polygon_2d(pt: Vector2, poly: PackedVector2Array) -> float:
+	if poly.size() < 3:
+		return 99999.0
+	if Geometry2D.is_point_in_polygon(pt, poly):
+		return 0.0
+	return _edge_distance_to_polygon_2d(pt, poly)
 
 
 static func _distance_squared_to_segment_2d(p: Vector2, a: Vector2, b: Vector2) -> float:

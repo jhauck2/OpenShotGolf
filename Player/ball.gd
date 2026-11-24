@@ -638,7 +638,7 @@ func _get_ground_y_at(x: float, z: float) -> float:
 	if world != null and world.direct_space_state != null:
 		var ray_start := Vector3(x, 500.0, z)
 		var ray_end := Vector3(x, -500.0, z)
-		var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
+		var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end, 1)
 		query.collide_with_areas = false
 		query.collide_with_bodies = true
 		query.exclude = [get_rid()]
@@ -897,31 +897,30 @@ func can_tee_up() -> bool:
 
 
 func _update_tee_elevation() -> void:
-	if _tee_mesh == null:
-		return
 	if state != PhysicsEnums.BallState.REST:
-		_tee_mesh.visible = false
+		if _tee_mesh != null:
+			_tee_mesh.visible = false
 		return
 
 	var is_teebox := (lie_type == "teebox")
-	if not is_teebox or not can_tee_up():
-		_tee_mesh.visible = false
-		return
+	var allow_tee := is_teebox and can_tee_up()
+	var is_driver := allow_tee and (current_selected_club.to_lower() in ["dr", "driver", "1w"])
+	if _tee_mesh != null:
+		_tee_mesh.visible = is_driver
 
-	var is_driver := current_selected_club.to_lower() in ["dr", "driver", "1w"]
 	var probe := _try_probe_ground()
 	if probe.get("hit", false):
 		var hit_pos: Vector3 = probe.get("position", Vector3.ZERO)
 		var hit_norm: Vector3 = probe.get("normal", Vector3.UP)
-		var nys := maxf(hit_norm.y, MIN_GROUND_NORMAL)
-		if is_driver:
-			_tee_mesh.visible = true
-			global_position.y = hit_pos.y + TEED_CENTER_HEIGHT
-		else:
-			_tee_mesh.visible = false
-			global_position.y = hit_pos.y + (_ball_radius + GROUND_SNAP_OFFSET) / nys
-			floor_normal = hit_norm
-			on_ground = true
+		if is_ground_normal(hit_norm) and absf(hit_pos.y - global_position.y) <= 1.5:
+			var nys := maxf(hit_norm.y, MIN_GROUND_NORMAL)
+			if is_driver:
+				global_position.y = hit_pos.y + TEED_CENTER_HEIGHT
+			else:
+				global_position.y = hit_pos.y + (_ball_radius + GROUND_SNAP_OFFSET) / nys
+				floor_normal = hit_norm
+				on_ground = true
+			_current_ground_y = hit_pos.y
 	_orient_ball_to_aim()
 
 
@@ -1092,11 +1091,16 @@ func _apply_surface_params() -> void:
 		exponent = 0.30 # Fallback for other surfaces like FIRM
 		
 	var speed_mult = pow(10.0 / green_speed, exponent)
+	var kinetic_speed_mult = speed_mult
+	if surface_type == PhysicsEnums.SurfaceType.GREEN and not is_in_sand:
+		# Keep green rolling friction (putting Stimp speed) unchanged while avoiding
+		# unrealistically sticky kinetic impact sliding friction at default green speed.
+		kinetic_speed_mult = pow(10.0 / green_speed, 0.15)
 	
 	# Default friction scale is 1.0 (baseline calibrated to Stimp 10 physics)
 	var default_friction_scale := 1.0
 	
-	_kinetic_friction *= speed_mult * default_friction_scale
+	_kinetic_friction *= kinetic_speed_mult * default_friction_scale
 	_rolling_friction *= speed_mult * default_friction_scale
 	_grass_viscosity = float(surface_params.get("nu_g", 0.0010)) * _grass_mult
 
@@ -1190,7 +1194,7 @@ func _update_ground_elevation() -> void:
 	if world != null and world.direct_space_state != null:
 		var ray_start := global_position + Vector3.UP * 1.0
 		var ray_end := global_position + Vector3.DOWN * 500.0
-		var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
+		var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end, 1)
 		query.collide_with_areas = false
 		query.collide_with_bodies = true
 		query.exclude = [get_rid()]
@@ -1696,7 +1700,7 @@ func _handle_collision(collision: KinematicCollision3D, was_on_ground: bool, pre
 					var probe_pos := collision.get_position() + forward_dir * 0.04
 					var world := get_world_3d()
 					if world != null:
-						var step_query := PhysicsRayQueryParameters3D.create(probe_pos + Vector3.UP * 0.25, probe_pos + Vector3.DOWN * 0.35)
+						var step_query := PhysicsRayQueryParameters3D.create(probe_pos + Vector3.UP * 0.25, probe_pos + Vector3.DOWN * 0.35, 1)
 						step_query.collide_with_areas = false
 						step_query.collide_with_bodies = true
 						step_query.exclude = [get_rid()]
@@ -2018,7 +2022,7 @@ func _try_recover_to_ground() -> bool:
 
 	var ray_start := global_position + Vector3.UP * GROUND_RAYCAST_UP
 	var ray_end := global_position + Vector3.DOWN * GROUND_RAYCAST_DOWN
-	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
+	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end, 1)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	var excludes: Array[RID] = [get_rid()]
@@ -2066,7 +2070,7 @@ func _try_probe_ground() -> Dictionary:
 
 	var ray_start := global_position + Vector3.UP * 1.5
 	var ray_end := global_position + Vector3.DOWN * 4.0
-	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end)
+	var query := PhysicsRayQueryParameters3D.create(ray_start, ray_end, 1)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	var excludes: Array[RID] = [get_rid()]
@@ -2490,6 +2494,32 @@ func _has_course_green_geometry() -> bool:
 	return false
 
 
+const FRINGE_WIDTH_M: float = 1.5
+
+var _cached_is_pos_in_bunker_pos: Vector3 = Vector3.INF
+var _cached_is_pos_in_bunker_res: bool = false
+
+func _is_position_in_bunker(pos: Vector3) -> bool:
+	if pos.is_equal_approx(_cached_is_pos_in_bunker_pos):
+		return _cached_is_pos_in_bunker_res
+	_cached_is_pos_in_bunker_pos = pos
+	_cached_is_pos_in_bunker_res = _calc_is_position_in_bunker(pos)
+	return _cached_is_pos_in_bunker_res
+
+func _calc_is_position_in_bunker(pos: Vector3) -> bool:
+	var course = null
+	var player_parent = get_parent()
+	if player_parent != null:
+		course = player_parent.get_parent()
+	if course == null or not course.has_method("get_distance_to_nearest_bunker"):
+		var root = get_tree().current_scene if (is_inside_tree() and get_tree() != null) else null
+		if root != null and root.has_method("get_distance_to_nearest_bunker"):
+			course = root
+	if course != null and course.has_method("get_distance_to_nearest_bunker"):
+		return float(course.get_distance_to_nearest_bunker(pos)) <= 0.001
+	return false
+
+
 var _cached_is_pos_on_fringe_pos: Vector3 = Vector3.INF
 var _cached_is_pos_on_fringe_res: bool = false
 
@@ -2503,6 +2533,8 @@ func _is_position_on_fringe(pos: Vector3) -> bool:
 func _calc_is_position_on_fringe(pos: Vector3) -> bool:
 	if _is_position_on_wrong_green(pos):
 		return false
+	if _is_position_in_bunker(pos):
+		return false
 	var course = null
 	var player_parent = get_parent()
 	if player_parent != null:
@@ -2514,12 +2546,12 @@ func _calc_is_position_on_fringe(pos: Vector3) -> bool:
 	if course != null:
 		if course.has_method("get_distance_to_current_green"):
 			var d: float = course.get_distance_to_current_green(pos)
-			if d > 0.05 and d <= 2.5:
+			if d > 0.001 and d <= FRINGE_WIDTH_M:
 				return true
 			return false
 		if course.has_method("get_distance_to_nearest_green"):
 			var d: float = course.get_distance_to_nearest_green(pos)
-			if d > 0.05 and d <= 2.5:
+			if d > 0.001 and d <= FRINGE_WIDTH_M:
 				return true
 	return false
 
@@ -3025,10 +3057,11 @@ func _update_surface_from_collider(collider: Object) -> void:
 	water_collider = null
 
 	var name_lower = collider.name.to_lower()
+	var on_bunker_geo = _is_position_in_bunker(global_position)
 	var on_wrong_green = _is_position_on_wrong_green(global_position)
-	var on_green_geo = (not on_wrong_green) and _is_position_on_green(global_position)
-	var on_fairway_geo = (not on_wrong_green) and (not on_green_geo) and _is_position_on_fairway(global_position)
-	var is_sand = (collider.has_meta("is_sand") and bool(collider.get_meta("is_sand"))) or name_lower.contains("bunker") or name_lower.contains("sand") or (collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.BUNKER)
+	var on_green_geo = (not on_bunker_geo) and (not on_wrong_green) and _is_position_on_green(global_position)
+	var on_fairway_geo = (not on_bunker_geo) and (not on_wrong_green) and (not on_green_geo) and _is_position_on_fairway(global_position)
+	var is_sand = on_bunker_geo or (collider.has_meta("is_sand") and bool(collider.get_meta("is_sand"))) or name_lower.contains("bunker") or name_lower.contains("sand") or (collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.BUNKER)
 	var is_green = (not on_wrong_green) and (on_green_geo or name_lower.contains("green") or (collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.GREEN))
 	var is_cart_path = (collider.has_meta("is_cart_path") and bool(collider.get_meta("is_cart_path"))) or (collider.has_meta("is_road") and bool(collider.get_meta("is_road"))) or (collider.has_meta("is_cart_bridge") and bool(collider.get_meta("is_cart_bridge"))) or name_lower.contains("cartpath") or name_lower.contains("cartbridge") or name_lower.contains("road_static") or name_lower.contains("cart_path")
 	var is_tee = name_lower.contains("tee")
@@ -3155,8 +3188,13 @@ func _update_surface_from_underneath() -> void:
 		water_collider = null
 		var changed_sand = is_in_sand
 		is_in_sand = false
-		set_surface(PhysicsEnums.SurfaceType.FAIRWAY)
-		lie_type = "teebox"
+		if has_meta("capture_surface_override"):
+			var override_surface := int(get_meta("capture_surface_override"))
+			set_surface(override_surface)
+			lie_type = "green" if override_surface == PhysicsEnums.SurfaceType.GREEN else "fairway"
+		else:
+			set_surface(PhysicsEnums.SurfaceType.FAIRWAY)
+			lie_type = "teebox"
 		if changed_sand:
 			_apply_surface_params()
 		return
@@ -3164,7 +3202,9 @@ func _update_surface_from_underneath() -> void:
 	var world := get_world_3d()
 	if world == null:
 		return
-	var query = PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.5, global_position + Vector3.DOWN * 0.6)
+	# Use a generous vertical window (+/- 2.0m) so deep sculpted bunker bowls and undulating terrain
+	# still hit their surface StaticBody3D colliders reliably (including Layer 4 surface-zone overlays).
+	var query = PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 2.0, global_position + Vector3.DOWN * 2.0, 1 | 8)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	query.exclude = [get_rid()]
@@ -3201,10 +3241,23 @@ func _update_surface_from_underneath() -> void:
 		else:
 			break
 
-	var on_green_geo = _is_position_on_green(global_position)
-	var on_fairway_geo = (not _is_position_on_wrong_green(global_position)) and (not on_green_geo) and _is_position_on_fairway(global_position)
+	var on_bunker_geo = _is_position_in_bunker(global_position)
+	var on_green_geo = (not on_bunker_geo) and _is_position_on_green(global_position)
+	var on_fairway_geo = (not on_bunker_geo) and (not _is_position_on_wrong_green(global_position)) and (not on_green_geo) and _is_position_on_fairway(global_position)
 
 	if hit_colliders.is_empty():
+		# Priority 1: Check geometric bunker inclusion first (beats green/fringe/fairway/rough)
+		if on_bunker_geo:
+			is_in_water = false
+			water_collider = null
+			var changed_sand = not is_in_sand
+			is_in_sand = true
+			set_surface(PhysicsEnums.SurfaceType.BUNKER)
+			lie_type = "sand"
+			if changed_sand:
+				_apply_surface_params()
+			return
+
 		var has_green_geo := _has_course_green_geometry()
 		# Check if we are on green
 		if on_green_geo or (is_putt and not is_in_sand and not has_green_geo):
@@ -3276,7 +3329,7 @@ func _update_surface_from_underneath() -> void:
 		if collider.has_meta("is_water") and bool(collider.get_meta("is_water")):
 			priority = 7
 		# 2. Check for sand
-		elif (collider.has_meta("is_sand") and bool(collider.get_meta("is_sand"))) or collider.name.to_lower().contains("bunker") or collider.name.to_lower().contains("sand") or (collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.BUNKER):
+		elif on_bunker_geo or (collider.has_meta("is_sand") and bool(collider.get_meta("is_sand"))) or collider.name.to_lower().contains("bunker") or collider.name.to_lower().contains("sand") or (collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.BUNKER):
 			priority = 6
 		# 3. Check for green
 		elif (not _is_position_on_wrong_green(global_position)) and (on_green_geo or collider.name.to_lower().contains("green") or (collider.has_meta("surface_type") and int(collider.get_meta("surface_type")) == PhysicsEnums.SurfaceType.GREEN)):

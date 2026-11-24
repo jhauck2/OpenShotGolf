@@ -265,7 +265,7 @@ color = Color(0.0627451, 0.08627451, 0.1254902, 0.85882354)
 [node name="Spacer" type="Control" parent="VerticalLayout" unique_id=80362024]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_stretch_ratio = 4.0
+size_flags_stretch_ratio = 0.85
 
 [node name="TilesRow" type="GridContainer" parent="VerticalLayout" unique_id=10469375]
 custom_minimum_size = Vector2(640, 0)

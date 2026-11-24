@@ -64,13 +64,15 @@ void vertex() {
 	if (use_splat_mask && terrain_size_xz.x > 1.0 && terrain_size_xz.y > 1.0) {
 		vec2 uv2 = clamp((world_origin.xz - terrain_min_xz) / terrain_size_xz, vec2(0.0), vec2(1.0));
 		vec4 sp = textureLod(splat_map, uv2, 0.0);
-		// B = Bunker/Sand, R = Green, G = Fairway
-		if (sp.b > 0.45 || sp.r > 0.45 || (!mask_allow_fairway && sp.g > 0.55)) {
+		// B = Bunker/Sand (0.50 = exact edge), R = Green/Fringe (0.50 = 1.50m outer fringe edge), G = Fairway
+		if (sp.b > 0.48 || sp.r > 0.52 || (!mask_allow_fairway && sp.g > 0.82)) {
 			surface_allow = 0.0;
 		} else {
-			// Smooth cutoff only when decisively transitioning into bunker, green, or fairway
-			float disallow = max(sp.r, max(sp.b, (mask_allow_fairway ? 0.0 : sp.g)));
-			surface_allow = 1.0 - smoothstep(0.35, 0.55, disallow);
+			// Smooth cutoff aligned with outer fringe (sp.r == 0.50), bunker (sp.b == 0.50), and fairway edge
+			float disallow_gb = max(sp.r, sp.b);
+			float allow_gb = 1.0 - smoothstep(0.42, 0.52, disallow_gb);
+			float allow_fw = mask_allow_fairway ? 1.0 : (1.0 - smoothstep(0.74, 0.84, sp.g));
+			surface_allow = min(allow_gb, allow_fw);
 		}
 	}
 

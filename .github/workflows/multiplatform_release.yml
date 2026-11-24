@@ -116,6 +116,46 @@ jobs:
             }
           }
 
+      - name: Restore Bundled Cached Course Geometries
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Write-Host "Restoring cached geometry files from release assets..."
+          $cacheDir = "Courses\CachedGeometry"
+          $existingCount = if (Test-Path $cacheDir) { (Get-ChildItem -Path $cacheDir -Filter "*.json.gz" -Recurse -ErrorAction SilentlyContinue).Count } else { 0 }
+          if ($existingCount -lt 100) {
+            gh release download course-cache --pattern "cached_geometry.tar" --clobber
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path "cached_geometry.tar")) {
+              gh release download v0.142.4 --pattern "cached_geometry.tar" --clobber
+            }
+            if (-not (Test-Path "cached_geometry.tar")) {
+              Write-Error "ERROR: cached_geometry.tar could not be downloaded from release assets."
+              exit 1
+            }
+            Write-Host "Extracting cached_geometry.tar..."
+            New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+            tar -xf cached_geometry.tar
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "ERROR: Failed to extract cached_geometry.tar."
+              exit 1
+            }
+            Remove-Item -Path "cached_geometry.tar" -Force -ErrorAction SilentlyContinue
+            if (Test-Path "CachedGeometry") {
+              Write-Host "Relocating extracted CachedGeometry to $cacheDir..."
+              Get-ChildItem -Path "CachedGeometry" | Move-Item -Destination $cacheDir -Force
+              Remove-Item -Path "CachedGeometry" -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            $restoredCount = (Get-ChildItem -Path $cacheDir -Filter "*.json.gz" -Recurse -ErrorAction SilentlyContinue).Count
+            Write-Host "Cached geometry files restored: $restoredCount"
+            if ($restoredCount -lt 100) {
+              Write-Error "ERROR: Expected at least 100 cached geometry files in $cacheDir, found $restoredCount."
+              exit 1
+            }
+          } else {
+            Write-Host "Courses/CachedGeometry already populated ($existingCount files)."
+          }
+
       - name: Build Windows Release Package
         shell: pwsh
         run: |
@@ -176,6 +216,36 @@ jobs:
           GODOT_BIN=$(find ~/Godot -name "Godot" -type f | head -n 1)
           chmod +x "$GODOT_BIN"
           echo "GODOT_BIN=$GODOT_BIN" >> $GITHUB_ENV
+
+      - name: Restore Bundled Cached Course Geometries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Restoring cached geometry files from release assets..."
+          if [ ! -d "Courses/CachedGeometry" ] || [ $(find Courses/CachedGeometry -name "*.json.gz" 2>/dev/null | wc -l) -lt 100 ]; then
+            gh release download course-cache --pattern "cached_geometry.tar" --clobber || gh release download v0.142.4 --pattern "cached_geometry.tar" --clobber || true
+            if [ ! -f "cached_geometry.tar" ]; then
+              echo "ERROR: cached_geometry.tar could not be downloaded from release assets."
+              exit 1
+            fi
+            echo "Extracting cached_geometry.tar..."
+            mkdir -p Courses/CachedGeometry
+            tar -xf cached_geometry.tar
+            rm -f cached_geometry.tar
+            if [ -d "CachedGeometry" ]; then
+              echo "Relocating extracted CachedGeometry to Courses/CachedGeometry..."
+              cp -rn CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || cp -r CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || true
+              rm -rf CachedGeometry
+            fi
+            RESTORED_COUNT=$(find Courses/CachedGeometry -name '*.json.gz' 2>/dev/null | wc -l)
+            echo "Cached geometry files restored: $RESTORED_COUNT"
+            if [ "$RESTORED_COUNT" -lt 100 ]; then
+              echo "ERROR: Expected at least 100 cached geometry files in Courses/CachedGeometry, found $RESTORED_COUNT."
+              exit 1
+            fi
+          else
+            echo "Courses/CachedGeometry already populated."
+          fi
 
       - name: Build macOS Release Package
         shell: pwsh
@@ -248,19 +318,24 @@ jobs:
           echo "Restoring cached geometry files from release assets..."
           if [ ! -d "Courses/CachedGeometry" ] || [ $(find Courses/CachedGeometry -name "*.json.gz" 2>/dev/null | wc -l) -lt 100 ]; then
             gh release download course-cache --pattern "cached_geometry.tar" --clobber || gh release download v0.142.4 --pattern "cached_geometry.tar" --clobber || true
-            if [ -f "cached_geometry.tar" ]; then
-              echo "Extracting cached_geometry.tar..."
-              mkdir -p Courses/CachedGeometry
-              tar -xf cached_geometry.tar
-              rm -f cached_geometry.tar
-              if [ -d "CachedGeometry" ]; then
-                echo "Relocating extracted CachedGeometry to Courses/CachedGeometry..."
-                cp -rn CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || cp -r CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || true
-                rm -rf CachedGeometry
-              fi
-              echo "Cached geometry files restored: $(find Courses/CachedGeometry -name '*.json.gz' 2>/dev/null | wc -l)"
-            else
-              echo "Warning: cached_geometry.tar could not be downloaded."
+            if [ ! -f "cached_geometry.tar" ]; then
+              echo "ERROR: cached_geometry.tar could not be downloaded from release assets."
+              exit 1
+            fi
+            echo "Extracting cached_geometry.tar..."
+            mkdir -p Courses/CachedGeometry
+            tar -xf cached_geometry.tar
+            rm -f cached_geometry.tar
+            if [ -d "CachedGeometry" ]; then
+              echo "Relocating extracted CachedGeometry to Courses/CachedGeometry..."
+              cp -rn CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || cp -r CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || true
+              rm -rf CachedGeometry
+            fi
+            RESTORED_COUNT=$(find Courses/CachedGeometry -name '*.json.gz' 2>/dev/null | wc -l)
+            echo "Cached geometry files restored: $RESTORED_COUNT"
+            if [ "$RESTORED_COUNT" -lt 100 ]; then
+              echo "ERROR: Expected at least 100 cached geometry files in Courses/CachedGeometry, found $RESTORED_COUNT."
+              exit 1
             fi
           else
             echo "Courses/CachedGeometry already populated."
@@ -439,6 +514,36 @@ jobs:
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "Building Version: $VERSION_NAME (Code: $VERSION_CODE)"
+
+      - name: Restore Bundled Cached Course Geometries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Restoring cached geometry files from release assets..."
+          if [ ! -d "Courses/CachedGeometry" ] || [ $(find Courses/CachedGeometry -name "*.json.gz" 2>/dev/null | wc -l) -lt 100 ]; then
+            gh release download course-cache --pattern "cached_geometry.tar" --clobber || gh release download v0.142.4 --pattern "cached_geometry.tar" --clobber || true
+            if [ ! -f "cached_geometry.tar" ]; then
+              echo "ERROR: cached_geometry.tar could not be downloaded from release assets."
+              exit 1
+            fi
+            echo "Extracting cached_geometry.tar..."
+            mkdir -p Courses/CachedGeometry
+            tar -xf cached_geometry.tar
+            rm -f cached_geometry.tar
+            if [ -d "CachedGeometry" ]; then
+              echo "Relocating extracted CachedGeometry to Courses/CachedGeometry..."
+              cp -rn CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || cp -r CachedGeometry/* Courses/CachedGeometry/ 2>/dev/null || true
+              rm -rf CachedGeometry
+            fi
+            RESTORED_COUNT=$(find Courses/CachedGeometry -name '*.json.gz' 2>/dev/null | wc -l)
+            echo "Cached geometry files restored: $RESTORED_COUNT"
+            if [ "$RESTORED_COUNT" -lt 100 ]; then
+              echo "ERROR: Expected at least 100 cached geometry files in Courses/CachedGeometry, found $RESTORED_COUNT."
+              exit 1
+            fi
+          else
+            echo "Courses/CachedGeometry already populated."
+          fi
 
       - name: Export Android Project & Build AAB
         run: |

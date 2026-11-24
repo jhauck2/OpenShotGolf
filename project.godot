@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Heckle Golf Simulator"
-config/version="0.181.0"
+config/version="0.185.8"
 run/main_scene="uid://dgyd437dgyv0y"
 config/features=PackedStringArray("4.7", "C#", "Mobile")
 boot_splash/image="res://assets/images/heckle_splash.png"
@@ -48,6 +48,7 @@ CloudSync="*res://Utils/Cloud/cloud_sync.gd"
 OnlineSession="*res://Utils/Cloud/online_session.gd"
 OnlineMatchController="*res://Utils/Cloud/online_match_controller.gd"
 TournamentService="*res://Utils/Cloud/tournament_service.gd"
+VisualCaptureHelper="*res://Utils/visual_capture_helper.gd"
 
 [debug]
 

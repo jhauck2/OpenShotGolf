@@ -118,16 +118,17 @@ public partial class BounceCalculator : RefCounted
         }
 
         float newTangentSpeed;
+        bool rolloutCanReverse = false;
 
         if (currentState == PhysicsEnums.BallState.Flight)
         {
             float impactSpeed = vel.Length();
             bool hasSpinbackSurface = parameters.SpinbackThetaBoostMax > 0.0f || parameters.SpinbackResponseScale > 1.0f;
             float effectiveCriticalAngle = GetEffectiveCriticalAngle(parameters, currentSpinRpm, impactSpeed, currentState);
-            if (parameters != null && parameters.InitialLaunchAngleDeg < 11.5f && impactSpeed > 20.0f && !hasSpinbackSurface)
+            if (parameters != null && parameters.InitialLaunchAngleDeg < 11.5f && parameters.InitialLaunchAngleDeg >= 8.0f && impactSpeed > 20.0f && !hasSpinbackSurface)
             {
-                // Low launch high speed shots (stingers, punches) skip off turf with extended critical angle up to ~35°
-                float lowLaunchAngleBoost = Mathf.DegToRad(Mathf.Lerp(20.0f, 0.0f, Mathf.Clamp(parameters.InitialLaunchAngleDeg / 11.5f, 0.0f, 1.0f)));
+                // Mild low-launch skip boost only for 8°-11.5° stingers, never for extreme wormburners (<8°)
+                float lowLaunchAngleBoost = Mathf.DegToRad(Mathf.Lerp(4.0f, 0.0f, Mathf.Clamp((parameters.InitialLaunchAngleDeg - 8.0f) / 3.5f, 0.0f, 1.0f)));
                 effectiveCriticalAngle += lowLaunchAngleBoost;
             }
             float impactAngleDeg = Mathf.RadToDeg(impactAngle);
@@ -150,9 +151,9 @@ public partial class BounceCalculator : RefCounted
 
                     if (parameters != null && parameters.InitialLaunchAngleDeg < 11.5f)
                     {
-                        // Low launch angle shots (stingers, worm burners) skip cleanly off turf with high retention
-                        float lowLaunchSkipBoost = Mathf.Lerp(1.22f, 1.0f, Mathf.Clamp(parameters.InitialLaunchAngleDeg / 11.5f, 0.0f, 1.0f));
-                        baseRetention = Mathf.Min(0.84f, baseRetention * lowLaunchSkipBoost);
+                        // Very low launch shots (wormburners) plow into turf and lose extra tangential speed on first impact
+                        float wormburnerDamp = Mathf.Lerp(0.62f, 0.94f, Mathf.Clamp(parameters.InitialLaunchAngleDeg / 11.5f, 0.0f, 1.0f));
+                        baseRetention *= wormburnerDamp;
                     }
 
                     newTangentSpeed = speedTangent * baseRetention * lowEnergyScale;
@@ -212,56 +213,69 @@ public partial class BounceCalculator : RefCounted
             float impactAngleDeg = Mathf.RadToDeg(impactAngle);
 
             bool isSpinbackSurface = parameters != null && (parameters.SpinbackThetaBoostMax > 0.0f || parameters.SpinbackResponseScale > 1.0f);
-            bool canReverseBackwards = isSpinbackSurface && activeBackspinRpm >= 3800.0f && impactAngleDeg >= 47.0f;
+            bool canReverseBackwards = isSpinbackSurface && activeBackspinRpm >= 3900.0f && impactAngleDeg >= 38.0f;
+            rolloutCanReverse = canReverseBackwards;
 
             if (canReverseBackwards)
             {
-                // Active backspin bite into reverse spinback!
-                // Target reverse distances on green:
-                //   ~9,000 RPM:  2-3 feet (0.6 - 0.9 m, speed ~ -0.45 to -0.55 m/s)
-                //  ~10,000 RPM:  4-8 feet (1.2 - 2.4 m, speed ~ -0.65 to -0.90 m/s)
-                //  ~11,000 RPM:  9-16 feet (2.7 - 4.9 m, speed ~ -1.00 to -1.35 m/s)
-                //  ~12,000 RPM: 16-25 feet (4.9 - 7.6 m, speed ~ -1.35 to -1.70 m/s)
-                //  >12,000 RPM: 25+ feet (speed up to -2.1 m/s)
+                // Active backspin bite into reverse spinback on greens (> 9,000 RPM launch)
                 float spinScaleFactor;
-                if (activeBackspinRpm <= 3900.0f)
+                if (activeBackspinRpm <= 4500.0f)
                 {
-                    spinScaleFactor = Mathf.Lerp(0.06f, 0.12f, (activeBackspinRpm - 3800.0f) / 100.0f);
-                }
-                else if (activeBackspinRpm <= 4500.0f)
-                {
-                    // ~9,500 - 10,500 RPM launch
-                    spinScaleFactor = Mathf.Lerp(0.12f, 0.18f, (activeBackspinRpm - 3900.0f) / 600.0f);
+                    // ~9,000 - 9,500 RPM launch: mild pull back
+                    spinScaleFactor = Mathf.Lerp(0.06f, 0.18f, (activeBackspinRpm - 3900.0f) / 600.0f);
                 }
                 else if (activeBackspinRpm <= 5200.0f)
                 {
-                    // ~10,500 - 11,500 RPM launch
-                    spinScaleFactor = Mathf.Lerp(0.18f, 0.24f, (activeBackspinRpm - 4500.0f) / 700.0f);
+                    // ~9,500 - 10,600 RPM launch: moderate spinback
+                    spinScaleFactor = Mathf.Lerp(0.18f, 0.42f, (activeBackspinRpm - 4500.0f) / 700.0f);
+                }
+                else if (activeBackspinRpm <= 6200.0f)
+                {
+                    // ~10,600 - 12,200 RPM launch: strong spinback
+                    spinScaleFactor = Mathf.Lerp(0.42f, 0.85f, (activeBackspinRpm - 5200.0f) / 1000.0f);
                 }
                 else
                 {
-                    // >= 12,000 RPM launch
-                    spinScaleFactor = Mathf.Lerp(0.24f, 0.30f, Mathf.Clamp((activeBackspinRpm - 5200.0f) / 1000.0f, 0.0f, 1.0f));
+                    // > 12,200 RPM launch
+                    spinScaleFactor = Mathf.Lerp(0.85f, 1.25f, Mathf.Clamp((activeBackspinRpm - 6200.0f) / 1000.0f, 0.0f, 1.0f));
                 }
 
                 float maxReverseSpeed = -spinScaleFactor;
-                float rolloutSpinbackTerm = (2.0f / 7.0f) * BallPhysics.RADIUS * activeBackspinRad * 0.05f * Mathf.Max(parameters.SpinbackResponseScale, 0.5f);
+                float rolloutSpinbackTerm = (2.0f / 7.0f) * BallPhysics.RADIUS * activeBackspinRad * 0.07f * Mathf.Max(parameters.SpinbackResponseScale, 0.5f);
                 newTangentSpeed = (speedTangent * tangentialRetention) - rolloutSpinbackTerm;
                 newTangentSpeed = Mathf.Max(maxReverseSpeed, newTangentSpeed);
                 PhysicsLogger.Verbose($"  Rollout Bounce Spinback: backspin={activeBackspinRpm:F0} rpm, maxRev={maxReverseSpeed:F2}, newTangentSpeed={newTangentSpeed:F2} m/s");
             }
-            else if (isSpinbackSurface && activeBackspinRpm > 1800.0f)
+            else if (isSpinbackSurface && activeBackspinRpm >= 2200.0f)
             {
-                // Moderate backspin (~5,000 - 7,500 RPM launch, ~1,800 - 3,700 RPM residual):
-                // Checks forward speed down quickly without ever reversing backwards!
-                float rolloutCheckTerm = (2.0f / 7.0f) * BallPhysics.RADIUS * activeBackspinRad * 0.45f;
+                // Check-and-stop zone (~7,500 - 9,000 RPM launch, ~2,200 - 3,899 RPM residual):
+                // Checks forward speed down to a slight hop forward and stop without reversing backwards
+                float checkRamp = Mathf.Clamp((activeBackspinRpm - 2200.0f) / 900.0f, 0.50f, 1.0f);
+                float rolloutCheckTerm = (2.0f / 7.0f) * BallPhysics.RADIUS * activeBackspinRad * 0.45f * checkRamp;
                 float rawSpeed = (speedTangent * tangentialRetention) - rolloutCheckTerm;
-                newTangentSpeed = Mathf.Max(0.25f, rawSpeed);
+                newTangentSpeed = Mathf.Max(0.30f, rawSpeed);
                 PhysicsLogger.Verbose($"  Rollout Bounce Forward Check: backspin={activeBackspinRpm:F0} rpm, checkTerm={rolloutCheckTerm:F2}, newTangentSpeed={newTangentSpeed:F2} m/s");
+            }
+            else if (isSpinbackSurface && activeBackspinRpm > 1650.0f)
+            {
+                // Mid-spin iron zone (~4,500 - 7,200 RPM launch, ~1,650 - 2,599 RPM residual):
+                // Gentle check so higher spin checks slightly more while still rolling out forward
+                float gentleRamp = Mathf.Lerp(0.12f, 0.35f, (activeBackspinRpm - 1650.0f) / 950.0f);
+                float rolloutCheckTerm = (2.0f / 7.0f) * BallPhysics.RADIUS * activeBackspinRad * 0.45f * gentleRamp;
+                float rawSpeed = (speedTangent * tangentialRetention) - rolloutCheckTerm;
+                newTangentSpeed = Mathf.Max(0.45f, rawSpeed);
             }
             else
             {
                 newTangentSpeed = speedTangent * tangentialRetention;
+            }
+
+            if (parameters != null && parameters.InitialLaunchAngleDeg < 8.0f)
+            {
+                // Dampen subsequent skips on very low wormburner launches
+                float skipDamp = Mathf.Lerp(0.76f, 1.0f, Mathf.Clamp(parameters.InitialLaunchAngleDeg / 8.0f, 0.0f, 1.0f));
+                newTangentSpeed *= skipDamp;
             }
         }
 
@@ -305,15 +319,26 @@ public partial class BounceCalculator : RefCounted
         if (currentState == PhysicsEnums.BallState.Flight)
         {
             float incomingBackspin = omegaTangent.Dot(incomingBackspinAxis);
+            float incomingBackspinRpm = incomingBackspin / ShotSetup.RAD_PER_RPM;
             float impactAngleDeg = Mathf.RadToDeg(impactAngle);
             bool hasSpinbackSurface = parameters != null && (parameters.SpinbackThetaBoostMax > 0.0f || parameters.SpinbackResponseScale > 1.0f);
-            bool inHighSpinCheckRegime = hasSpinbackSurface && (incomingBackspin / ShotSetup.RAD_PER_RPM) >= 8000.0f && impactAngleDeg >= 47.0f;
+            bool inSpinbackRegime = hasSpinbackSurface && incomingBackspinRpm >= 7900.0f && impactAngleDeg >= 44.0f;
+            bool inCheckStopRegime = !inSpinbackRegime && hasSpinbackSurface && incomingBackspinRpm >= 6400.0f && impactAngleDeg >= 36.0f;
 
-            if (inHighSpinCheckRegime)
+            if (inSpinbackRegime)
             {
-                // High-spin steep check impact: ball checks forward but retains high backspin for second bounce & rollout
-                float spinRetentionRatio = Mathf.Clamp(0.55f + (parameters.SpinbackResponseScale - 1.0f) * 0.35f, 0.45f, 0.72f);
+                // High-spin (> ~9,000 RPM launch) steep impact on green: retain high backspin for reverse spinback
+                float spinRetentionRatio = Mathf.Clamp(0.50f + (parameters.SpinbackResponseScale - 1.0f) * 0.30f, 0.45f, 0.68f);
                 float retainedBackspin = incomingBackspin * spinRetentionRatio;
+                omegaTangent = incomingBackspinAxis * retainedBackspin;
+            }
+            else if (inCheckStopRegime)
+            {
+                // Check-and-stop zone (~7,500 - 9,000 RPM launch on green): retain moderate check backspin,
+                // kept well below the 3900 RPM spinback threshold so ground slip stops forward motion without reversing
+                float checkT = Mathf.Clamp((incomingBackspinRpm - 6400.0f) / 1500.0f, 0.0f, 1.0f);
+                float maxCheckBackspin = 3100.0f * ShotSetup.RAD_PER_RPM;
+                float retainedBackspin = Mathf.Min(incomingBackspin * Mathf.Lerp(0.30f, 0.40f, checkT), maxCheckBackspin);
                 omegaTangent = incomingBackspinAxis * retainedBackspin;
             }
             else
@@ -327,11 +352,25 @@ public partial class BounceCalculator : RefCounted
                 {
                     omegaTangent = incomingBackspinAxis * newOmegaTangent;
                 }
+                else if (omegaTangent.LengthSquared() > 0.0001f)
+                {
+                    if (incomingBackspinRpm > 3200.0f)
+                    {
+                        // Mid-spin irons (~4,000 - 7,200 RPM launch): retain enough residual spin to scale rollout
+                        // smoothly with backspin while avoiding excessive bounce-2 braking below ~7,500 RPM
+                        float midSpinT = Mathf.Clamp((incomingBackspinRpm - 3200.0f) / 3200.0f, 0.0f, 1.0f);
+                        float maxResidualRatio = Mathf.Lerp(0.55f, 0.78f, midSpinT);
+                        float cappedSpin = Mathf.Min(newOmegaTangent, incomingBackspin * maxResidualRatio);
+                        omegaTangent = incomingBackspinAxis * cappedSpin;
+                    }
+                    else
+                    {
+                        omegaTangent = omegaTangent.LimitLength(newOmegaTangent);
+                    }
+                }
                 else
                 {
-                    omegaTangent = omegaTangent.LengthSquared() > 0.0001f
-                        ? omegaTangent.LimitLength(newOmegaTangent)
-                        : Vector3.Zero;
+                    omegaTangent = Vector3.Zero;
                 }
             }
         }
@@ -341,14 +380,24 @@ public partial class BounceCalculator : RefCounted
             float incomingBackspin = omegaTangent.Dot(incomingBackspinAxis);
             if (incomingBackspin > 40.0f)
             {
-                // Still spinning backwards: retain backspin to continue spinback/check on rollout
-                float retainedBackspin = incomingBackspin * 0.55f;
-                float minBackspinForNegativeVel = Mathf.Abs(newTangentSpeed) / BallPhysics.RADIUS;
-                if (newTangentSpeed < 0.0f && retainedBackspin < minBackspinForNegativeVel)
+                if (rolloutCanReverse || newTangentSpeed < 0.0f)
                 {
-                    retainedBackspin = minBackspinForNegativeVel;
+                    // Active spinback: retain backspin to continue reverse pull on rollout
+                    float retainedBackspin = incomingBackspin * 0.55f;
+                    float minBackspinForNegativeVel = Mathf.Abs(newTangentSpeed) / BallPhysics.RADIUS;
+                    if (newTangentSpeed < 0.0f && retainedBackspin < minBackspinForNegativeVel)
+                    {
+                        retainedBackspin = minBackspinForNegativeVel;
+                    }
+                    omegaTangent = incomingBackspinAxis * retainedBackspin;
                 }
-                omegaTangent = incomingBackspinAxis * retainedBackspin;
+                else
+                {
+                    // Non-spinback check bounce: damp residual backspin so ground slip stops cleanly without reversing
+                    float maxNonReversingBackspin = Mathf.Abs(newTangentSpeed) / BallPhysics.RADIUS;
+                    float retainedBackspin = Mathf.Min(incomingBackspin * 0.28f, maxNonReversingBackspin);
+                    omegaTangent = incomingBackspinAxis * retainedBackspin;
+                }
             }
             else if (newTangentSpeed > 0.05f)
             {

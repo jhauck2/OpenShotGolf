@@ -99,8 +99,15 @@ void fragment() {
 	}
 	// -----------------------------------------------------------------------
 	// 1. Sample the splat map using UV2 (normalized [0,1] course bounds).
+	//    Aligned with gameplay boundaries (1.50m fringe = splat.r 0.50, bunker = splat.b 0.50).
 	// -----------------------------------------------------------------------
-	vec4 splat = texture(splat_map, UV2);
+	vec4 raw_sample = texture(splat_map, UV2);
+	float splat_green_raw = raw_sample.r;
+	vec4 splat = vec4(
+		smoothstep(0.44, 0.58, raw_sample.r),
+		smoothstep(0.78, 0.94, raw_sample.g),
+		smoothstep(0.42, 0.58, raw_sample.b),
+		raw_sample.a);
 
 	float raw_green   = splat.r;
 	float raw_fairway = splat.g;
@@ -215,8 +222,8 @@ void fragment() {
 		vec3 col_green = texture(tex_green, uv_green).rgb * vec3(0.96, 1.12, 0.90);
 		float green_stripe = smoothstep(0.32, 0.68, sin((v_world_pos.x * 0.866 - v_world_pos.z * 0.5) * 1.8) * 0.5 + 0.5);
 		col_green = mix(col_green * 0.97, col_green * 1.03, green_stripe);
-		float fringe_w = smoothstep(0.03, 0.30, green_w) * (1.0 - smoothstep(0.65, 0.97, green_w));
-		vec3 green_output = mix(col_green, col_green * vec3(0.88, 0.94, 0.86), fringe_w);
+		float fringe_w = smoothstep(0.985, 0.91, splat_green_raw) * green_w;
+		vec3 green_output = mix(col_green, col_green * vec3(0.84, 0.92, 0.80), fringe_w);
 
 		vec3 nr_green = mix(vec3(0.0, 0.0, 1.0), texture(normal_green, uv_green).rgb * 2.0 - 1.0, 0.16);
 		blended_albedo += clamp(green_output, 0.0, 1.0) * green_w;
@@ -226,20 +233,22 @@ void fragment() {
 	}
 
 	if (bunker_w > 0.005) {
-		vec3 col_bunker = texture(tex_bunker, uv_bunker).rgb * vec3(1.10, 1.06, 0.98);
-		float rake_angle = (UV.x * 0.707 - UV.y * 0.707) * 15.0;
+		vec3 col_bunker = texture(tex_bunker, uv_bunker).rgb * vec3(1.06, 0.99, 0.87);
+		float curve_warp = sin(v_world_pos.x * 0.35 + cos(v_world_pos.z * 0.35)) * 4.5;
+		float rake_angle = dot(v_world_pos.xz, vec2(0.707, -0.707)) * 36.0 + curve_warp;
 		float rake_wave = sin(rake_angle) * 0.5 + 0.5;
-		col_bunker *= mix(0.95, 1.05, rake_wave);
+		col_bunker *= mix(0.975, 1.025, rake_wave);
 
 		float green_contact = smoothstep(0.02, 0.45, raw_green);
 		float bunker_edge = smoothstep(0.015, 0.38, bunker_w) * (1.0 - smoothstep(0.30, 0.82, bunker_w));
 		bunker_edge = max(bunker_edge, smoothstep(0.01, 0.35, bunker_w) * green_contact * (1.0 - smoothstep(0.40, 0.88, bunker_w)));
 		vec3 soil_color = vec3(0.42, 0.28, 0.16) * (0.88 + 0.24 * sin(UV.x * 2.0));
-		col_bunker = mix(col_bunker, soil_color, bunker_edge * 0.95);
+		col_bunker = mix(col_bunker, soil_color, bunker_edge * 0.35);
 
+		float rake_dist_fade = 1.0 - smoothstep(10.0, 42.0, length(VERTEX));
 		vec3 nr_bunker = texture(normal_bunker, uv_bunker).rgb * 2.0 - 1.0;
-		vec2 rake_tangent = vec2(cos(rake_angle), sin(rake_angle)) * 0.28;
-		nr_bunker = normalize(vec3(nr_bunker.xy + rake_tangent, max(nr_bunker.z, 0.72)));
+		vec2 rake_tangent = vec2(cos(rake_angle), sin(rake_angle)) * 0.12 * rake_dist_fade;
+		nr_bunker = normalize(vec3(nr_bunker.xy + rake_tangent, max(nr_bunker.z, 0.78)));
 
 		blended_albedo += clamp(col_bunker, 0.0, 1.0) * bunker_w;
 		blended_normal += nr_bunker * bunker_w;

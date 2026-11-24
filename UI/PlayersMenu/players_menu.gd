@@ -2,6 +2,8 @@ extends Control
 
 const BallTypePhysics = preload("res://Utils/ball_type_physics.gd")
 const ClubDeliveryVisuals = preload("res://UI/GolferCamera/club_delivery_visuals.gd")
+const ShotAnalyticsEngineScript = preload("res://Utils/shot_analytics_engine.gd")
+const AnalyticsVisualWidgetsScript = preload("res://UI/ShotAnalysis/analytics_visual_widgets.gd")
 const BudgetPausedBanner = preload("res://UI/Account/budget_paused_banner.gd")
 const AccountModalScene = preload("res://UI/Account/account_modal.tscn")
 const LinkServiceClass = preload("res://Utils/Cloud/link_service.gd")
@@ -102,11 +104,11 @@ var edit_profile_email_input: LineEdit = LineEdit.new()
 var edit_profile_avatar_path: String = ""
 var edit_profile_ball_graphic: String = "single_line"
 var edit_profile_ball_type: String = "standard"
-var edit_profile_tee_opt: OptionButton = OptionButton.new()
-var edit_profile_skill_opt: OptionButton = OptionButton.new()
-var edit_profile_handedness_opt: OptionButton = OptionButton.new()
-var edit_profile_ball_opt: OptionButton = OptionButton.new()
-var edit_profile_ball_type_opt: OptionButton = OptionButton.new()
+var edit_profile_tee_opt: OptionButton = null
+var edit_profile_skill_opt: OptionButton = null
+var edit_profile_handedness_opt: OptionButton = null
+var edit_profile_ball_opt: OptionButton = null
+var edit_profile_ball_type_opt: OptionButton = null
 var edit_profile_content: VBoxContainer = VBoxContainer.new()
 var edit_profile_avatar_preview_container: Control = null
 var edit_profile_ball_preview_container: Control = null
@@ -265,10 +267,10 @@ func _create_ball_preview_icon(graphic_id: String, avatar_path: String = "", pla
 	return root_ctrl
 
 func _skill_key_to_index(skill_key: String) -> int:
-	match skill_key.to_lower():
+	match skill_key.to_lower().strip_edges():
 		"tour_pro": return 3
 		"scratch", "low_handicap": return 1
-		"high_handicap": return 2
+		"high_handicap", "beginner": return 2
 		_: return 0 # mid_handicap is default
 
 func _skill_index_to_key(idx: int) -> String:
@@ -279,10 +281,10 @@ func _skill_index_to_key(idx: int) -> String:
 		_: return "mid_handicap"
 
 func _skill_key_to_display(skill_key: String) -> String:
-	match skill_key.to_lower():
+	match skill_key.to_lower().strip_edges():
 		"tour_pro": return "Tour Professional (+ HCP)"
 		"scratch", "low_handicap": return "Scratch / Low (0–9 HCP)"
-		"high_handicap": return "High Handicap (20+ HCP)"
+		"high_handicap", "beginner": return "High Handicap (20+ HCP)"
 		_: return "Mid Handicap (10–19 HCP)"
 
 func _ready() -> void:
@@ -750,7 +752,7 @@ func _refresh_players_list() -> void:
 
 
 func _update_controller_focus_navigation() -> void:
-	if not is_instance_valid(back_btn) or not is_instance_valid(new_player_input):
+	if not is_inside_tree() or not is_instance_valid(back_btn) or not back_btn.is_inside_tree() or not is_instance_valid(open_create_profile_btn) or not open_create_profile_btn.is_inside_tree() or not is_instance_valid(new_player_input):
 		return
 
 	var player_buttons: Array[Button] = []
@@ -976,31 +978,52 @@ func _setup_cloud_account_bar(parent: Container) -> void:
 
 	if has_node("/root/CloudAuth"):
 		var auth = get_node("/root/CloudAuth")
-		if auth.has_signal("auth_state_changed"):
-			auth.auth_state_changed.connect(func(_signed_in, _user):
-				_update_cloud_account_bar()
-				_check_first_signin_primary_link()
-				_refresh_players_list()
-				if not selected_player_name.is_empty():
-					_render_player_profile(selected_player_name)
-			)
+		if auth.has_signal("auth_state_changed") and not auth.auth_state_changed.is_connected(_on_cloud_auth_state_changed):
+			auth.auth_state_changed.connect(_on_cloud_auth_state_changed)
 	if has_node("/root/CloudSync"):
 		var cs = get_node("/root/CloudSync")
-		if cs.has_signal("sync_started"):
-			cs.sync_started.connect(func():
-				_update_sync_buttons_state()
-			)
-		if cs.has_signal("sync_completed"):
-			cs.sync_completed.connect(func(_ok, _synced):
-				_update_sync_buttons_state()
-				_update_cloud_account_bar()
-				if not selected_player_name.is_empty():
-					_render_player_profile(selected_player_name)
-			)
-		if cs.has_signal("sync_throttled"):
-			cs.sync_throttled.connect(func(_rem):
-				_update_sync_buttons_state()
-			)
+		if cs.has_signal("sync_started") and not cs.sync_started.is_connected(_on_cloud_sync_started):
+			cs.sync_started.connect(_on_cloud_sync_started)
+		if cs.has_signal("sync_completed") and not cs.sync_completed.is_connected(_on_cloud_sync_completed):
+			cs.sync_completed.connect(_on_cloud_sync_completed)
+		if cs.has_signal("sync_throttled") and not cs.sync_throttled.is_connected(_on_cloud_sync_throttled):
+			cs.sync_throttled.connect(_on_cloud_sync_throttled)
+
+
+func _on_cloud_auth_state_changed(_signed_in, _user) -> void:
+	if not is_inside_tree():
+		return
+	_update_cloud_account_bar()
+	_check_first_signin_primary_link()
+	_refresh_players_list()
+	if not selected_player_name.is_empty():
+		_render_player_profile(selected_player_name)
+
+
+func _on_cloud_sync_started() -> void:
+	if not is_inside_tree():
+		return
+	_update_sync_buttons_state()
+
+
+func _on_cloud_sync_completed(_ok, _synced) -> void:
+	if not is_inside_tree():
+		return
+	_update_sync_buttons_state()
+	_update_cloud_account_bar()
+	_refresh_players_list()
+	if selected_player_name.is_empty():
+		var primary_name := MultiplayerManager.get_primary_player_name()
+		if not primary_name.is_empty():
+			selected_player_name = primary_name
+	if not selected_player_name.is_empty():
+		_render_player_profile(selected_player_name)
+
+
+func _on_cloud_sync_throttled(_rem) -> void:
+	if not is_inside_tree():
+		return
+	_update_sync_buttons_state()
 
 
 func _process(_delta: float) -> void:
@@ -1008,6 +1031,8 @@ func _process(_delta: float) -> void:
 
 
 func _update_sync_buttons_state() -> void:
+	if not is_inside_tree():
+		return
 	var cs = get_node_or_null("/root/CloudSync")
 	if cs == null:
 		return
@@ -1417,6 +1442,8 @@ func _check_first_signin_primary_link() -> void:
 		return
 	var reg = MultiplayerManager.get_registered_players()
 	if reg.is_empty():
+		if has_node("/root/CloudSync"):
+			get_node("/root/CloudSync").call("sync_all_eligible_profiles", "startup")
 		return
 	if not _pending_primary_link_player.is_empty():
 		var target_p := _pending_primary_link_player
@@ -2911,9 +2938,19 @@ func _render_player_profile(player_name: String) -> void:
 	var p_issues = MultiplayerManager.get_player_swing_issues(player_name)
 	var all_time_issues: Dictionary = p_issues.get("all_time", {})
 	var monthly_issues: Dictionary = p_issues.get("monthly", {})
+	var issues_meta: Dictionary = MultiplayerManager.get_player_swing_issues_meta(player_name) if MultiplayerManager.has_method("get_player_swing_issues_meta") else {}
 	var date_dict = Time.get_date_dict_from_system()
 	var current_month_key = "%04d-%02d" % [date_dict.year, date_dict.month]
 	var current_month_name = MultiplayerManager.get_month_display_name(current_month_key)
+	var cur_analyzed: int = int(issues_meta.get(current_month_key, {}).get("analyzed_shots", 0))
+	var sorted_months: Array = monthly_issues.keys()
+	sorted_months.sort()
+	var prev_month_key: String = ""
+	for mk in sorted_months:
+		if str(mk) < current_month_key:
+			prev_month_key = str(mk)
+	var prev_month_data: Dictionary = monthly_issues.get(prev_month_key, {}) if not prev_month_key.is_empty() else {}
+	var prev_analyzed: int = int(issues_meta.get(prev_month_key, {}).get("analyzed_shots", 0)) if not prev_month_key.is_empty() else 0
 
 	var swing_scroll = ScrollContainer.new()
 	swing_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -2935,7 +2972,8 @@ func _render_player_profile(player_name: String) -> void:
 		# Monthly section
 		var cur_month_data: Dictionary = monthly_issues.get(current_month_key, {})
 		var month_hdr = Label.new()
-		month_hdr.text = "📅 Current Month Running Totals (%s)" % current_month_name
+		var analyzed_suffix: String = (" · %d shots analyzed" % cur_analyzed) if cur_analyzed > 0 else ""
+		month_hdr.text = "📅 Current Month Running Totals (%s%s)" % [current_month_name, analyzed_suffix]
 		month_hdr.add_theme_font_size_override("font_size", 18)
 		month_hdr.add_theme_color_override("font_color", Color(0.3, 0.8, 1.0))
 		swing_content_vbox.add_child(month_hdr)
@@ -2954,7 +2992,17 @@ func _render_player_profile(player_name: String) -> void:
 			swing_content_vbox.add_child(m_grid)
 
 			for issue in cur_month_data:
-				var card = _create_issue_card(issue, int(cur_month_data[issue]), "This Month")
+				var cnt_cur: int = int(cur_month_data[issue])
+				var badge_parts: Array[String] = []
+				if cur_analyzed > 0:
+					var cur_rate: float = (float(cnt_cur) / float(maxi(cnt_cur, cur_analyzed))) * 100.0
+					badge_parts.append("Rate: %.0f%%" % cur_rate)
+					if prev_analyzed > 0 and prev_month_data.has(issue):
+						var cnt_prev: int = int(prev_month_data[issue])
+						var prev_rate: float = (float(cnt_prev) / float(maxi(cnt_prev, prev_analyzed))) * 100.0
+						var delta_pct: float = cur_rate - prev_rate
+						badge_parts.append("MoM %+.0f%%" % delta_pct)
+				var card = _create_issue_card(issue, cnt_cur, "This Month", " · ".join(badge_parts))
 				m_grid.add_child(card)
 
 		# All-Time Section
@@ -2973,6 +3021,10 @@ func _render_player_profile(player_name: String) -> void:
 		for issue in all_time_issues:
 			var card = _create_issue_card(issue, int(all_time_issues[issue]), "All Time")
 			at_grid.add_child(card)
+
+	# --- TAB 6: Improvement Trends & Active Focus ---
+	var trends_vbox: VBoxContainer = _build_improvement_trends_tab(player_name)
+	tabs.add_child(trends_vbox)
 
 	if last_active_tab_index >= 0 and last_active_tab_index < tabs.get_tab_count():
 		tabs.current_tab = last_active_tab_index
@@ -3018,8 +3070,34 @@ func _render_player_profile(player_name: String) -> void:
 
 func _exit_tree() -> void:
 	InAppVideoPlayer.stop_all_players()
+	# Free any lazily-parented dialog controls that were never added to the scene tree
+	# so their internal PopupMenu Viewports/RenderTargets/ShadowAtlases do not leak.
+	var maybe_orphans: Array = [
+		new_player_input,
+		new_player_email_input,
+		avatar_preview_btn,
+		new_player_tee_opt,
+		new_player_skill_opt,
+		new_player_handedness_opt,
+		new_player_ball_opt,
+		new_player_ball_type_opt,
+		new_player_ball_preview_container,
+		register_btn,
+		avatar_picker_content,
+		create_profile_content,
+		edit_profile_email_input,
+		edit_profile_tee_opt,
+		edit_profile_skill_opt,
+		edit_profile_handedness_opt,
+		edit_profile_ball_opt,
+		edit_profile_ball_type_opt,
+		edit_profile_content,
+	]
+	for ctrl in maybe_orphans:
+		if ctrl != null and is_instance_valid(ctrl) and ctrl.get_parent() == null:
+			ctrl.call_deferred("free")
 
-func _create_issue_card(issue_name: String, count: int, period_label: String) -> Button:
+func _create_issue_card(issue_name: String, count: int, period_label: String, extra_badge: String = "") -> Button:
 	var card = Button.new()
 	card.custom_minimum_size = Vector2(260, 64)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -3072,7 +3150,7 @@ func _create_issue_card(issue_name: String, count: int, period_label: String) ->
 	vbox.add_child(name_lbl)
 	
 	var sub_lbl = Label.new()
-	sub_lbl.text = period_label + " • 🔍 Click for drill & fix"
+	sub_lbl.text = period_label + (" • " + extra_badge if not extra_badge.is_empty() else "") + " • 🔍 Click for drill & fix"
 	sub_lbl.add_theme_font_size_override("font_size", 12)
 	sub_lbl.add_theme_color_override("font_color", Color(0.3, 0.75, 1.0))
 	sub_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3474,6 +3552,12 @@ func _build_club_distances_tab(player_name: String) -> VBoxContainer:
 		empty_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		empty_panel.add_child(empty_lbl)
 		list_vbox.add_child(empty_panel)
+
+	if active_clubs_count >= 2:
+		var gapping_rows: Array[Dictionary] = ShotAnalyticsEngineScript.analyze_bag_gapping(avgs)
+		if gapping_rows.size() >= 2:
+			var g_chart: Control = AnalyticsVisualWidgetsScript.create_bag_gapping_chart(gapping_rows, Vector2(360, 180))
+			list_vbox.add_child(g_chart)
 
 	var club_row_nodes: Array[Dictionary] = []
 
@@ -4267,3 +4351,238 @@ func _email_player_profile_report(player_name: String) -> void:
 
 func _calculate_player_stats(player_name: String) -> Dictionary:
 	return MultiplayerManager.calculate_player_stats(player_name)
+
+
+func _build_improvement_trends_tab(player_name: String) -> VBoxContainer:
+	var tab_vbox := VBoxContainer.new()
+	tab_vbox.name = "📈 Improvement Trends"
+	tab_vbox.add_theme_constant_override("separation", 12)
+	tab_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tab_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var all_stats: Dictionary = MultiplayerManager.load_global_club_stats()
+	var matching_key: String = MultiplayerManager._find_matching_player_key_in_dict(all_stats, player_name)
+	var p_stats: Dictionary = all_stats.get(matching_key, {}) if not matching_key.is_empty() else {}
+	var skill_level: String = MultiplayerManager.get_player_skill_level(player_name)
+	var is_lefty: bool = MultiplayerManager.get_player_handedness(player_name) == 1
+
+	var available_clubs: Array[String] = []
+	var all_shots: Array[Dictionary] = []
+	for k in p_stats.keys():
+		var k_str: String = str(k)
+		if k_str.begins_with("_"):
+			continue
+		if p_stats[k] is Array and not (p_stats[k] as Array).is_empty():
+			available_clubs.append(k_str)
+			for sh in p_stats[k]:
+				if sh is Dictionary:
+					var copy_sh: Dictionary = (sh as Dictionary).duplicate()
+					if not copy_sh.has("club") and not copy_sh.has("Club"):
+						copy_sh["club"] = k_str
+					all_shots.append(copy_sh)
+
+	# Header / Club Filter Bar
+	var top_bar := HBoxContainer.new()
+	top_bar.add_theme_constant_override("separation", 12)
+	tab_vbox.add_child(top_bar)
+
+	var title_lbl := Label.new()
+	title_lbl.text = "📈 Rolling Trends, D-Plane & Active Focus Plan"
+	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_lbl.add_theme_font_size_override("font_size", 17)
+	title_lbl.add_theme_color_override("font_color", ThemeManager.COLOR_TEXT_GOLD)
+	top_bar.add_child(title_lbl)
+
+	var club_sel := OptionButton.new()
+	club_sel.custom_minimum_size = Vector2(180, 36)
+	club_sel.add_item("All Clubs (%d shots)" % all_shots.size())
+	club_sel.set_item_metadata(0, "All")
+	for i in range(available_clubs.size()):
+		var clb: String = available_clubs[i]
+		club_sel.add_item("%s (%d)" % [clb, (p_stats[clb] as Array).size()])
+		club_sel.set_item_metadata(i + 1, clb)
+	top_bar.add_child(club_sel)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ThemeManager.apply_scroll_container_style(scroll, 28)
+	tab_vbox.add_child(scroll)
+
+	var body := VBoxContainer.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 12)
+	scroll.add_child(body)
+
+	var populate := func(club_filter: String) -> void:
+		for ch in body.get_children():
+			body.remove_child(ch)
+			ch.queue_free()
+
+		var target_shots: Array[Dictionary] = []
+		if club_filter == "All":
+			target_shots = all_shots
+		elif p_stats.has(club_filter) and p_stats[club_filter] is Array:
+			for sh in p_stats[club_filter]:
+				if sh is Dictionary:
+					var cs: Dictionary = (sh as Dictionary).duplicate()
+					if not cs.has("club") and not cs.has("Club"):
+						cs["club"] = club_filter
+					target_shots.append(cs)
+
+		if target_shots.is_empty():
+			var empty_lbl := Label.new()
+			empty_lbl.text = "No shot telemetry recorded yet for %s. Hit balls on the Driving Range or Course Play to unlock rolling trends, D-Plane flight matrices, and guided coaching milestones." % club_filter
+			empty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			empty_lbl.add_theme_color_override("font_color", Color(0.68, 0.74, 0.84))
+			body.add_child(empty_lbl)
+			return
+
+		var eff_club: String = str(target_shots[-1].get("club", "Driver")) if club_filter == "All" else club_filter
+		var analysis: Dictionary = ShotAnalyticsEngineScript.analyze_shot_group(target_shots, eff_club, skill_level, is_lefty)
+		var recent: Dictionary = analysis.get("recent", {})
+		var focus: Dictionary = analysis.get("active_focus", {})
+		var loss: Dictionary = analysis.get("distance_loss", {})
+		var aim: Dictionary = recent.get("aim_shift", {})
+		var bf: Dictionary = recent.get("ball_flight", {})
+		var bench: Dictionary = ShotAnalyticsEngineScript.GolfSwingAnalyzer.get_benchmark(eff_club, skill_level)
+
+		# 1. Active "One-Thing Focus" Hero Card & Set Active Goal Button
+		var hero := PanelContainer.new()
+		hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var hs := StyleBoxFlat.new()
+		hs.bg_color = Color(0.08, 0.14, 0.21, 0.92)
+		hs.border_width_left = 4
+		hs.border_color = Color(0.24, 0.88, 0.58, 0.95)
+		hs.set_corner_radius_all(8)
+		hs.set_content_margin_all(14)
+		hero.add_theme_stylebox_override("panel", hs)
+		var hv := VBoxContainer.new()
+		hv.add_theme_constant_override("separation", 6)
+
+		var hero_top := HBoxContainer.new()
+		hero_top.add_theme_constant_override("separation", 10)
+		var hero_lbl := Label.new()
+		hero_lbl.text = "🎯 Priority Focus: %s (Est. -%.1f strokes/rd)" % [str(focus.get("title", "Ball Flight Stability")), float(focus.get("estimated_strokes_saved", 0.5))]
+		hero_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hero_lbl.add_theme_font_size_override("font_size", 16)
+		hero_lbl.add_theme_color_override("font_color", Color(0.42, 0.96, 0.68))
+		hero_top.add_child(hero_lbl)
+
+		var existing_goal: Dictionary = MultiplayerManager.get_player_coaching_goal(player_name)
+		var goal_matches: bool = not existing_goal.is_empty() and str(existing_goal.get("issue_key", "")) == str(focus.get("issue_key", ""))
+		var set_goal_btn := Button.new()
+		set_goal_btn.text = "✅ Active Range Goal (%d reps)" % int(existing_goal.get("total_reps", 0)) if goal_matches else "🎯 Set as Active Focus Goal"
+		ThemeManager.apply_primary_button_style(set_goal_btn, 4)
+		set_goal_btn.pressed.connect(func():
+			MultiplayerManager.set_player_coaching_goal(player_name, focus)
+			set_goal_btn.text = "✅ Active Range Goal Set!"
+		)
+		hero_top.add_child(set_goal_btn)
+		hv.add_child(hero_top)
+
+		var why_lbl := Label.new()
+		why_lbl.text = str(focus.get("why", ""))
+		why_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		why_lbl.add_theme_color_override("font_color", Color(0.88, 0.93, 0.98))
+		hv.add_child(why_lbl)
+
+		var milestones: Array = focus.get("milestones", []) if focus.get("milestones", null) is Array else []
+		for ms in milestones:
+			if ms is Dictionary:
+				var st_status: String = str(ms.get("status", "upcoming"))
+				var icon: String = "✅" if st_status == "achieved" else ("▶" if st_status == "active" else "○")
+				var mlbl := Label.new()
+				mlbl.text = "  %s Step %s: %s (%s)" % [icon, str(ms.get("step", "")), str(ms.get("label", "")), str(ms.get("pass_rule", ""))]
+				mlbl.add_theme_font_size_override("font_size", 13)
+				mlbl.add_theme_color_override("font_color", Color(0.48, 0.96, 0.72) if st_status == "achieved" else (Color(0.55, 0.85, 1.0) if st_status == "active" else Color(0.65, 0.72, 0.82)))
+				hv.add_child(mlbl)
+
+		hero.add_child(hv)
+		body.add_child(hero)
+
+		# 2. KPI Bullet Gauges
+		var gauge_panel := PanelContainer.new()
+		var gp_style := StyleBoxFlat.new()
+		gp_style.bg_color = Color(0.09, 0.12, 0.18, 0.88)
+		gp_style.set_corner_radius_all(8)
+		gp_style.set_content_margin_all(12)
+		gauge_panel.add_theme_stylebox_override("panel", gp_style)
+		var gv := VBoxContainer.new()
+		gv.add_theme_constant_override("separation", 6)
+
+		var corridor_y: float = float(recent.get("corridor_yds", 12.0))
+		gv.add_child(AnalyticsVisualWidgetsScript.create_bullet_gauge(
+			"Avg Miss Offline",
+			float(recent.get("avg_abs_offline", 0.0)),
+			0.0, corridor_y, 0.0, maxf(corridor_y * 2.5, float(recent.get("avg_abs_offline", 0.0)) + 4.0), "yds"
+		))
+		var avg_sm: float = float(recent.get("avg_smash", NAN))
+		if not is_nan(avg_sm):
+			var sm_min: float = float(bench.get("smash_min", 1.38))
+			var sm_max: float = float(bench.get("smash_max", 1.48))
+			gv.add_child(AnalyticsVisualWidgetsScript.create_bullet_gauge(
+				"Smash Factor", avg_sm, sm_min, sm_max, maxf(0.9, sm_min - 0.18), minf(1.52, sm_max + 0.06), ""
+			))
+		var avg_ftp: float = float(recent.get("avg_ftp", NAN))
+		if not is_nan(avg_ftp):
+			gv.add_child(AnalyticsVisualWidgetsScript.create_bullet_gauge(
+				"Face-to-Path", avg_ftp, -2.0, 2.0, -8.0, 8.0, "°"
+			))
+		gauge_panel.add_child(gv)
+		body.add_child(gauge_panel)
+
+		# 3. D-Plane Matrix + Trend Sparklines
+		var visuals_row := HBoxContainer.new()
+		visuals_row.add_theme_constant_override("separation", 12)
+		visuals_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		visuals_row.add_child(AnalyticsVisualWidgetsScript.create_d_plane_matrix(
+			bf.get("counts", {}),
+			int(bf.get("total_classified", target_shots.size())),
+			is_lefty,
+			Vector2(280, 185)
+		))
+
+		var spark_col := VBoxContainer.new()
+		spark_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		spark_col.add_theme_constant_override("separation", 8)
+		var norm_shots: Array = analysis.get("normalized_shots", [])
+		var off_pts: Array = []
+		var sm_pts: Array = []
+		for ns in norm_shots:
+			if ns is Dictionary:
+				off_pts.append(float(ns.get("abs_offline_yds", 0.0)))
+				var sm_val: float = float(ns.get("smash", NAN))
+				if not is_nan(sm_val):
+					sm_pts.append(sm_val)
+		spark_col.add_child(AnalyticsVisualWidgetsScript.create_trend_sparkline(off_pts, "Offline Dispersion Trend (Abs yds)", "yd", 0.0, corridor_y, Vector2(260, 110)))
+		if sm_pts.size() >= 2:
+			spark_col.add_child(AnalyticsVisualWidgetsScript.create_trend_sparkline(sm_pts, "Smash Factor Trend", "", float(bench.get("smash_min", 1.38)), float(bench.get("smash_max", 1.48)), Vector2(260, 110)))
+		visuals_row.add_child(spark_col)
+		body.add_child(visuals_row)
+
+		# 4. Distance Loss & Aim Shift Summary
+		var foot_lbl := Label.new()
+		foot_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var txt_parts: Array[String] = []
+		if bool(loss.get("has_data", false)) and float(loss.get("total_lost_yds", 0.0)) >= 2.0:
+			txt_parts.append("📏 Distance Recovery Opportunity: %.1f potential carry yds vs %.1f current (Strike: %.1f · Spin/Launch: %.1f · Curve: %.1f yds)" % [
+				float(loss.get("potential_carry_yds", 0.0)), float(recent.get("avg_carry_yds", 0.0)),
+				float(loss.get("smash_loss_yds", 0.0)), float(loss.get("launch_spin_loss_yds", 0.0)), float(loss.get("curve_loss_yds", 0.0))
+			])
+		var sh_yds: float = float(aim.get("shift_yds", 0.0))
+		var sh_dir: String = str(aim.get("shift_dir", ""))
+		if not sh_dir.is_empty() and sh_yds >= 2.0:
+			txt_parts.append("🧭 Quick Scoring Fix: Shifting aim %.1f yds %s projects +%d%% fairway/corridor hits (to %d%%)." % [sh_yds, sh_dir, int(aim.get("gain_pct", 0)), int(aim.get("projected_pct_in_corridor", 0))])
+		if txt_parts.is_empty():
+			txt_parts.append("✨ Metrics track within expected target corridors for %s." % _skill_key_to_display(skill_level))
+		foot_lbl.text = "\n".join(txt_parts)
+		foot_lbl.add_theme_color_override("font_color", Color(0.84, 0.91, 0.98))
+		body.add_child(foot_lbl)
+
+	club_sel.item_selected.connect(func(idx: int):
+		var meta: String = str(club_sel.get_item_metadata(idx))
+		populate.call(meta)
+	)
+	populate.call("All")
+	return tab_vbox

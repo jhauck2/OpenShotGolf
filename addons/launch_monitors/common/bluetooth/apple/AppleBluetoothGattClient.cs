@@ -40,6 +40,7 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
     private readonly ConcurrentDictionary<string, string> _reportedDeviceNames = new();
     private readonly ConcurrentDictionary<string, bool> _loggedUnknownDevices = new();
     private readonly ConcurrentDictionary<Guid, IntPtr> _characteristics = new();
+    private readonly ConcurrentDictionary<Guid, BluetoothGattCharacteristicInfo> _discoveredCharacteristics = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<byte[]>> _readTcsMap = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _writeTcsMap = new();
     private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> _subscribeTcsMap = new();
@@ -387,6 +388,7 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
             ObjCRuntime.Release(c);
         }
         _characteristics.Clear();
+        _discoveredCharacteristics.Clear();
         _connectTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // CoreBluetooth best practice: Always set the peripheral delegate BEFORE connecting or discovering services!
@@ -437,6 +439,9 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
             }
         }
     }
+
+    public IReadOnlyList<BluetoothGattCharacteristicInfo> GetDiscoveredCharacteristics() =>
+        new List<BluetoothGattCharacteristicInfo>(_discoveredCharacteristics.Values);
 
     public async Task<byte[]> ReadCharacteristicAsync(Guid characteristicUuid, CancellationToken cancellationToken)
     {
@@ -588,6 +593,7 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
             ObjCRuntime.Release(c);
         }
         _characteristics.Clear();
+        _discoveredCharacteristics.Clear();
 
         if (_activePeripheral != IntPtr.Zero)
         {
@@ -994,6 +1000,7 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
                 ObjCRuntime.Release(c);
             }
             client._characteristics.Clear();
+            client._discoveredCharacteristics.Clear();
             client.Disconnected?.Invoke();
         }
         catch (Exception ex)
@@ -1050,6 +1057,8 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
                 return;
             }
 
+            IntPtr serviceCbUuid = ObjCRuntime.objc_msgSend(service, ObjCRuntime.sel_registerName("UUID"));
+            var serviceGuid = ObjCRuntime.CBUUIDToGuid(serviceCbUuid) ?? Guid.Empty;
             IntPtr charsArray = ObjCRuntime.objc_msgSend(service, ObjCRuntime.sel_registerName("characteristics"));
             int count = (int)(long)ObjCRuntime.objc_msgSend(charsArray, ObjCRuntime.sel_registerName("count"));
 
@@ -1066,6 +1075,15 @@ internal sealed class AppleBluetoothGattClient : IBluetoothGattClient
                         client._characteristics[guid.Value] = characteristic;
                         Log($"Characteristic mapped: {guid.Value}");
                     }
+
+                    ulong rawProps = (ulong)ObjCRuntime.objc_msgSend(characteristic, ObjCRuntime.sel_registerName("properties"));
+                    var props = BluetoothCharacteristicProperties.None;
+                    if ((rawProps & 0x02) != 0) props |= BluetoothCharacteristicProperties.Read;
+                    if ((rawProps & 0x04) != 0) props |= BluetoothCharacteristicProperties.WriteWithoutResponse;
+                    if ((rawProps & 0x08) != 0) props |= BluetoothCharacteristicProperties.Write;
+                    if ((rawProps & 0x10) != 0) props |= BluetoothCharacteristicProperties.Notify;
+                    if ((rawProps & 0x20) != 0) props |= BluetoothCharacteristicProperties.Indicate;
+                    client._discoveredCharacteristics[guid.Value] = new BluetoothGattCharacteristicInfo(serviceGuid, guid.Value, props);
                 }
             }
 

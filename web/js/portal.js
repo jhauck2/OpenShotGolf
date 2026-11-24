@@ -34,8 +34,20 @@ import {
   generateOfflineTrendChartSvg,
   generateDeliveryTrendChartSvg,
   generateStrikeTrendChartSvg,
+  generateDPlaneMatrixSvg,
+  generateLaunchOptimizerSvg,
+  generateDispersionTargetSvg,
+  generateBagGappingChartSvg,
+  generateSessionTrendChartSvg,
+  generateBulletGaugeHtml,
   generateCoachingInsights
 } from "./analytics-engine.js";
+import {
+  SKILL_LEVEL_NAMES,
+  normalizeSkillLevel,
+  getClubBenchmark,
+  computeCovarianceEllipse
+} from "./golf-benchmarks.js";
 import { getSwingIssueDetails, getDrillsForAnalyticsIssue } from "./swing-drills.js";
 
 const STANDARD_CLUBS = [
@@ -804,8 +816,44 @@ function renderSelectedShotAnalysis() {
   const timestamp = Number(session.created_at || 0);
   document.getElementById("shot-analysis-detail-title").textContent =
     `Shot data · ${timestamp ? new Date(timestamp * 1000).toLocaleString() : "Date unavailable"}`;
-  renderShotAnalysisTable(session);
   drawShotAnalysisCharts(session);
+  renderShotAnalysisCoaching(session);
+  renderShotAnalysisTable(session);
+}
+
+function renderShotAnalysisCoaching(session) {
+  const container = document.getElementById("shot-analysis-coaching");
+  if (!container) return;
+  const records = Array.isArray(session.records) ? session.records : [];
+  const groups = Array.isArray(session.groups) ? session.groups : [];
+  const skillLevel = normalizeSkillLevel(currentProfile?.skill_level);
+  const isLefty = currentProfile?.handedness === 1;
+
+  const groupCards = groups.map((group) => {
+    const includedShots = records
+      .filter((r) => String(r.group_id) === String(group.id) && r.included !== false)
+      .map((r, idx) => normalizeShot(r.shot || {}, idx))
+      .filter(Boolean);
+    if (includedShots.length === 0) return "";
+    const clubName = group.club || includedShots[0]?.club || "driver";
+    const analytics = computeImprovementAnalytics(includedShots, "all", { clubKey: clubName, skillLevel, isLefty });
+    const insights = generateCoachingInsights(analytics).slice(0, 2);
+    const { recent, distanceLoss, activeFocus } = analytics;
+    return `
+      <div class="shot-analysis-group-coach">
+        <div class="shot-analysis-group-coach-head">
+          <strong>${escapeHtml(group.label || clubName)}</strong>
+          <span>${includedShots.length} shots • Carry ${recent.avgCarry.toFixed(1)} yds (±${recent.stdDevCarry.toFixed(1)}) • Corridor ${recent.pctInFairway}%</span>
+        </div>
+        ${recent.ballFlight?.dominantShape ? `<div class="shot-analysis-group-meta">Dominant Flight: <strong>${escapeHtml(recent.ballFlight.dominantShape)}</strong> (${recent.ballFlight.dominantPct}%) • Miss Split: ${recent.missAttribution.startPct}% Start / ${recent.missAttribution.curvePct}% Curve</div>` : ""}
+        ${distanceLoss?.hasData && distanceLoss.totalLostYds >= 4 ? `<div class="shot-analysis-group-meta">Potential Carry: <strong>${distanceLoss.potentialCarryYds.toFixed(0)} yds</strong> (${distanceLoss.totalLostYds.toFixed(0)} yds available — Top: ${escapeHtml(distanceLoss.topOpportunity)})</div>` : ""}
+        ${activeFocus ? `<div class="shot-analysis-group-focus">🎯 Focus: <strong>${escapeHtml(activeFocus.title)}</strong> — ${escapeHtml(activeFocus.milestones?.[0]?.label || "")}</div>` : ""}
+        ${insights.length ? `<ul class="shot-analysis-group-insights">${insights.map(ins => `<li>${ins.icon} <strong>${escapeHtml(ins.title)}:</strong> ${escapeHtml(ins.desc)}</li>`).join("")}</ul>` : ""}
+      </div>
+    `;
+  }).filter(Boolean).join("");
+
+  container.innerHTML = groupCards ? `<div class="shot-analysis-coaching-grid">${groupCards}</div>` : "";
 }
 
 function renderShotAnalysisTable(session) {
@@ -834,11 +882,19 @@ function renderShotAnalysisTable(session) {
       const numeric = included.map((record) => shotAnalysisDisplayValue(record.shot || {}, key, units)).filter((value) => typeof value === "number" && Number.isFinite(value));
       return numeric.length ? formatShotValue(numeric.reduce((sum, value) => sum + value, 0) / numeric.length) : "—";
     });
+    const stdDevs = keys.map((key) => {
+      const numeric = included.map((record) => shotAnalysisDisplayValue(record.shot || {}, key, units)).filter((value) => typeof value === "number" && Number.isFinite(value));
+      if (numeric.length < 2) return "—";
+      const mean = numeric.reduce((sum, value) => sum + value, 0) / numeric.length;
+      const sd = Math.sqrt(numeric.reduce((sum, value) => sum + (value - mean) ** 2, 0) / numeric.length);
+      return formatShotValue(sd);
+    });
     return `<tbody>
       <tr class="category-heading"><th colspan="${keys.length + 1}">${escapeHtml(group.label || "Group")} · ${included.length} of ${groupRecords.length} included</th></tr>
       <tr><th>Use</th>${columns}</tr>
       ${shotsHtml}
       <tr class="average-row"><td>Average</td>${averages.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>
+      <tr class="stddev-row"><td>Std Dev (±)</td>${stdDevs.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>
     </tbody>`;
   }).join("");
   const categoryHeaders = [];
@@ -889,6 +945,10 @@ function drawShotAnalysisCharts(session) {
     const included = includedFor(group);
     if (!included.length) return null;
     if (mode === "best") return included.reduce((best, record) => yards(record.shot, true) > yards(best.shot, true) ? record : best);
+    if (mode === "best_overall") {
+      const score = (s) => yards(s, true) - Math.abs(offline(s)) * 1.8;
+      return included.reduce((best, record) => score(record.shot) > score(best.shot) ? record : best);
+    }
     const average = {};
     ["CarryDistance", "TotalDistance", "Apex"].forEach((key) => {
       const nums = included.map((record) => record.shot?.[key]).filter((value) => typeof value === "number" && Number.isFinite(value));
@@ -940,7 +1000,7 @@ function drawShotAnalysisCharts(session) {
     ctx.font = `${size}px system-ui, sans-serif`;
     ctx.fillText(text, x, y);
   };
-  drawText(`FLIGHT PATH · ${mode === "best" ? "BEST SHOT" : "GROUP AVERAGE"}`, 16, 20, "#c5d0df", 12);
+  drawText(`FLIGHT PATH · ${mode === "best" ? "BEST SHOT" : (mode === "best_overall" ? "BEST OVERALL" : "GROUP AVERAGE")}`, 16, 20, "#c5d0df", 12);
   groups.forEach((group, index) => {
     const representative = representatives[index];
     const points = flightSeries[index];
@@ -1004,21 +1064,22 @@ function drawShotAnalysisCharts(session) {
       if (record.included !== false) activePoints.push([x, y]);
     });
     if (activePoints.length < 2) return;
-    const meanX = activePoints.reduce((sum, point) => sum + point[0], 0) / activePoints.length;
-    const meanY = activePoints.reduce((sum, point) => sum + point[1], 0) / activePoints.length;
-    const varianceX = activePoints.reduce((sum, point) => sum + (point[0] - meanX) ** 2, 0) / activePoints.length;
-    const varianceY = activePoints.reduce((sum, point) => sum + (point[1] - meanY) ** 2, 0) / activePoints.length;
-    const radiusX = Math.min(Math.max(Math.sqrt(varianceX) * 2, 5), Math.max(0, Math.min(meanX - left, right - meanX) - 2));
-    const radiusY = Math.min(Math.max(Math.sqrt(varianceY) * 2, 5), Math.max(0, Math.min(meanY - dispersionTop, dispersionBottom - meanY) - 2));
-    if (radiusX < 1 || radiusY < 1) return;
+    const cov = computeCovarianceEllipse(activePoints.map(([x, y]) => ({ x, y })));
+    if (!cov.valid) return;
+    const rx = Math.max(cov.rx80, 5);
+    const ry = Math.max(cov.ry80, 5);
+    const cosA = Math.cos(cov.angleRad);
+    const sinA = Math.sin(cov.angleRad);
     ctx.globalAlpha = 1;
     ctx.beginPath();
     for (let point = 0; point <= 40; point++) {
       const angle = Math.PI * 2 * point / 40;
-      const x = meanX + Math.cos(angle) * radiusX;
-      const y = meanY + Math.sin(angle) * radiusY;
-      if (point === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      const lx = Math.cos(angle) * rx;
+      const ly = Math.sin(angle) * ry;
+      const px = Math.max(left + 1, Math.min(right - 1, cov.meanX + lx * cosA - ly * sinA));
+      const py = Math.max(dispersionTop + 1, Math.min(dispersionBottom - 1, cov.meanY + lx * sinA + ly * cosA));
+      if (point === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
     }
     ctx.closePath();
     ctx.fillStyle = `${color}14`;
@@ -1569,13 +1630,8 @@ function renderOverviewCards(profile) {
 }
 
 function formatSkillLevel(lvl) {
-  switch (lvl) {
-    case "beginner": return "Beginner (20+ Hcp)";
-    case "mid_handicap": return "Mid Handicap (10-19)";
-    case "low_handicap": return "Low Handicap (1-9)";
-    case "scratch": return "Scratch / Pro (0 or Better)";
-    default: return "Mid Handicap (10-19)";
-  }
+  const norm = normalizeSkillLevel(lvl);
+  return SKILL_LEVEL_NAMES[norm] || SKILL_LEVEL_NAMES.mid_handicap;
 }
 
 function formatBallGraphic(bg) {
@@ -1898,6 +1954,38 @@ function drawImpactLocationCanvas(canvas, clubName, hMm, vMm, impactPoints, hasD
       drawHeatBloom(ctx, ptX, ptY, 2.2, "rgba(255, 230, 77, 0.80)");
     });
 
+    if (impactPoints.length >= 3) {
+      const screenPts = impactPoints.map((pt) => ({
+        x: sweetSpot.x - Number(pt.h || 0) * mmScale,
+        y: sweetSpot.y - Number(pt.v || 0) * mmScale
+      }));
+      const cov = computeCovarianceEllipse(screenPts);
+      if (cov.valid) {
+        const rx68 = Math.max(4, cov.stdMajor * 1.515);
+        const ry68 = Math.max(4, cov.stdMinor * 1.515);
+        ctx.save();
+        ctx.translate(cov.meanX, cov.meanY);
+        ctx.rotate(cov.angleRad);
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx68, ry68, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Mean strike crosshair
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(cov.meanX - 5, cov.meanY);
+        ctx.lineTo(cov.meanX + 5, cov.meanY);
+        ctx.moveTo(cov.meanX, cov.meanY - 5);
+        ctx.lineTo(cov.meanX, cov.meanY + 5);
+        ctx.stroke();
+      }
+    }
+
     drawBadge(ctx, w, h, `${impactPoints.length} SHOTS HEATMAP`, "#ffd966");
   } else {
     const ptX = sweetSpot.x - hMm * mmScale;
@@ -2080,11 +2168,17 @@ function renderClubSummary(profile) {
   });
 
   const isLefty = profile?.handedness === 1;
+  const skillLevel = normalizeSkillLevel(profile?.skill_level);
+  const gappingSvg = generateBagGappingChartSvg(summary, { skillLevel });
+  const gappingCardHtml = gappingSvg
+    ? `<div class="bag-gapping-box"><div class="bag-gapping-title">📏 Full-Bag Gapping &amp; Distance Waterfall</div>${gappingSvg}</div>`
+    : "";
 
   let cardsHtml = "";
   sortedClubs.forEach((clubKey) => {
     const s = summary[clubKey] || {};
     const clubName = CLUB_LABELS[clubKey] || CLUB_LABELS[clubKey.toLowerCase()] || CLUB_LABELS[clubKey.toUpperCase()] || clubKey;
+    const clubBench = getClubBenchmark(clubKey, skillLevel);
     const carry = s.carry_yds != null ? Number(s.carry_yds).toFixed(1) : "–";
     const total = s.total_yds != null ? Number(s.total_yds).toFixed(1) : "–";
     const bSpeed = s.ball_speed_mph != null ? Number(s.ball_speed_mph).toFixed(1) : "–";
@@ -2110,7 +2204,7 @@ function renderClubSummary(profile) {
       // 2. Smash Factor
       const hasSf = Boolean(data.has_smash_factor || (data.smash > 0.05));
       const sfVal = Number(data.smash || 0);
-      const sfCol = sfVal >= 1.45 ? "#5af296" : "#ffd24d";
+      const sfCol = sfVal >= clubBench.smash_min ? "#5af296" : "#ffd24d";
       html += tile("Smash Factor", hasSf ? sfVal.toFixed(2) : "–", hasSf, sfCol);
 
       // 3. Attack Angle
@@ -2314,7 +2408,7 @@ function renderClubSummary(profile) {
     `;
   });
 
-  container.innerHTML = `<div class="portal-clubs-list">${cardsHtml}</div>`;
+  container.innerHTML = `${gappingCardHtml}<div class="portal-clubs-list">${cardsHtml}</div>`;
 
   // Hook up drawer toggles
   container.querySelectorAll(".btn-toggle-visuals").forEach((btn) => {
@@ -2596,7 +2690,7 @@ async function saveProfilePreferences(updates) {
       schema_version: 1,
       display_name: finalName,
       preferred_tee: updates.preferredTee || profData.preferred_tee || "Blue",
-      skill_level: updates.skillLevel || profData.skill_level || "mid_handicap",
+      skill_level: normalizeSkillLevel(updates.skillLevel || profData.skill_level),
       handedness: updates.handedness != null ? updates.handedness : (profData.handedness ?? 0),
       ball_graphic: updates.ballGraphic || profData.ball_graphic || "single_line",
       rev: profRev,
@@ -2638,6 +2732,10 @@ async function saveProfilePreferences(updates) {
 
     updateUserHeader(currentUser, currentProfile);
     renderProfilePreferencesSummary(currentProfile);
+    renderClubSummary(currentProfile);
+    if (loadedTabs.analytics) {
+      renderAnalytics();
+    }
     await ensurePublicProfileSynced(currentUser, currentProfile);
     closeEditProfileModal();
     showToast("✓ Profile and preferences updated successfully.");
@@ -2686,7 +2784,7 @@ function openEditProfileModal() {
   if (nameInput) nameInput.value = p.display_name || currentUser?.displayName || currentUser?.email?.split("@")[0] || "";
   if (teeSelect) teeSelect.value = p.preferred_tee || "Blue";
   if (handSelect) handSelect.value = String(p.handedness ?? 0);
-  if (skillSelect) skillSelect.value = p.skill_level || "mid_handicap";
+  if (skillSelect) skillSelect.value = normalizeSkillLevel(p.skill_level);
   if (ballSelect) ballSelect.value = p.ball_graphic || "single_line";
 
   overlay.classList.add("open");
@@ -3009,6 +3107,49 @@ function bindAnalyticsControls() {
   });
 }
 
+async function syncCoachingGoalToCloud(activeFocus) {
+  if (!currentUser || !activeFocus) return;
+  try {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const goalPayload = {
+      title: activeFocus.title || "Primary Focus",
+      issue_key: activeFocus.issueKey || "",
+      metric_key: activeFocus.metricKey || "absOffline",
+      metric_label: activeFocus.metricLabel || "",
+      club_key: activeFocus.clubKey || "driver",
+      direction: activeFocus.direction || "lower",
+      unit: activeFocus.unit || "",
+      current_value: activeFocus.currentValue ?? 0,
+      target_value: activeFocus.targetValue ?? 0,
+      estimated_strokes_saved: activeFocus.estimatedStrokesSaved ?? 0,
+      milestones: (activeFocus.milestones || []).map((m, idx) => ({
+        step: m.step || idx + 1,
+        label: m.label || "",
+        target_val: m.targetVal ?? 0,
+        pass_rule: m.passRule || "",
+        status: m.status || (idx === 0 ? "active" : "upcoming")
+      })),
+      reps_completed: 0,
+      reps_passed: 0,
+      updated_at: nowSec
+    };
+
+    await setDoc(
+      doc(db, "profiles", currentUser.uid, "sync", "stats"),
+      { schema_version: 1, coaching_goal: goalPayload, updated_at: nowSec },
+      { merge: true }
+    );
+
+    if (currentStats) currentStats.coaching_goal = goalPayload;
+    showToast("🎯 Active coaching goal synced! It will appear in-app on your next range session.");
+    renderAnalytics();
+  } catch (err) {
+    console.error("Failed to sync coaching goal:", err);
+    const pauseMsg = await handleWriteError(err);
+    showToast(pauseMsg || ("Could not sync coaching goal: " + (err.message || err)));
+  }
+}
+
 function renderAnalytics() {
   const container = document.getElementById("analytics-content-container");
   if (!container) return;
@@ -3035,8 +3176,15 @@ function renderAnalytics() {
     return;
   }
 
-  const analytics = computeImprovementAnalytics(shots, currentAnalyticsWindow);
-  const { recent, baseline, offline, face, path, faceToPath, smash, impact, distance } = analytics;
+  const skillLevel = normalizeSkillLevel(currentProfile?.skill_level);
+  const isLefty = currentProfile?.handedness === 1;
+  const analytics = computeImprovementAnalytics(shots, currentAnalyticsWindow, {
+    clubKey: currentAnalyticsClub,
+    skillLevel,
+    isLefty
+  });
+  const { recent, baseline, offline, face, path, faceToPath, smash, impact, distance, benchmark, distanceLoss, activeFocus, sessions, fatigue } = analytics;
+  const bench = benchmark || getClubBenchmark("driver", skillLevel);
 
   // Format Helper Labels
   const formatFace = (deg) => {
@@ -3062,7 +3210,57 @@ function renderAnalytics() {
     return "delta-neutral";
   };
 
-  // 1. Executive KPI Summary Cards
+  // 0. Active "One-Thing Focus" Hero Card & 3-Step Micro-Milestone Ladder
+  const syncedGoal = currentStats?.coaching_goal;
+  const isSyncedMatch = syncedGoal && activeFocus && syncedGoal.issue_key === activeFocus.issueKey && syncedGoal.club_key === activeFocus.clubKey;
+  let focusHeroHtml = "";
+  if (activeFocus) {
+    const stepsHtml = (activeFocus.milestones || []).map((m) => `
+      <div class="milestone-step milestone-${escapeHtml(m.status || "upcoming")}">
+        <span class="milestone-num">${m.status === "achieved" ? "✓" : m.step}</span>
+        <div class="milestone-body">
+          <div class="milestone-label">${escapeHtml(m.label)}</div>
+          <div class="milestone-rule">${escapeHtml(m.passRule)}</div>
+        </div>
+      </div>
+    `).join("");
+
+    focusHeroHtml = `
+      <div class="analytics-focus-hero">
+        <div class="focus-hero-top">
+          <div>
+            <span class="focus-eyebrow">🎯 #1 ACTIVE IMPROVEMENT FOCUS • ${escapeHtml(SKILL_LEVEL_NAMES[skillLevel] || "Mid Handicap")}</span>
+            <h4 class="focus-title">${escapeHtml(activeFocus.title)}</h4>
+            <p class="focus-why">${escapeHtml(activeFocus.why)}</p>
+          </div>
+          <div class="focus-roi-box">
+            <div class="focus-roi-val">~${Number(activeFocus.estimatedStrokesSaved || 0).toFixed(1)}</div>
+            <div class="focus-roi-lbl">Est. Strokes / 18H</div>
+          </div>
+        </div>
+        <div class="milestone-ladder">${stepsHtml}</div>
+        <div class="focus-hero-actions">
+          <button type="button" class="btn-action-outline btn-sync-goal" id="btn-sync-coaching-goal">
+            ${isSyncedMatch ? "✓ Synced as Simulator Goal" : "🎯 Sync as Active Simulator Goal"}
+          </button>
+          ${activeFocus.issueKey && activeFocus.issueKey !== "Pure Ball Strike"
+            ? `<button type="button" class="btn-drill-inline" data-drill-target="${escapeHtml(activeFocus.issueKey)}">🏋️ View 3-Stage Drill</button>`
+            : ""}
+          ${isSyncedMatch && syncedGoal.reps_completed > 0
+            ? `<span class="focus-synced-reps">Range Progress: ${syncedGoal.reps_passed || 0}/${syncedGoal.reps_completed} reps passed</span>`
+            : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  // 1. Executive KPI Summary Cards with Inline Bullet Gauges
+  const offlineGauge = generateBulletGaugeHtml(recent.avgAbsOffline, 0, recent.corridorYds * 0.75, 0, Math.max(25, recent.corridorYds * 2), baseline.avgAbsOffline, " yds");
+  const faceGauge = generateBulletGaugeHtml(recent.avgAbsFace, 0, 2.0, 0, 8.0, baseline.avgAbsFace, "°");
+  const pathGauge = generateBulletGaugeHtml(recent.avgAbsPath, 0, 2.5, 0, 8.0, baseline.avgAbsPath, "°");
+  const smashGauge = generateBulletGaugeHtml(recent.avgSmash, bench.smash_min, bench.smash_max, Math.max(0.9, bench.smash_min - 0.15), Math.min(1.55, bench.smash_max + 0.05), baseline.avgSmash, "");
+  const vlaGauge = generateBulletGaugeHtml(recent.avgVla, bench.vla_min, bench.vla_max, Math.max(4, bench.vla_min - 6), bench.vla_max + 7, baseline.avgVla, "°");
+
   const kpiGridHtml = `
     <div class="analytics-kpi-grid">
       <!-- 1. Offline Dispersion Card -->
@@ -3072,8 +3270,9 @@ function renderAnalytics() {
           <span class="analytics-trend-badge trend-${offline.status}">${escapeHtml(offline.badge)}</span>
         </div>
         <div class="analytics-kpi-val highlight">${formatOffline(recent.avgAbsOffline)}</div>
+        ${offlineGauge}
         <div class="analytics-kpi-sub">
-          Target Corridor: <strong>${recent.pctInFairway}%</strong> (${recent.pctLeft}% Left / ${recent.pctRight}% Right)
+          ±${recent.corridorYds} yd Corridor: <strong>${recent.pctInFairway}%</strong> (${recent.pctLeft}% L / ${recent.pctRight}% R)
         </div>
         <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
           ${escapeHtml(offline.text)}
@@ -3087,8 +3286,9 @@ function renderAnalytics() {
           <span class="analytics-trend-badge trend-${face.status}">${escapeHtml(face.badge)}</span>
         </div>
         <div class="analytics-kpi-val">${recent.avgAbsFace != null ? `±${recent.avgAbsFace.toFixed(1)}°` : "–"}</div>
+        ${faceGauge}
         <div class="analytics-kpi-sub">
-          Tendency: <strong>${formatFace(recent.avgSignedFace)}</strong>
+          Tendency: <strong>${formatFace(recent.avgSignedFace)}</strong>${recent.stdDevFace != null ? ` (±${recent.stdDevFace}° σ)` : ""}
         </div>
         <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
           ${escapeHtml(face.text)}
@@ -3102,8 +3302,9 @@ function renderAnalytics() {
           <span class="analytics-trend-badge trend-${path.status}">${escapeHtml(path.badge)}</span>
         </div>
         <div class="analytics-kpi-val">${recent.avgAbsPath != null ? `±${recent.avgAbsPath.toFixed(1)}°` : "–"}</div>
+        ${pathGauge}
         <div class="analytics-kpi-sub">
-          Delivery: <strong>${formatPath(recent.avgSignedPath)}</strong>
+          Delivery: <strong>${formatPath(recent.avgSignedPath)}</strong>${recent.stdDevPath != null ? ` (±${recent.stdDevPath}° σ)` : ""}
         </div>
         <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
           ${escapeHtml(path.text)}
@@ -3114,31 +3315,31 @@ function renderAnalytics() {
       <div class="analytics-kpi-card">
         <div class="analytics-kpi-header">
           <span class="analytics-kpi-title">⚡ Strike &amp; Efficiency</span>
-          <span class="analytics-trend-badge trend-${smash.status}">${smash.status === 'improving' ? 'Higher Compression' : (smash.status === 'declining' ? 'Reduced Compression' : 'Solid Strike')}</span>
+          <span class="analytics-trend-badge trend-${smash.status}">${smash.status === "improving" ? "Higher Compression" : (smash.status === "declining" ? "Reduced Compression" : "Solid Strike")}</span>
         </div>
         <div class="analytics-kpi-val highlight">${recent.avgSmash != null ? recent.avgSmash.toFixed(2) : (recent.avgCarry > 0 ? `${recent.avgCarry.toFixed(0)} yds` : "–")}</div>
+        ${smashGauge}
         <div class="analytics-kpi-sub">
-          ${recent.avgImpactOffsetMm != null ? `Sweet spot offset: <strong>${recent.avgImpactOffsetMm.toFixed(1)} mm</strong>` : `Avg Carry: <strong>${recent.avgCarry.toFixed(1)} yds</strong> (±${recent.stdDevCarry.toFixed(1)})`}
+          ${recent.avgImpactOffsetMm != null ? `Sweet spot offset: <strong>${recent.avgImpactOffsetMm.toFixed(1)} mm</strong>` : `Target Smash: <strong>${bench.smash_min.toFixed(2)}–${bench.smash_max.toFixed(2)}</strong>`}
         </div>
         <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
-          ${escapeHtml(smash.text || `Face-to-Path: ${recent.avgAbsFtp != null ? recent.avgAbsFtp.toFixed(1) + '°' : '–'}`)}
+          ${escapeHtml(smash.text || `Face-to-Path: ${recent.avgAbsFtp != null ? recent.avgAbsFtp.toFixed(1) + "°" : "–"}`)}
         </div>
       </div>
 
       <!-- 5. Launch & Spin Profile Card -->
       <div class="analytics-kpi-card">
         <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">🚀 Launch &amp; Spin Profile</span>
-          <span class="analytics-trend-badge trend-consistent">${recent.avgVla != null || recent.avgSpin != null ? 'Ball Flight Window' : 'No LM Data'}</span>
+          <span class="analytics-kpi-title">🚀 Launch, AoA &amp; Spin</span>
+          <span class="analytics-trend-badge trend-consistent">${recent.stoppingPower ? escapeHtml(recent.stoppingPower.grade) : (recent.avgVla != null || recent.avgSpin != null ? "Ball Flight Window" : "No LM Data")}</span>
         </div>
         <div class="analytics-kpi-val">${recent.avgVla != null ? `${recent.avgVla.toFixed(1)}°` : (recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()}` : "–")}</div>
+        ${vlaGauge}
         <div class="analytics-kpi-sub">
-          Spin: <strong>${recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()} rpm` : "–"}</strong> • HLA: <strong>${recent.avgHla != null ? `${recent.avgHla > 0 ? '+' : ''}${recent.avgHla.toFixed(1)}°` : "–"}</strong>
+          Spin: <strong>${recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()} rpm` : "–"}</strong> • AoA: <strong>${recent.avgAoa != null ? `${recent.avgAoa > 0 ? "+" : ""}${recent.avgAoa.toFixed(1)}°` : "–"}</strong>
         </div>
         <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
-          ${recent.avgHi != null && recent.avgVi != null
-            ? `Strike Bias: ${Math.abs(recent.avgHi).toFixed(1)} mm ${recent.avgHi >= 0 ? 'Toe' : 'Heel'}, ${Math.abs(recent.avgVi).toFixed(1)} mm ${recent.avgVi >= 0 ? 'High' : 'Low'}`
-            : `Launch &amp; spin window across ${recent.count} recent shots`}
+          ${recent.avgSpinLoft != null ? `Spin Loft: ${recent.avgSpinLoft.toFixed(1)}° • ` : ""}${recent.avgDescentAngle != null ? `Descent: ${recent.avgDescentAngle.toFixed(1)}°` : `Apex: ${recent.avgApexFt != null ? recent.avgApexFt.toFixed(0) + " ft" : "–"}`}
         </div>
       </div>
 
@@ -3146,11 +3347,11 @@ function renderAnalytics() {
       <div class="analytics-kpi-card">
         <div class="analytics-kpi-header">
           <span class="analytics-kpi-title">💨 Speed &amp; Distance</span>
-          <span class="analytics-trend-badge trend-${analytics.distance.carryDelta >= 2 ? 'improving' : 'consistent'}">${analytics.distance.carryDelta >= 2 ? 'Distance Gained' : 'Distance Profile'}</span>
+          <span class="analytics-trend-badge trend-${analytics.distance.carryDelta >= 2 ? "improving" : "consistent"}">${analytics.distance.carryDelta >= 2 ? "Distance Gained" : "Distance Profile"}</span>
         </div>
         <div class="analytics-kpi-val highlight">${recent.avgCarry > 0 ? `${recent.avgCarry.toFixed(1)} yds` : "–"}</div>
         <div class="analytics-kpi-sub">
-          Total: <strong>${recent.avgTotalYds > 0 ? `${recent.avgTotalYds.toFixed(1)} yds` : "–"}</strong> (Roll: <strong>${recent.avgRollYds.toFixed(1)} yds</strong>)
+          Total: <strong>${recent.avgTotalYds > 0 ? `${recent.avgTotalYds.toFixed(1)} yds` : "–"}</strong> • Spread: <strong>±${recent.stdDevCarry.toFixed(1)}y</strong>
         </div>
         <div style="font-size:0.78rem; color:var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem;">
           Ball: ${recent.avgBallSpeed != null ? `${recent.avgBallSpeed.toFixed(1)} mph` : "–"} • Club: ${recent.avgClubSpeed != null ? `${recent.avgClubSpeed.toFixed(1)} mph` : "–"}
@@ -3159,51 +3360,138 @@ function renderAnalytics() {
     </div>
   `;
 
+  // 1b. Ball-Flight Shape, Start/Curve Attribution, Missing Yards & Aim-Shift Strip
+  const missLabel = recent.missAttribution.missPattern === "one_way_bias"
+    ? "One-Way Directional Bias"
+    : (recent.missAttribution.missPattern === "two_way_miss" ? "Two-Way Miss Spread" : "Balanced Pattern");
+  const opportunityStripHtml = `
+    <div class="analytics-opportunity-strip">
+      <div class="opp-card">
+        <div class="opp-title">✈️ Dominant Ball Flight</div>
+        <div class="opp-val">${recent.ballFlight.dominantShape ? `${escapeHtml(recent.ballFlight.dominantShape)} (${recent.ballFlight.dominantPct}%)` : "Needs Face/Path"}</div>
+        <div class="opp-sub">
+          ${recent.missAttribution.hasData ? `Start Line ${recent.missAttribution.startPct}% / Curve ${recent.missAttribution.curvePct}% • ${missLabel}` : `${recent.pctLeft}% Left / ${recent.pctInFairway}% Corridor / ${recent.pctRight}% Right`}
+        </div>
+      </div>
+      <div class="opp-card">
+        <div class="opp-title">📏 Missing Yards Breakdown</div>
+        <div class="opp-val">${distanceLoss?.hasData ? (distanceLoss.totalLostYds >= 2 ? `+${distanceLoss.totalLostYds.toFixed(0)} yds Potential (${distanceLoss.potentialCarryYds.toFixed(0)}y)` : "Near Optimal Carry") : "–"}</div>
+        <div class="opp-sub">
+          ${distanceLoss?.hasData ? `Smash: -${distanceLoss.smashLossYds}y • Launch/Spin: -${distanceLoss.launchSpinLossYds}y • Curve: -${distanceLoss.curveLossYds}y` : "Hit shots with club/ball speed to compute ceiling"}
+        </div>
+      </div>
+      <div class="opp-card">
+        <div class="opp-title">🧭 DECADE Aim-Shift Opportunity</div>
+        <div class="opp-val">${recent.aimShift.gainPct >= 5 ? `Aim ${recent.aimShift.shiftYds}y ${recent.aimShift.shiftDir}` : "Centered Alignment"}</div>
+        <div class="opp-sub">
+          ${recent.aimShift.gainPct >= 5 ? `Corridor rate lifts ${recent.pctInFairway}% → ${recent.aimShift.projectedPctInFairway}% (+${recent.aimShift.gainPct}%)` : `80% Dispersion Area: ${recent.dispersionEllipse.valid ? recent.dispersionEllipse.area80 + " yd²" : "–"}`}
+        </div>
+      </div>
+    </div>
+  `;
+
   // 2. Interactive SVG Charts Grid
-  const offlineSvg = generateOfflineTrendChartSvg(shots);
-  const deliverySvg = generateDeliveryTrendChartSvg(shots);
-  const strikeSvg = generateStrikeTrendChartSvg(shots);
+  const chartOpts = { clubKey: currentAnalyticsClub, skillLevel, isLefty, corridorYds: recent.corridorYds };
+  const dPlaneSvg = generateDPlaneMatrixSvg(shots, chartOpts);
+  const targetDispSvg = generateDispersionTargetSvg(shots, chartOpts);
+  const launchOptSvg = generateLaunchOptimizerSvg(shots, chartOpts);
+  const offlineSvg = generateOfflineTrendChartSvg(shots, chartOpts);
+  const deliverySvg = generateDeliveryTrendChartSvg(shots, chartOpts);
+  const strikeSvg = generateStrikeTrendChartSvg(shots, chartOpts);
+  const sessionTrendSvg = sessions.length >= 2 ? generateSessionTrendChartSvg(sessions, chartOpts) : "";
+
+  let strikeQuadHtml = "";
+  if (recent.strikeQuadrants && recent.strikeQuadrants.total > 0) {
+    const q = recent.strikeQuadrants;
+    strikeQuadHtml = `
+      <div class="strike-quadrant-strip">
+        <span><strong>Sweet Spot:</strong> ${q.center.pct}% (${q.center.avgSmash ? q.center.avgSmash.toFixed(2) + " Sm" : q.center.count + "x"})</span>
+        <span><strong>Toe:</strong> ${q.toe.pct}% (${q.toe.avgSmash ? q.toe.avgSmash.toFixed(2) + " Sm" : q.toe.count + "x"})</span>
+        <span><strong>Heel:</strong> ${q.heel.pct}% (${q.heel.avgSmash ? q.heel.avgSmash.toFixed(2) + " Sm" : q.heel.count + "x"})</span>
+        <span><strong>High/Low:</strong> ${q.high.pct}% Hi / ${q.low.pct}% Lo</span>
+      </div>
+    `;
+  }
 
   const chartsHtml = `
     <div class="analytics-charts-grid">
-      <!-- Chart 1: Offline Dispersion -->
       <div class="analytics-chart-box">
         <div class="analytics-chart-header">
-          <span class="analytics-chart-title">🎯 Directional Offline Dispersion Trend</span>
+          <span class="analytics-chart-title">🧭 D-Plane 9-Flight Matrix (Path vs. Face)</span>
           <div class="analytics-chart-legend">
-            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> In Corridor (±10 yds)</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Off-Target</span>
-            <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Rolling Trend</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> Stock</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> High Curve</span>
+          </div>
+        </div>
+        ${dPlaneSvg}
+      </div>
+
+      <div class="analytics-chart-box">
+        <div class="analytics-chart-header">
+          <span class="analytics-chart-title">🎯 Covariance Dispersion Target (80% Ellipse)</span>
+          <div class="analytics-chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#38bdf8;"></span> 80% Zone (${recent.dispersionEllipse.valid ? recent.dispersionEllipse.area80 + " yd²" : "–"})</span>
+          </div>
+        </div>
+        ${targetDispSvg}
+      </div>
+
+      <div class="analytics-chart-box">
+        <div class="analytics-chart-header">
+          <span class="analytics-chart-title">🚀 Launch vs. Spin Window Optimizer</span>
+          <div class="analytics-chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> In Optimal Box</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Outside</span>
+          </div>
+        </div>
+        ${launchOptSvg}
+      </div>
+
+      <div class="analytics-chart-box">
+        <div class="analytics-chart-header">
+          <span class="analytics-chart-title">📊 Directional Offline Dispersion Trend</span>
+          <div class="analytics-chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> Corridor (±${recent.corridorYds}y)</span>
+            <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Trailing Avg</span>
           </div>
         </div>
         ${offlineSvg}
       </div>
 
-      <!-- Chart 2: Delivery Alignment (Face & Path) -->
       <div class="analytics-chart-box">
         <div class="analytics-chart-header">
-          <span class="analytics-chart-title">📐 Club Face &amp; Path Convergence to Straight (0.0°)</span>
+          <span class="analytics-chart-title">📐 Club Face &amp; Path Convergence to 0.0°</span>
           <div class="analytics-chart-legend">
-            <span class="legend-item"><span class="legend-line" style="background:#f59e0b;"></span> Face Angle</span>
-            <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Club Path</span>
-            <span class="legend-item"><span class="legend-line" style="background:#22c55e; border-top: 2px dashed #22c55e;"></span> Straight (0°)</span>
+            <span class="legend-item"><span class="legend-line" style="background:#f59e0b;"></span> Face</span>
+            <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Path</span>
           </div>
         </div>
         ${deliverySvg}
       </div>
 
-      <!-- Chart 3: Strike & Smash Factor -->
-      <div class="analytics-chart-box" style="grid-column: 1 / -1;">
+      <div class="analytics-chart-box">
         <div class="analytics-chart-header">
-          <span class="analytics-chart-title">⚡ Energy Transfer &amp; Smash Factor Progression</span>
+          <span class="analytics-chart-title">⚡ Club-Calibrated Smash Factor Trend</span>
           <div class="analytics-chart-legend">
-            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> Shot Smash Factor</span>
-            <span class="legend-item"><span class="legend-line" style="background:#22c55e;"></span> Moving Average</span>
-            <span class="legend-item"><span class="legend-dot" style="background:rgba(34,197,94,0.3); border-radius:3px;"></span> Optimal Range (1.45–1.50)</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span> Target (${bench.smash_min.toFixed(2)}–${bench.smash_max.toFixed(2)})</span>
           </div>
         </div>
         ${strikeSvg}
+        ${strikeQuadHtml}
       </div>
+
+      ${sessionTrendSvg ? `
+        <div class="analytics-chart-box" style="grid-column: 1 / -1;">
+          <div class="analytics-chart-header">
+            <span class="analytics-chart-title">📅 Session-over-Session Progression (${sessions.length} Sessions)${fatigue?.isFatigued ? " • ⚠️ Late-Session Fatigue Detected" : ""}</span>
+            <div class="analytics-chart-legend">
+              <span class="legend-item"><span class="legend-line" style="background:#38bdf8;"></span> Avg Offline (yds)</span>
+              <span class="legend-item"><span class="legend-line" style="background:#22c55e;"></span> Avg Smash</span>
+            </div>
+          </div>
+          ${sessionTrendSvg}
+        </div>
+      ` : ""}
     </div>
   `;
 
@@ -3212,16 +3500,17 @@ function renderAnalytics() {
     {
       metric: "Lateral Offline Deviation (Distance from Centerline)",
       base: formatOffline(baseline.avgAbsOffline),
-      rec: formatOffline(recent.avgAbsOffline),
-      delta: `${offline.delta > 0 ? '+' : ''}${offline.delta.toFixed(1)} yds`,
+      rec: `${formatOffline(recent.avgAbsOffline)} (±${recent.stdDevOffline.toFixed(1)} σ)`,
+      delta: `${offline.delta > 0 ? "+" : ""}${offline.delta.toFixed(1)} yds`,
       statusClass: formatDeltaClass(offline.status),
-      verdict: offline.status === "improving" ? "🟢 Nearing Target Centerline" : (offline.status === "expanding" ? "🔴 Drifting Further Offline" : "🟡 Consistent Accuracy")
+      verdict: offline.status === "improving" ? "🟢 Nearing Target Centerline" : (offline.status === "expanding" ? "🔴 Drifting Further Offline" : "🟡 Consistent Accuracy"),
+      gauge: offlineGauge
     },
     {
-      metric: "Fairway / Target Corridor Accuracy (±10 yds)",
+      metric: `Target Corridor Accuracy (±${recent.corridorYds} yds)`,
       base: `${baseline.pctInFairway}%`,
       rec: `${recent.pctInFairway}%`,
-      delta: `${recent.pctInFairway >= baseline.pctInFairway ? '+' : ''}${(recent.pctInFairway - baseline.pctInFairway)}%`,
+      delta: `${recent.pctInFairway >= baseline.pctInFairway ? "+" : ""}${recent.pctInFairway - baseline.pctInFairway}%`,
       statusClass: recent.pctInFairway >= baseline.pctInFairway ? "delta-improving" : "delta-expanding",
       verdict: recent.pctInFairway >= baseline.pctInFairway ? "🟢 Higher Target Rate" : "🔴 Wider Dispersion"
     },
@@ -3229,7 +3518,7 @@ function renderAnalytics() {
       metric: "Miss Bias Direction (Signed Centerline)",
       base: baseline.avgSignedOffline < 0 ? `${Math.abs(baseline.avgSignedOffline).toFixed(1)} yds Left` : `${baseline.avgSignedOffline.toFixed(1)} yds Right`,
       rec: recent.avgSignedOffline < 0 ? `${Math.abs(recent.avgSignedOffline).toFixed(1)} yds Left` : `${recent.avgSignedOffline.toFixed(1)} yds Right`,
-      delta: `${Math.abs(recent.avgSignedOffline) < Math.abs(baseline.avgSignedOffline) ? '↓ Centering' : '↑ Biasing'}`,
+      delta: Math.abs(recent.avgSignedOffline) < Math.abs(baseline.avgSignedOffline) ? "↓ Centering" : "↑ Biasing",
       statusClass: Math.abs(recent.avgSignedOffline) <= Math.abs(baseline.avgSignedOffline) ? "delta-improving" : "delta-expanding",
       verdict: Math.abs(recent.avgSignedOffline) <= Math.abs(baseline.avgSignedOffline) ? "🟢 Less Bias" : "🟡 Tendency Noticeable"
     },
@@ -3237,97 +3526,85 @@ function renderAnalytics() {
       metric: "Club Face Angle Deviation (Degrees off Square)",
       base: baseline.avgAbsFace != null ? `±${baseline.avgAbsFace.toFixed(1)}°` : "–",
       rec: recent.avgAbsFace != null ? `±${recent.avgAbsFace.toFixed(1)}°` : "–",
-      delta: face.delta != null ? `${face.delta > 0 ? '+' : ''}${face.delta.toFixed(1)}°` : "–",
+      delta: face.delta != null ? `${face.delta > 0 ? "+" : ""}${face.delta.toFixed(1)}°` : "–",
       statusClass: formatDeltaClass(face.status),
-      verdict: face.status === "improving" ? "🟢 Squaring Up to Target" : (face.status === "expanding" ? "🔴 Drifting Off Square" : "🟡 Stable Face Angle")
+      verdict: face.status === "improving" ? "🟢 Squaring Up to Target" : (face.status === "expanding" ? "🔴 Drifting Off Square" : "🟡 Stable Face Angle"),
+      gauge: faceGauge
     },
     {
       metric: "Club Swing Path Deviation (Degrees off Straight)",
       base: baseline.avgAbsPath != null ? `±${baseline.avgAbsPath.toFixed(1)}°` : "–",
       rec: recent.avgAbsPath != null ? `±${recent.avgAbsPath.toFixed(1)}°` : "–",
-      delta: path.delta != null ? `${path.delta > 0 ? '+' : ''}${path.delta.toFixed(1)}°` : "–",
+      delta: path.delta != null ? `${path.delta > 0 ? "+" : ""}${path.delta.toFixed(1)}°` : "–",
       statusClass: formatDeltaClass(path.status),
-      verdict: path.status === "improving" ? "🟢 Straightening Path" : (path.status === "expanding" ? "🔴 Steeper Deviation" : "🟡 Stable Path")
+      verdict: path.status === "improving" ? "🟢 Straightening Path" : (path.status === "expanding" ? "🔴 Steeper Deviation" : "🟡 Stable Path"),
+      gauge: pathGauge
     },
     {
       metric: "Face-to-Path Differential (Curvature / Side Spin)",
       base: baseline.avgAbsFtp != null ? `${baseline.avgAbsFtp.toFixed(1)}°` : "–",
       rec: recent.avgAbsFtp != null ? `${recent.avgAbsFtp.toFixed(1)}°` : "–",
-      delta: faceToPath.delta != null ? `${faceToPath.delta > 0 ? '+' : ''}${faceToPath.delta.toFixed(1)}°` : "–",
+      delta: faceToPath.delta != null ? `${faceToPath.delta > 0 ? "+" : ""}${faceToPath.delta.toFixed(1)}°` : "–",
       statusClass: formatDeltaClass(faceToPath.status),
       verdict: faceToPath.status === "improving" ? "🟢 Straighter Ball Flight" : (faceToPath.status === "expanding" ? "🔴 Higher Curvature" : "🟡 Controlled Curve")
     },
     {
-      metric: "Smash Factor (Ball Speed / Club Speed Compression)",
+      metric: "Smash Factor (Compression Efficiency)",
       base: baseline.avgSmash != null ? baseline.avgSmash.toFixed(2) : "–",
       rec: recent.avgSmash != null ? recent.avgSmash.toFixed(2) : "–",
-      delta: smash.delta != null ? `${smash.delta > 0 ? '+' : ''}${smash.delta.toFixed(2)}` : "–",
+      delta: smash.delta != null ? `${smash.delta > 0 ? "+" : ""}${smash.delta.toFixed(2)}` : "–",
       statusClass: formatDeltaClass(smash.status),
-      verdict: smash.status === "improving" ? "🟢 More Efficient Compression" : (smash.status === "declining" ? "🔴 Lower Energy Transfer" : "🟡 Consistent Strike")
+      verdict: smash.status === "improving" ? "🟢 More Efficient Compression" : (smash.status === "declining" ? "🔴 Lower Energy Transfer" : "🟡 Consistent Strike"),
+      gauge: smashGauge
     },
     {
-      metric: "Impact Distance from Sweet Spot (mm from Center Face)",
+      metric: "Attack Angle (AoA) / Dynamic Loft / Spin Loft",
+      base: baseline.avgAoa != null ? `${baseline.avgAoa > 0 ? "+" : ""}${baseline.avgAoa.toFixed(1)}° / ${baseline.avgDynamicLoft != null ? baseline.avgDynamicLoft.toFixed(1) + "°" : "–"}` : "–",
+      rec: recent.avgAoa != null ? `${recent.avgAoa > 0 ? "+" : ""}${recent.avgAoa.toFixed(1)}° / ${recent.avgDynamicLoft != null ? recent.avgDynamicLoft.toFixed(1) + "°" : "–"}${recent.avgSpinLoft != null ? ` (${recent.avgSpinLoft.toFixed(1)}° SL)` : ""}` : "–",
+      delta: analytics.launch?.aoaDelta != null ? `${analytics.launch.aoaDelta > 0 ? "+" : ""}${analytics.launch.aoaDelta.toFixed(1)}° AoA` : "–",
+      statusClass: "delta-neutral",
+      verdict: recent.avgSpinLoft != null ? `${recent.avgSpinLoft >= bench.spin_loft_min && recent.avgSpinLoft <= bench.spin_loft_max ? "🟢 Optimal Spin Loft" : "🟡 Check Shaft Lean"}` : "🔵 Delivery Angle"
+    },
+    {
+      metric: "Apex Height & Descent Angle (Stopping Power)",
+      base: baseline.avgApexFt != null || baseline.avgDescentAngle != null ? `${baseline.avgApexFt != null ? baseline.avgApexFt.toFixed(0) + " ft" : "–"} / ${baseline.avgDescentAngle != null ? baseline.avgDescentAngle.toFixed(1) + "°" : "–"}` : "–",
+      rec: recent.avgApexFt != null || recent.avgDescentAngle != null ? `${recent.avgApexFt != null ? recent.avgApexFt.toFixed(0) + " ft" : "–"} / ${recent.avgDescentAngle != null ? recent.avgDescentAngle.toFixed(1) + "°" : "–"}` : "–",
+      delta: recent.stoppingPower ? recent.stoppingPower.grade : "–",
+      statusClass: recent.stoppingPower?.grade === "Low Stopping Power" ? "delta-expanding" : "delta-improving",
+      verdict: recent.stoppingPower ? (recent.stoppingPower.grade === "Low Stopping Power" ? "🟡 Shallow Landing" : "🟢 Green Holding") : "🔵 Trajectory"
+    },
+    {
+      metric: "Impact Distance from Sweet Spot (mm)",
       base: baseline.avgImpactOffsetMm != null ? `${baseline.avgImpactOffsetMm.toFixed(1)} mm` : "–",
       rec: recent.avgImpactOffsetMm != null ? `${recent.avgImpactOffsetMm.toFixed(1)} mm` : "–",
-      delta: impact.delta != null ? `${impact.delta > 0 ? '+' : ''}${impact.delta.toFixed(1)} mm` : "–",
+      delta: impact.delta != null ? `${impact.delta > 0 ? "+" : ""}${impact.delta.toFixed(1)} mm` : "–",
       statusClass: formatDeltaClass(impact.status),
       verdict: impact.status === "improving" ? "🟢 Centering on Sweet Spot" : (impact.status === "expanding" ? "🔴 Off-Center Contact" : "🟡 Consistent Strike Point")
     },
     {
-      metric: "Average Carry Distance (Yards)",
-      base: `${baseline.avgCarry.toFixed(1)} yds`,
-      rec: `${recent.avgCarry.toFixed(1)} yds`,
-      delta: `${distance.carryDelta > 0 ? '+' : ''}${distance.carryDelta.toFixed(1)} yds`,
+      metric: "Carry Distance & Front-to-Back Consistency",
+      base: `${baseline.avgCarry.toFixed(1)} yds (±${baseline.stdDevCarry.toFixed(1)}y)`,
+      rec: `${recent.avgCarry.toFixed(1)} yds (±${recent.stdDevCarry.toFixed(1)}y${recent.carryConsistencyPct != null ? ` / ${recent.carryConsistencyPct}%` : ""})`,
+      delta: `${distance.carryDelta > 0 ? "+" : ""}${distance.carryDelta.toFixed(1)} yds`,
       statusClass: distance.carryDelta >= 0 ? "delta-improving" : "delta-neutral",
-      verdict: distance.carryDelta >= 2 ? "🟢 Distance Gained" : "🟡 Maintained Distance"
-    },
-    {
-      metric: "Carry Distance Consistency (Standard Deviation)",
-      base: `±${baseline.stdDevCarry.toFixed(1)} yds`,
-      rec: `±${recent.stdDevCarry.toFixed(1)} yds`,
-      delta: `${distance.carryDispersionDelta > 0 ? '+' : ''}${distance.carryDispersionDelta.toFixed(1)} yds`,
-      statusClass: distance.carryDispersionDelta <= 0 ? "delta-improving" : "delta-expanding",
-      verdict: distance.carryDispersionDelta < -0.5 ? "🟢 Tighter Distance Grouping" : "🟡 Consistent Range"
-    },
-    {
-      metric: "Total Distance & Rollout (Yards)",
-      base: `${baseline.avgTotalYds.toFixed(1)} yds (${baseline.avgRollYds.toFixed(1)} roll)`,
-      rec: `${recent.avgTotalYds.toFixed(1)} yds (${recent.avgRollYds.toFixed(1)} roll)`,
-      delta: `${distance.totalDelta > 0 ? '+' : ''}${distance.totalDelta.toFixed(1)} yds`,
-      statusClass: distance.totalDelta >= 0 ? "delta-improving" : "delta-neutral",
-      verdict: distance.totalDelta >= 2 ? "🟢 Longer Total Distance" : "🟡 Stable Rollout"
+      verdict: distance.carryDispersionDelta < -0.5 ? "🟢 Tighter Carry Grouping" : "🟡 Maintained Distance"
     },
     {
       metric: "Ball Speed / Club Head Speed (mph)",
-      base: baseline.avgBallSpeed != null ? `${baseline.avgBallSpeed.toFixed(1)} / ${baseline.avgClubSpeed != null ? baseline.avgClubSpeed.toFixed(1) : '–'}` : "–",
-      rec: recent.avgBallSpeed != null ? `${recent.avgBallSpeed.toFixed(1)} / ${recent.avgClubSpeed != null ? recent.avgClubSpeed.toFixed(1) : '–'}` : "–",
-      delta: analytics.speed?.ballSpeedDelta != null ? `${analytics.speed.ballSpeedDelta > 0 ? '+' : ''}${analytics.speed.ballSpeedDelta.toFixed(1)} mph` : "–",
+      base: baseline.avgBallSpeed != null ? `${baseline.avgBallSpeed.toFixed(1)} / ${baseline.avgClubSpeed != null ? baseline.avgClubSpeed.toFixed(1) : "–"}` : "–",
+      rec: recent.avgBallSpeed != null ? `${recent.avgBallSpeed.toFixed(1)} / ${recent.avgClubSpeed != null ? recent.avgClubSpeed.toFixed(1) : "–"}` : "–",
+      delta: analytics.speed?.ballSpeedDelta != null ? `${analytics.speed.ballSpeedDelta > 0 ? "+" : ""}${analytics.speed.ballSpeedDelta.toFixed(1)} mph` : "–",
       statusClass: (analytics.speed?.ballSpeedDelta ?? 0) >= 0 ? "delta-improving" : "delta-neutral",
       verdict: (analytics.speed?.ballSpeedDelta ?? 0) >= 1.5 ? "🟢 Higher Ball Speed" : "🟡 Consistent Speed"
     },
     {
-      metric: "Vertical Launch Angle (VLA°)",
-      base: baseline.avgVla != null ? `${baseline.avgVla.toFixed(1)}°` : "–",
-      rec: recent.avgVla != null ? `${recent.avgVla.toFixed(1)}°` : "–",
-      delta: analytics.launch?.vlaDelta != null ? `${analytics.launch.vlaDelta > 0 ? '+' : ''}${analytics.launch.vlaDelta.toFixed(1)}°` : "–",
+      metric: "Launch Angle (VLA°) / Spin Rate (RPM) / Spin Axis",
+      base: baseline.avgVla != null ? `${baseline.avgVla.toFixed(1)}° / ${baseline.avgSpin != null ? baseline.avgSpin.toLocaleString() : "–"}` : "–",
+      rec: recent.avgVla != null ? `${recent.avgVla.toFixed(1)}° / ${recent.avgSpin != null ? recent.avgSpin.toLocaleString() : "–"}${recent.avgSpinAxis != null ? ` (${recent.avgSpinAxis > 0 ? "+" : ""}${recent.avgSpinAxis}°)` : ""}` : "–",
+      delta: analytics.spin?.spinDelta != null ? `${analytics.spin.spinDelta > 0 ? "+" : ""}${analytics.spin.spinDelta.toLocaleString()} rpm` : "–",
       statusClass: "delta-neutral",
-      verdict: recent.avgVla != null ? "🔵 Launch Window" : "–"
-    },
-    {
-      metric: "Total Spin Rate (RPM)",
-      base: baseline.avgSpin != null ? `${baseline.avgSpin.toLocaleString()} rpm` : "–",
-      rec: recent.avgSpin != null ? `${recent.avgSpin.toLocaleString()} rpm` : "–",
-      delta: analytics.spin?.spinDelta != null ? `${analytics.spin.spinDelta > 0 ? '+' : ''}${analytics.spin.spinDelta.toLocaleString()} rpm` : "–",
-      statusClass: "delta-neutral",
-      verdict: recent.avgSpin != null ? "🔵 Spin Profile" : "–"
-    },
-    {
-      metric: "Face Strike Bias (Toe/Heel & High/Low)",
-      base: baseline.avgHi != null ? `${Math.abs(baseline.avgHi).toFixed(1)}mm ${baseline.avgHi >= 0 ? 'Toe' : 'Heel'} / ${Math.abs(baseline.avgVi).toFixed(1)}mm ${baseline.avgVi >= 0 ? 'Hi' : 'Lo'}` : "–",
-      rec: recent.avgHi != null ? `${Math.abs(recent.avgHi).toFixed(1)}mm ${recent.avgHi >= 0 ? 'Toe' : 'Heel'} / ${Math.abs(recent.avgVi).toFixed(1)}mm ${recent.avgVi >= 0 ? 'Hi' : 'Lo'}` : "–",
-      delta: impact.delta != null ? `${impact.delta > 0 ? '+' : ''}${impact.delta.toFixed(1)} mm` : "–",
-      statusClass: formatDeltaClass(impact.status),
-      verdict: recent.avgHi != null ? (Math.abs(recent.avgHi) <= 3 && Math.abs(recent.avgVi) <= 3 ? "🟢 Centered Pattern" : "🟡 Strike Tendency") : "–"
+      verdict: recent.avgVla != null ? "🔵 Launch & Spin Profile" : "–",
+      gauge: vlaGauge
     }
   ];
 
@@ -3335,7 +3612,7 @@ function renderAnalytics() {
   tableRows.forEach(row => {
     tableRowsHtml += `
       <tr>
-        <td style="font-weight: 600;">${escapeHtml(row.metric)}</td>
+        <td style="font-weight: 600;">${escapeHtml(row.metric)}${row.gauge || ""}</td>
         <td style="color: var(--muted);">${escapeHtml(row.base)}</td>
         <td style="font-weight: 700; color: var(--text);">${escapeHtml(row.rec)}</td>
         <td class="${row.statusClass}">${escapeHtml(row.delta)}</td>
@@ -3349,14 +3626,14 @@ function renderAnalytics() {
       <div class="analytics-table-header">
         <h4 class="analytics-table-title">📊 Baseline vs. Recent Performance Breakdown</h4>
         <p style="font-size:0.82rem; color:var(--muted); margin-top:0.25rem;">
-          Comparing earlier recorded baseline shots (${analytics.baselineShotsCount ?? baseline.count} shots) against your most recent swings (${analytics.recentShotsCount ?? recent.count} shots) to evaluate game progress.
+          Comparing earlier baseline (${analytics.baselineShotsCount ?? baseline.count} shots) against recent swings (${analytics.recentShotsCount ?? recent.count} shots) calibrated to ${escapeHtml(SKILL_LEVEL_NAMES[skillLevel] || "Mid Handicap")}.
         </p>
       </div>
       <div class="table-responsive">
         <table class="analytics-table">
           <thead>
             <tr>
-              <th>Metric</th>
+              <th>Metric &amp; Target Window</th>
               <th>Earlier Baseline</th>
               <th>Recent Shots</th>
               <th>Net Change</th>
@@ -3371,7 +3648,7 @@ function renderAnalytics() {
     </div>
   `;
 
-  // 4. AI Coaching Recommendations + Actionable Drills Option
+  // 4. AI Coaching Recommendations + 3-Stage Drills
   const insights = generateCoachingInsights(analytics);
   const issueInsights = insights.filter(item => item.issueKey);
   let coachingItemsHtml = "";
@@ -3379,12 +3656,15 @@ function renderAnalytics() {
     const drillBtn = item.issueKey
       ? `<button type="button" class="btn-drill-inline" data-drill-target="${escapeHtml(item.issueKey)}" data-insight-idx="${idx}">🏋️ View Drill to Work On</button>`
       : "";
+    const roiPill = item.strokesImpact >= 1.5
+      ? `<span class="coaching-roi-pill">~${item.strokesImpact.toFixed(1)} strokes/rd</span>`
+      : "";
     coachingItemsHtml += `
       <div class="coaching-item">
         <span class="coaching-icon">${item.icon}</span>
         <div class="coaching-body">
           <div class="coaching-body-top">
-            <h4>${escapeHtml(item.title)}</h4>
+            <h4>${escapeHtml(item.title)} ${roiPill}</h4>
             ${drillBtn}
           </div>
           <p>${escapeHtml(item.desc)}</p>
@@ -3419,8 +3699,8 @@ function renderAnalytics() {
       <div id="analytics-drills-panel" class="analytics-drills-panel" style="display:none;">
         <div class="analytics-drills-panel-header">
           <div>
-            <h4>🏋️ Recommended Practice Drills for Issues Seen</h4>
-            <p>Targeted drills matched to the dispersion, delivery, and strike trends detected in your shot telemetry.</p>
+            <h4>🏋️ 3-Stage Practice Drills for Issues Seen</h4>
+            <p>Progressive Setup → 70% Block → 100% Transfer drills with launch monitor proof and graduation rules.</p>
           </div>
           <button type="button" class="btn-action-outline" id="btn-close-analytics-drills">Hide Drills</button>
         </div>
@@ -3444,7 +3724,11 @@ function renderAnalytics() {
     </div>
   `;
 
-  container.innerHTML = kpiGridHtml + chartsHtml + tableHtml + coachingHtml;
+  container.innerHTML = focusHeroHtml + kpiGridHtml + opportunityStripHtml + chartsHtml + tableHtml + coachingHtml;
+
+  document.getElementById("btn-sync-coaching-goal")?.addEventListener("click", () => {
+    syncCoachingGoalToCloud(activeFocus);
+  });
 
   // Bind interactive drill option toggles in the Analytics tab
   const drillsPanel = document.getElementById("analytics-drills-panel");
@@ -3630,12 +3914,24 @@ function renderDrillCardsHtml(drills = []) {
         ${drill.reps ? `<span class="swing-drill-reps">${escapeHtml(drill.reps)}</span>` : ""}
       </div>
       ${drill.setup ? `<div class="swing-drill-row"><strong>Setup:</strong> ${escapeHtml(drill.setup)}</div>` : ""}
+      ${Array.isArray(drill.stages) && drill.stages.length > 0 ? `
+        <div class="swing-drill-stages">
+          ${drill.stages.map(st => `
+            <div class="swing-drill-stage-row">
+              <span class="swing-stage-pill">${escapeHtml(st.stage)}</span>
+              <span>${escapeHtml(st.desc)}</span>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
       ${Array.isArray(drill.steps) && drill.steps.length > 0 ? `
         <ol class="swing-drill-steps">
           ${drill.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
         </ol>
       ` : ""}
-      ${drill.goal ? `<div class="swing-drill-goal"><strong>Goal:</strong> ${escapeHtml(drill.goal)}</div>` : ""}
+      ${drill.monitorProof ? `<div class="swing-drill-proof"><strong>📡 Monitor Proof:</strong> ${escapeHtml(drill.monitorProof)}</div>` : ""}
+      ${drill.watchOutFor ? `<div class="swing-drill-warn"><strong>⚠️ Watch Out For:</strong> ${escapeHtml(drill.watchOutFor)}</div>` : ""}
+      ${drill.graduation || drill.goal ? `<div class="swing-drill-goal"><strong>🏆 Graduation:</strong> ${escapeHtml(drill.graduation || drill.goal)}</div>` : ""}
     </div>
   `).join("") + `</div>`;
 }
@@ -3709,6 +4005,7 @@ async function loadSwingAnalysis(user) {
     loadedTabs.swing = true;
 
     const swingIssues = statsData.swing_issues || {};
+    const swingMeta = statsData.swing_issues_meta || {};
     const months = Object.keys(swingIssues).sort().reverse();
 
     // Calculate all-time running totals across all months
@@ -3732,16 +4029,29 @@ async function loadSwingAnalysis(user) {
       return;
     }
 
-    // Determine current month key and name
+    // Determine current month key, prior month key, and analyzed-shot rates
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const currentMonthName = now.toLocaleString("default", { month: "long", year: "numeric" });
     const curMonthData = swingIssues[currentMonthKey] || {};
     const curMonthIssues = Object.keys(curMonthData).sort((a, b) => curMonthData[b] - curMonthData[a]);
+    const curMonthShots = Number(swingMeta[currentMonthKey]?.analyzed_shots || 0);
+    const prevMonthKey = months.find((m) => m < currentMonthKey);
+    const prevMonthData = prevMonthKey ? (swingIssues[prevMonthKey] || {}) : {};
+    const prevMonthShots = prevMonthKey ? Number(swingMeta[prevMonthKey]?.analyzed_shots || 0) : 0;
 
     const initialSelectedIssue = curMonthIssues[0] || allTimeKeys[0];
 
     let html = `<div class="swing-recommendations-wrapper">`;
+
+    if (curMonthShots > 0) {
+      html += `
+        <div class="swing-rate-summary-bar">
+          <span>📊 <strong>${escapeHtml(currentMonthName)}</strong>: ${curMonthShots} analyzed shot${curMonthShots === 1 ? "" : "s"} tracked</span>
+          ${prevMonthShots > 0 ? `<span class="swing-rate-prev">Prior Month (${escapeHtml(prevMonthKey)}): ${prevMonthShots} shots</span>` : ""}
+        </div>
+      `;
+    }
 
     // 0. Interactive Issue Selector & Fix/Drill Recommendation Panel
     html += `
@@ -3774,10 +4084,24 @@ async function loadSwingAnalysis(user) {
       curMonthIssues.forEach((issue) => {
         const count = curMonthData[issue];
         const isSelected = issue === initialSelectedIssue;
+        const curRate = curMonthShots > 0 ? Math.round((Number(count) / curMonthShots) * 100) : null;
+        const prevRate = (prevMonthShots > 0 && prevMonthData[issue] != null)
+          ? Math.round((Number(prevMonthData[issue]) / prevMonthShots) * 100) : null;
+        let rateBadgeHtml = "";
+        if (curRate != null) {
+          let momText = "";
+          let momClass = "";
+          if (prevRate != null) {
+            const diff = curRate - prevRate;
+            if (diff <= -3) { momText = ` • ↓ ${Math.abs(diff)}% Improving`; momClass = "rate-improving"; }
+            else if (diff >= 3) { momText = ` • ↑ ${diff}%`; momClass = "rate-worsening"; }
+          }
+          rateBadgeHtml = `<span class="swing-rate-pill ${momClass}">${curRate}% of shots${momText}</span>`;
+        }
         html += `
           <button type="button" class="swing-flaw-card is-selectable ${isSelected ? "is-selected" : ""}" data-issue="${escapeHtml(issue)}" aria-pressed="${isSelected ? "true" : "false"}">
             <div class="swing-flaw-info">
-              <div class="swing-flaw-name">${escapeHtml(issue)}</div>
+              <div class="swing-flaw-name">${escapeHtml(issue)} ${rateBadgeHtml}</div>
               <div class="swing-flaw-sub">This Month • Click for fix &amp; drills →</div>
             </div>
             <div class="swing-flaw-count">${count}</div>

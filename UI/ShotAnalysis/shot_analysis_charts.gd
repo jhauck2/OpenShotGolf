@@ -1,5 +1,7 @@
 extends Control
 
+const ShotAnalyticsEngineScript = preload("res://Utils/shot_analytics_engine.gd")
+
 const GROUP_COLORS: Array[Color] = [
 	Color(0.1, 0.85, 1.0),
 	Color(1.0, 0.72, 0.12),
@@ -14,12 +16,18 @@ const GROUP_COLORS: Array[Color] = [
 var _records: Array[Dictionary] = []
 var _groups: Array[Dictionary] = []
 var _show_best: bool = true
+var _view_mode: int = 0
 
 
-func set_analysis_data(records: Array[Dictionary], groups: Array[Dictionary], show_best: bool) -> void:
+func set_analysis_data(records: Array[Dictionary], groups: Array[Dictionary], show_best: bool, view_mode: int = -1) -> void:
 	_records = records
 	_groups = groups
-	_show_best = show_best
+	if view_mode >= 0:
+		_view_mode = view_mode
+		_show_best = (view_mode == 0)
+	else:
+		_show_best = show_best
+		_view_mode = 0 if show_best else 1
 	queue_redraw()
 
 
@@ -31,7 +39,8 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.055, 0.07, 0.095))
 	var font = ThemeDB.fallback_font
 	var flight_bottom := height * 0.34
-	draw_string(font, Vector2(16, 18), "FLIGHT PATH  ·  %s" % ("BEST SHOT" if _show_best else "GROUP AVERAGE"), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.75, 0.84, 0.96))
+	var mode_title: String = "BEST OVERALL" if _view_mode == 2 else ("BEST SHOT" if _view_mode == 0 else "GROUP AVERAGE")
+	draw_string(font, Vector2(16, 18), "FLIGHT PATH  ·  %s" % mode_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.75, 0.84, 0.96))
 	_draw_flight_chart(Rect2(18, 26, width - 36, flight_bottom - 38), font)
 	draw_line(Vector2(12, flight_bottom), Vector2(width - 12, flight_bottom), Color(0.4, 0.48, 0.58, 0.8), 1.0)
 	_draw_distance_ruler(Rect2(18, flight_bottom + 2, width - 36, 28), font)
@@ -111,6 +120,10 @@ func _draw_dispersion_chart(area: Rect2, font: Font) -> void:
 	max_lateral = maxf(ceil(max_lateral * 1.15 / 5.0) * 5.0, 15.0)
 	var center_y := (top + bottom) * 0.5
 	var max_distance := _distance_scale_yards()
+	var corridor_half: float = (12.0 / max_lateral) * ((bottom - top) * 0.5)
+	draw_rect(Rect2(left, maxf(top, center_y - corridor_half), right - left, minf(bottom - top, corridor_half * 2.0)), Color(0.16, 0.72, 0.45, 0.08))
+	draw_line(Vector2(left, maxf(top, center_y - corridor_half)), Vector2(right, maxf(top, center_y - corridor_half)), Color(0.24, 0.80, 0.52, 0.25), 1.0)
+	draw_line(Vector2(left, minf(bottom, center_y + corridor_half)), Vector2(right, minf(bottom, center_y + corridor_half)), Color(0.24, 0.80, 0.52, 0.25), 1.0)
 	for distance in range(0, int(max_distance) + 1, 50):
 		var x := _distance_x(distance, left, right, max_distance)
 		draw_line(Vector2(x, top), Vector2(x, bottom), Color(0.65, 0.72, 0.82, 0.2), 1.0)
@@ -121,21 +134,32 @@ func _draw_dispersion_chart(area: Rect2, font: Font) -> void:
 	for group_index in range(_groups.size()):
 		var group_id := int(_groups[group_index]["id"])
 		var active_points: Array[Vector2] = []
+		var active_yd_pts: Array[Vector2] = []
 		for record in _records:
 			if int(record.get("group_id", -1)) != group_id:
 				continue
 			var shot: Dictionary = record.get("shot", {})
-			var x := _distance_x(_distance_yards(shot), left, right, max_distance)
-			var y := center_y - clampf(_offline_yards(shot) / max_lateral, -1.0, 1.0) * ((bottom - top) * 0.5)
+			var d_yds: float = _distance_yards(shot)
+			var off_yds: float = _offline_yards(shot)
+			var x := _distance_x(d_yds, left, right, max_distance)
+			var y := center_y - clampf(off_yds / max_lateral, -1.0, 1.0) * ((bottom - top) * 0.5)
 			var color: Color = GROUP_COLORS[group_index % GROUP_COLORS.size()]
 			if bool(record.get("included", true)):
 				color.a = 0.92
 				active_points.append(Vector2(x, y))
+				active_yd_pts.append(Vector2(d_yds, off_yds))
 			else:
 				color.a = 0.2
 			draw_circle(Vector2(x, y), 4.0 if bool(record.get("included", true)) else 3.5, color)
 		if active_points.size() >= 2:
-			_draw_dispersion_ellipse(active_points, GROUP_COLORS[group_index % GROUP_COLORS.size()], Rect2(Vector2(left, top), Vector2(right - left, bottom - top)))
+			var g_col: Color = GROUP_COLORS[group_index % GROUP_COLORS.size()]
+			_draw_dispersion_ellipse(active_points, g_col, Rect2(Vector2(left, top), Vector2(right - left, bottom - top)))
+			if font != null and active_yd_pts.size() >= 3:
+				var yd_ell: Dictionary = ShotAnalyticsEngineScript.compute_covariance_ellipse(active_yd_pts)
+				if bool(yd_ell.get("valid", false)):
+					var area_val: float = float(yd_ell.get("area_yd2", 0.0))
+					var area_lbl: String = "G%d Area: %.0f yd²" % [group_index + 1, area_val]
+					draw_string(font, Vector2(right - 135.0, top + 12.0 + float(group_index) * 12.0), area_lbl, HORIZONTAL_ALIGNMENT_RIGHT, 130, 9, g_col)
 
 
 func _draw_distance_ruler(area: Rect2, font: Font) -> void:
@@ -176,12 +200,21 @@ func _representative_shot(group_id: int) -> Dictionary:
 			selected.append(record.get("shot", {}))
 	if selected.is_empty():
 		return {}
-	if _show_best:
+	if _view_mode == 0:
 		var best: Dictionary = selected[0]
 		for shot in selected:
 			if _distance_yards(shot) > _distance_yards(best):
 				best = shot
 		return best
+	if _view_mode == 2:
+		var best_overall: Dictionary = selected[0]
+		var best_score: float = _carry_yards(best_overall) - absf(_offline_yards(best_overall)) * 1.4
+		for shot in selected:
+			var sc: float = _carry_yards(shot) - absf(_offline_yards(shot)) * 1.4
+			if sc > best_score:
+				best_score = sc
+				best_overall = shot
+		return best_overall
 
 	var sums := {"CarryDistance": 0.0, "TotalDistance": 0.0, "Apex": 0.0}
 	var counts := {"CarryDistance": 0, "TotalDistance": 0, "Apex": 0}
@@ -264,19 +297,29 @@ func _bounded_ellipse_radii(points: Array[Vector2], bounds: Rect2) -> Vector2:
 
 
 func _draw_dispersion_ellipse(points: Array[Vector2], color: Color, bounds: Rect2) -> void:
-	var mean := Vector2.ZERO
-	for point in points:
-		mean += point
-	mean /= points.size()
-	var radii := _bounded_ellipse_radii(points, bounds)
-	if radii.x < 1.0 or radii.y < 1.0:
+	if points.size() < 2:
 		return
+	var ell: Dictionary = ShotAnalyticsEngineScript.compute_covariance_ellipse(points)
+	var mean: Vector2 = ell.get("mean", Vector2.ZERO)
+	if not bool(ell.get("valid", false)):
+		return
+	var avail_x: float = maxf(minf(mean.x - bounds.position.x, bounds.end.x - mean.x) - 2.0, 4.0)
+	var avail_y: float = maxf(minf(mean.y - bounds.position.y, bounds.end.y - mean.y) - 2.0, 4.0)
+	var rx: float = clampf(float(ell.get("std_major", 5.0)) * 2.0, 5.0, maxf(avail_x, avail_y))
+	var ry: float = clampf(float(ell.get("std_minor", 5.0)) * 2.0, 5.0, minf(avail_x, avail_y) if rx > avail_y else maxf(avail_x, avail_y))
+	var ang: float = float(ell.get("angle_rad", 0.0))
 	var ellipse := PackedVector2Array()
 	for index in range(41):
 		var angle := TAU * float(index) / 40.0
-		ellipse.append(mean + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
-	var outline := Color(color.r, color.g, color.b, 0.72)
-	var fill := Color(color.r, color.g, color.b, 0.08)
+		var lx: float = cos(angle) * rx
+		var ly: float = sin(angle) * ry
+		var rot := Vector2(lx * cos(ang) - ly * sin(ang), lx * sin(ang) + ly * cos(ang))
+		var pt := mean + rot
+		pt.x = clampf(pt.x, bounds.position.x + 1.0, bounds.end.x - 1.0)
+		pt.y = clampf(pt.y, bounds.position.y + 1.0, bounds.end.y - 1.0)
+		ellipse.append(pt)
+	var outline := Color(color.r, color.g, color.b, 0.78)
+	var fill := Color(color.r, color.g, color.b, 0.09)
 	draw_colored_polygon(ellipse, fill)
 	draw_polyline(ellipse, outline, 1.6, true)
 

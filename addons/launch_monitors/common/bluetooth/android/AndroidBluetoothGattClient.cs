@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Godot;
@@ -392,6 +393,63 @@ internal sealed partial class AndroidBluetoothGattClient : IBluetoothGattClient
             }
         }
         return Task.CompletedTask;
+    }
+
+    public IReadOnlyList<BluetoothGattCharacteristicInfo> GetDiscoveredCharacteristics()
+    {
+        if (_bluetoothGatt == null)
+        {
+            return Array.Empty<BluetoothGattCharacteristicInfo>();
+        }
+
+        try
+        {
+            var helperClass = JavaClassWrapper.Wrap("com.godot.game.GodotBleHelper");
+            if (helperClass == null)
+            {
+                return Array.Empty<BluetoothGattCharacteristicInfo>();
+            }
+
+            var summary = helperClass.Call("getDiscoveredCharacteristicsSummary", _bluetoothGatt).As<string>();
+            if (string.IsNullOrWhiteSpace(summary))
+            {
+                return Array.Empty<BluetoothGattCharacteristicInfo>();
+            }
+
+            var list = new List<BluetoothGattCharacteristicInfo>();
+            foreach (var line in summary.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Trim().Split('|');
+                if (parts.Length == 3 &&
+                    Guid.TryParse(parts[0], out var serviceUuid) &&
+                    Guid.TryParse(parts[1], out var charUuid) &&
+                    int.TryParse(parts[2], out var propsBitmask))
+                {
+                    list.Add(new BluetoothGattCharacteristicInfo(
+                        serviceUuid,
+                        charUuid,
+                        MapAndroidProperties(propsBitmask)));
+                }
+            }
+
+            return list;
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"{LogPrefix} Error getting discovered characteristics: {ex.Message}");
+            return Array.Empty<BluetoothGattCharacteristicInfo>();
+        }
+    }
+
+    private static BluetoothCharacteristicProperties MapAndroidProperties(int props)
+    {
+        var result = BluetoothCharacteristicProperties.None;
+        if ((props & 0x02) != 0) result |= BluetoothCharacteristicProperties.Read;
+        if ((props & 0x04) != 0) result |= BluetoothCharacteristicProperties.WriteWithoutResponse;
+        if ((props & 0x08) != 0) result |= BluetoothCharacteristicProperties.Write;
+        if ((props & 0x10) != 0) result |= BluetoothCharacteristicProperties.Notify;
+        if ((props & 0x20) != 0) result |= BluetoothCharacteristicProperties.Indicate;
+        return result;
     }
     
     public ValueTask DisposeAsync()

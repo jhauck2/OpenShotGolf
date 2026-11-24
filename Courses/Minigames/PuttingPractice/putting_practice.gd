@@ -412,6 +412,14 @@ func get_height(x: float, z: float) -> float:
 		
 	return base_slope + undulation + outer_mound
 
+func get_terrain_normal(x: float, z: float) -> Vector3:
+	var eps := 0.1
+	var h_l := get_height(x - eps, z)
+	var h_r := get_height(x + eps, z)
+	var h_d := get_height(x, z - eps)
+	var h_u := get_height(x, z + eps)
+	return Vector3(h_l - h_r, 2.0 * eps, h_d - h_u).normalized()
+
 func clamp_camera_position(pos: Vector3, min_clearance: float = 0.35) -> Vector3:
 	var terrain_h = get_height(pos.x, pos.z)
 	if pos.y < terrain_h + min_clearance:
@@ -1351,6 +1359,7 @@ func _setup_holes() -> void:
 		cup_root.name = "CupMarker_%d" % i
 		cup_root.position = hole_pos
 		FlagBuilder.build_hole_cup(cup_root, cup_radius)
+		FlagBuilder.align_cup_to_normal(cup_root, get_terrain_normal(h_x, h_z))
 		add_child(cup_root)
 
 		# Spawn flagstick for each hole (hidden on the active target hole, visible on all other holes)
@@ -1450,7 +1459,10 @@ func _update_hole_flag_and_ring_visibility() -> void:
 			pin.visible = (i != selected_hole_index)
 	if target_ring != null and is_instance_valid(target_ring):
 		if selected_hole_index >= 0 and selected_hole_index < holes.size():
-			target_ring.global_position = holes[selected_hole_index] + Vector3(0.0, 0.0005, 0.0)
+			var h_pos: Vector3 = holes[selected_hole_index]
+			var h_norm := get_terrain_normal(h_pos.x, h_pos.z)
+			target_ring.global_position = h_pos + h_norm * 0.0005
+			target_ring.basis = FlagBuilder.basis_from_surface_normal(h_norm).scaled(Vector3(1.0, 0.01, 1.0))
 			target_ring.visible = true
 		else:
 			target_ring.visible = false

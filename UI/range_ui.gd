@@ -56,8 +56,15 @@ var _screen_offset_ctrl: Control = null
 var _dist_btn: Button = null
 var _golfer_cam_btn: Button = null
 var _putting_cam_btn: Button = null
+const PracticeDrillHudScript = preload("res://UI/ShotAnalysis/practice_drill_hud.gd")
 var _shot_analysis_btn: Button = null
 var _shot_traces_btn: Button = null
+var _practice_drill_hud: Control = null
+var _practice_drill_btn: Button = null
+
+func _on_practice_hud_player_changed(pname: String) -> void:
+	if _practice_drill_hud != null and is_instance_valid(_practice_drill_hud) and _practice_drill_hud.has_method("set_player"):
+		_practice_drill_hud.call("set_player", pname)
 var _shot_traces_active: bool = true
 var _rollout_btn: Button = null
 var _track_averages_btn: Button = null
@@ -187,6 +194,8 @@ func _ready() -> void:
 	_setup_prev_shot_ui()
 	_setup_golfer_camera_ui()
 	_setup_profile_selector()
+	if not player_profile_changed.is_connected(_on_practice_hud_player_changed):
+		player_profile_changed.connect(_on_practice_hud_player_changed)
 
 	var profile_script = load("res://UI/PuttingCamera/putting_color_profile.gd")
 	if profile_script != null:
@@ -659,6 +668,36 @@ func _ready() -> void:
 		train_menu_container.add_child(rollout_btn)
 		_rollout_btn = rollout_btn
 
+		# Live Range Practice Drills HUD Toggle Button
+		var practice_drill_btn = Button.new()
+		practice_drill_btn.name = "PracticeDrillsButton"
+		practice_drill_btn.text = "🎯 Practice Drills: OFF"
+		practice_drill_btn.tooltip_text = "Open 10-Ball Range Rep Drill Tracker"
+		practice_drill_btn.custom_minimum_size = Vector2(180, 56)
+		apply_material_button_style(practice_drill_btn, Color(0.25, 0.35, 0.45, 0.85))
+		practice_drill_btn.pressed.connect(func():
+			if _practice_drill_hud == null or not is_instance_valid(_practice_drill_hud):
+				_practice_drill_hud = PracticeDrillHudScript.new()
+				_practice_drill_hud.position = Vector2(24, 96)
+				if has_node("OverlayLayer"):
+					$OverlayLayer.add_child(_practice_drill_hud)
+				else:
+					add_child(_practice_drill_hud)
+				if _practice_drill_hud.has_signal("closed"):
+					_practice_drill_hud.closed.connect(func():
+						practice_drill_btn.text = "🎯 Practice Drills: OFF"
+						apply_material_button_style(practice_drill_btn, Color(0.25, 0.35, 0.45, 0.85))
+					)
+			var show_hud: bool = not _practice_drill_hud.visible
+			_practice_drill_hud.visible = show_hud
+			if show_hud and _practice_drill_hud.has_method("set_player"):
+				_practice_drill_hud.call("set_player", get_selected_player_name())
+			practice_drill_btn.text = "🎯 Practice Drills: ON" if show_hud else "🎯 Practice Drills: OFF"
+			apply_material_button_style(practice_drill_btn, Color(0.16, 0.62, 0.46, 0.9) if show_hud else Color(0.25, 0.35, 0.45, 0.85))
+		)
+		train_menu_container.add_child(practice_drill_btn)
+		_practice_drill_btn = practice_drill_btn
+
 		# --- Visuals Menu Submenu ---
 		var visuals_menu_btn = Button.new()
 		visuals_menu_btn.name = "VisualsMenuButton"
@@ -1080,37 +1119,47 @@ func set_data(data: Dictionary, is_final_rest: bool = false) -> void:
 	if is_final_rest:
 		var cam_active: bool = is_golfer_camera_enabled()
 		var analysis_active: bool = is_shot_analysis_enabled()
-		if cam_active or analysis_active:
-			var is_suggestions_only: bool = not cam_active and analysis_active
-			var recorded_frames: Array[Dictionary] = []
-			if not is_suggestions_only:
-				if not _saved_swing_frames.is_empty():
-					recorded_frames = _saved_swing_frames.duplicate()
-				elif _swing_frame_buffer != null:
-					recorded_frames = _swing_frame_buffer.get_captured_frames()
-			var modal_data = _prepare_modal_shot_data(data)
-			var p_name = str(modal_data.get("player", ""))
+		var hud_visible: bool = _practice_drill_hud != null and is_instance_valid(_practice_drill_hud) and _practice_drill_hud.visible
+		if cam_active or analysis_active or hud_visible:
+			var modal_data: Dictionary = _prepare_modal_shot_data(data)
+			var p_name: String = str(modal_data.get("player", ""))
 			if p_name.is_empty():
 				p_name = get_selected_player_name()
 				modal_data["player"] = p_name
+			var club_str: String = str(modal_data.get("Club", modal_data.get("club", "")))
 
-			# 1. Detached window active: update it
-			if _detached_modal != null and is_instance_valid(_detached_modal) and _detached_modal.get("is_detached"):
-				_detached_modal.update_shot_data(modal_data, recorded_frames, is_suggestions_only)
-			# 2. Attached modal active in overlay: update it
-			elif has_node("OverlayLayer/SwingReplayModal"):
-				var attached_modal = get_node("OverlayLayer/SwingReplayModal")
-				if is_instance_valid(attached_modal) and attached_modal.has_method("update_shot_data"):
-					attached_modal.update_shot_data(modal_data, recorded_frames, is_suggestions_only)
-			# 3. No modal actively open: evaluate launch monitor recommendations and record to player profile
-			else:
-				var recs = GolfSwingAnalyzer.analyze_launch_monitor(modal_data)
-				if not recs.is_empty():
-					var mp_mgr = get_node_or_null("/root/MultiplayerManager")
-					if mp_mgr != null and mp_mgr.has_method("record_player_swing_issues"):
-						mp_mgr.record_player_swing_issues(p_name, recs)
-						modal_data["_recommendations_recorded"] = true
-						_last_shot_data["_recommendations_recorded"] = true
+			var mp_mgr = get_node_or_null("/root/MultiplayerManager")
+			if mp_mgr != null and mp_mgr.has_method("record_coaching_goal_shot") and not p_name.is_empty():
+				mp_mgr.call("record_coaching_goal_shot", p_name, modal_data)
+
+			if hud_visible:
+				_practice_drill_hud.call("evaluate_shot", modal_data)
+
+			if cam_active or analysis_active:
+				var is_suggestions_only: bool = not cam_active and analysis_active
+				var recorded_frames: Array[Dictionary] = []
+				if not is_suggestions_only:
+					if not _saved_swing_frames.is_empty():
+						recorded_frames = _saved_swing_frames.duplicate()
+					elif _swing_frame_buffer != null:
+						recorded_frames = _swing_frame_buffer.get_captured_frames()
+
+				# 1. Detached window active: update it
+				if _detached_modal != null and is_instance_valid(_detached_modal) and _detached_modal.get("is_detached"):
+					_detached_modal.update_shot_data(modal_data, recorded_frames, is_suggestions_only)
+				# 2. Attached modal active in overlay: update it
+				elif has_node("OverlayLayer/SwingReplayModal"):
+					var attached_modal = get_node("OverlayLayer/SwingReplayModal")
+					if is_instance_valid(attached_modal) and attached_modal.has_method("update_shot_data"):
+						attached_modal.update_shot_data(modal_data, recorded_frames, is_suggestions_only)
+				# 3. No modal actively open: evaluate launch monitor recommendations and record to player profile
+				else:
+					var recs = GolfSwingAnalyzer.analyze_launch_monitor(modal_data)
+					if not recs.is_empty():
+						if mp_mgr != null and mp_mgr.has_method("record_player_swing_issues"):
+							mp_mgr.record_player_swing_issues(p_name, recs, club_str)
+							modal_data["_recommendations_recorded"] = true
+							_last_shot_data["_recommendations_recorded"] = true
 
 
 func _exit_tree() -> void:

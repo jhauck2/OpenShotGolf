@@ -12,7 +12,7 @@ class_name CourseGraphicsUpgrader
 ## - Optimizes `Sky3D` `Sky.PROCESS_MODE_REALTIME` & gradual clouds (0.005 / 0.003) to eliminate choppiness
 ## - Stamps `"graphics_version": 2` into `course.json` so subsequent launches have zero overhead.
 
-const CURRENT_COURSE_GRAPHICS_VERSION: int = 20
+const CURRENT_COURSE_GRAPHICS_VERSION: int = 23
 const ProceduralTreeGeneratorScript = preload("res://HighFidelity/Foliage/procedural_tree_generator.gd")
 const CourseDetailEnhancerScript = preload("res://HighFidelity/Terrain/course_detail_enhancer.gd")
 
@@ -24,17 +24,30 @@ static func get_current_graphics_version() -> int:
 static func is_course_scene_already_upgraded(scene_path: String) -> bool:
 	if not FileAccess.file_exists(scene_path):
 		return false
+	if not scene_path.to_lower().ends_with(".tscn"):
+		return false
 	var file := FileAccess.open(scene_path, FileAccess.READ)
 	if file == null:
 		return false
 	var has_multimesh := false
+	var has_terrain := false
+	var details_version := 0
 	while not file.eof_reached():
 		var line := file.get_line()
 		if "MultiMeshFoliageContainer" in line:
 			has_multimesh = true
-			break
+		if "UnifiedTerrain" in line:
+			has_terrain = true
+		if "metadata/course_details_version = " in line:
+			var eq_idx := line.find("=")
+			if eq_idx >= 0:
+				details_version = maxi(details_version, line.substr(eq_idx + 1).strip_edges().to_int())
 	file.close()
-	return has_multimesh
+	if not has_multimesh:
+		return false
+	if has_terrain:
+		return details_version >= CURRENT_COURSE_GRAPHICS_VERSION
+	return true
 
 
 static func get_courses_needing_upgrade(base_dir: String = "user://courses") -> Array[Dictionary]:
@@ -105,7 +118,7 @@ static func upgrade_single_course(course_entry: Dictionary) -> bool:
 	ProceduralTreeGeneratorScript.convert_scene_foliage_to_multimesh(root, true)
 
 	# 2. Build recessed 3D bunkers, overhanging lip grass, shoreline reeds, cart paths, and horizon skirt
-	CourseDetailEnhancerScript.enhance_course_scene(root, true)
+	CourseDetailEnhancerScript.enhance_course_scene(root, true, {"force_rebuild": true})
 
 	# 3. Optimize Sky3D process_mode, radiance_size, clouds speed, and Skydome fog overlay
 	var sky3d := root.get_node_or_null("Sky3D") as WorldEnvironment

@@ -75,6 +75,16 @@ dist/
 # Commercial generator tool
 scripts/tools/commercial_generator/
 
+# Visual test captures & recordings
+captures/
+*.avi
+*.mp4
+*.gif
+*.webm
+test_*.png
+*screenshot*.png
+*preview*.png
+
 # OpenStreetMap extracts and temporary data
 *.osm.pbf
 *.pbf

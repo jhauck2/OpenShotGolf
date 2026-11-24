@@ -32,6 +32,7 @@ func _run_all_tests() -> void:
 	await _test_6_sync_404_resilience_and_leaderboard_projection()
 	await _test_7_manual_sync_cooldown_and_rate_limiting()
 	await _test_8_web_and_cross_device_clear_tracking()
+	await _test_9_cross_device_sync_manual_sync_and_game_over()
 	_restore_user_files(backup)
 
 	print("\n=======================================================")
@@ -842,6 +843,149 @@ func _test_8_web_and_cross_device_clear_tracking() -> void:
 	assert(merged_g["swing_issues_updated_at"] == 1500, "Updated_at should be 1500")
 
 	print("  PASS: Web and cross-device clear tracking, legacy shot purging, record recalculation, and swing clear verified.")
+
+
+func _test_9_cross_device_sync_manual_sync_and_game_over() -> void:
+	print("\n--- Test 9: Cross-Device Primary Restore, Bag Pull, Manual Sync & Game Over Winners ---")
+	var mp = root.get_node_or_null("MultiplayerManager")
+	assert(mp != null, "MultiplayerManager autoload must exist")
+
+	# Clear local registry to simulate a brand new device (e.g. Android phone)
+	mp.save_registered_players([])
+	mp.save_global_club_stats({})
+
+	var uid := "uid_cross_device_1"
+	var mock_auth := MockCrossDeviceAuth.new(uid, "golfer@example.com", "LaptopMike")
+	root.add_child(mock_auth)
+
+	var mock_fs := MockCrossDeviceFirestoreClient.new()
+	mock_fs.uploaded_docs["profiles/" + uid] = {
+		"schema_version": 1,
+		"owner_uid": uid,
+		"display_name": "LaptopMike",
+		"avatar": "res://assets/images/avatars/golfer_2.png",
+		"preferred_tee": "Championship",
+		"skill_level": "low_handicap",
+		"handedness": 1,
+		"ball_graphic": "triple_track",
+		"ball_type": "tour",
+		"bag": ["Dr", "3W", "5i", "7i", "PW", "Pt"],
+		"rev": 5,
+		"lifetime": {
+			"matches_played": 12,
+			"wins": 4,
+			"par_diff_sum": 36,
+			"par_diff_matches": 12,
+			"longest_drive_yds": 285.5,
+			"longest_putt_ft": 32.0
+		}
+	}
+	mock_fs.uploaded_docs["profiles/" + uid + "/sync/stats"] = {
+		"clubs": {
+			"Dr": [
+				{"id": "shot_abc1", "t": 1700000100, "src": "lm", "CarryDistance": 240.0, "TotalDistance": 261.0}
+			]
+		},
+		"records": {"longest_drive": 285.5, "longest_putt_ft": 32.0},
+		"tombstones": {},
+		"achievements": {"unlocked": {}, "heard_heckles": []},
+		"swing_issues": {},
+		"best_courses": {}
+	}
+
+	var cs = CloudSyncScript.new()
+	cs.set_auth_node(mock_auth)
+	cs.set_firestore_client(mock_fs)
+	root.add_child(cs)
+	await process_frame
+
+	# 1. Startup sync on fresh device should discover profiles/{uid}, create LaptopMike, pull bag & stats!
+	cs.reset_manual_sync_cooldown()
+	await cs.sync_all_eligible_profiles("startup")
+
+	var reg: Array = mp.get_registered_players()
+	assert(reg.size() == 1, "Fresh device should restore 1 primary profile from cloud")
+	var restored: Dictionary = reg[0]
+	assert(str(restored.get("name", "")) == "LaptopMike", "Restored name should be LaptopMike")
+	assert(str(restored.get("link_role", "")) == "primary", "Restored profile should be primary")
+	assert(str(restored.get("cloud_uid", "")) == uid, "Restored cloud_uid should match")
+	assert(restored.get("bag", []) == ["Dr", "3W", "5i", "7i", "PW", "Pt"], "Mapped bag must be pulled from cloud")
+	assert(str(restored.get("preferred_tee", "")) == "Championship", "Preferred tee must be pulled from cloud")
+	assert(str(restored.get("skill_level", "")) == "low_handicap", "Skill level must be pulled from cloud")
+	assert(int(restored.get("handedness", 0)) == 1, "Handedness must be pulled from cloud")
+
+	var calc_stats: Dictionary = mp.calculate_player_stats("LaptopMike")
+	assert(int(calc_stats.get("matches_played", 0)) == 12, "Matches played should reflect cloud lifetime cache")
+	assert(bool(calc_stats.get("avg_to_par_valid", false)) == true, "avg_to_par_valid should be true from cloud cache")
+	assert(absf(float(calc_stats.get("avg_to_par", 0.0)) - 3.0) < 0.01, "avg_to_par should be 3.0")
+
+	var club_stats: Dictionary = mp.load_global_club_stats()
+	assert(club_stats.has("LaptopMike") and club_stats["LaptopMike"].has("Dr"), "Club stats should be pulled from cloud")
+	assert(club_stats["LaptopMike"]["Dr"].size() == 1, "Driver shot should be restored locally")
+
+	# 2. Manual sync via sync_all_eligible_profiles("manual") must succeed (not fail with _is_syncing)
+	cs.reset_manual_sync_cooldown()
+	var completed_results: Array = []
+	cs.sync_completed.connect(func(ok: bool, synced: Array[String]):
+		completed_results.append({"ok": ok, "synced": synced})
+	)
+	await cs.sync_all_eligible_profiles("manual")
+	assert(completed_results.size() == 1, "sync_completed should emit once")
+	assert(completed_results[0]["ok"] == true, "Manual sync_all_eligible_profiles must succeed")
+	assert(completed_results[0]["synced"].has("LaptopMike"), "Manual sync must include LaptopMike")
+
+	# 3. _on_multiplayer_game_over with Array of player dicts must compute winners properly
+	mp.practice_mode_active = false
+	mp.current_match_id = "match_gameover_winner_test"
+	mp.course_title = "Pebble Test"
+	mp.game_mode = "Standard"
+	mp.is_finished = true
+	mp.hole_ids.clear()
+	mp.hole_ids.append("h1")
+	mp.hole_ids.append("h2")
+	mp.players.clear()
+	mp.players.append({"name": "LaptopMike", "active": true, "total_strokes": 7, "hole_scores": {"h1": 3, "h2": 4}, "shot_stats": {}})
+	mp.players.append({"name": "GuestBob", "active": true, "total_strokes": 9, "hole_scores": {"h1": 4, "h2": 5}, "shot_stats": {}})
+	cs.pending_matches.clear()
+	cs._on_multiplayer_game_over(mp.players)
+	assert(cs.pending_matches.size() == 1, "Should queue 1 primary match")
+	assert(bool(cs.pending_matches[0].get("is_winner", false)) == true, "Low-stroke player LaptopMike must be marked is_winner=true")
+	assert(bool(cs.pending_matches[0].get("is_loss", false)) == false, "Low-stroke player must not be marked is_loss=true")
+
+	cs.queue_free()
+	mock_auth.queue_free()
+	print("  PASS: Cross-device primary restore, bag pull, manual sync, and game_over winner calculation verified.")
+
+
+class MockCrossDeviceAuth extends Node:
+	var _uid: String
+	var _email: String
+	var _dname: String
+
+	func _init(p_uid: String, p_email: String, p_dname: String) -> void:
+		_uid = p_uid
+		_email = p_email
+		_dname = p_dname
+
+	func is_signed_in() -> bool:
+		return true
+
+	func is_cloud_service_paused() -> bool:
+		return false
+
+	func get_uid() -> String:
+		return _uid
+
+	func get_email() -> String:
+		return _email
+
+	func get_display_name() -> String:
+		return _dname
+
+
+class MockCrossDeviceFirestoreClient extends Mock404NewProfileFirestoreClient:
+	func run_query(_collection_id: String, _where_filters: Array = [], _order_by: Array = [], _limit: int = 25, _require_auth: bool = false) -> Dictionary:
+		return {"ok": true, "status": 200, "documents": [], "error": ""}
 
 
 # ── MOCK FIRESTORE CLASSES ───────────────────────────────────────────────

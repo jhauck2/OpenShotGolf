@@ -1,6 +1,8 @@
 extends Control
 
 const FirestoreClient = preload("res://Utils/Cloud/firestore_client.gd")
+const ShotAnalyticsEngineScript = preload("res://Utils/shot_analytics_engine.gd")
+const AnalyticsVisualWidgetsScript = preload("res://UI/ShotAnalysis/analytics_visual_widgets.gd")
 
 const GROUP_COLORS: Array[Color] = [
 	Color(0.1, 0.85, 1.0),
@@ -35,6 +37,8 @@ var _new_group_button: Button
 var _upload_button: Button
 var _upload_status: Label
 var _averages: Dictionary = {}
+var _stddevs: Dictionary = {}
+var _coaching_container: VBoxContainer
 var _group_counts: Dictionary = {}
 var _group_selectors: Array[OptionButton] = []
 var _data_keys: Array[String] = []
@@ -223,6 +227,7 @@ func _build_interface() -> void:
 	_mode_selector = OptionButton.new()
 	_mode_selector.add_item("Best shot")
 	_mode_selector.add_item("Group average")
+	_mode_selector.add_item("Best overall (distance + accuracy)")
 	_mode_selector.item_selected.connect(func(_index: int):
 		_update_chart()
 	)
@@ -235,6 +240,23 @@ func _build_interface() -> void:
 	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_chart.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	chart_tab.add_child(_chart)
+
+	var coaching_tab := VBoxContainer.new()
+	coaching_tab.name = "Coaching & D-Plane"
+	coaching_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	coaching_tab.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.add_child(coaching_tab)
+
+	var coach_scroll := ScrollContainer.new()
+	coach_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	coach_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	coaching_tab.add_child(coach_scroll)
+
+	_coaching_container = VBoxContainer.new()
+	_coaching_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_coaching_container.add_theme_constant_override("separation", 10)
+	coach_scroll.add_child(_coaching_container)
+	_update_coaching_tab()
 
 
 func _upload_analysis_to_portal() -> void:
@@ -374,8 +396,9 @@ func _render_spreadsheet() -> void:
 	_group_selectors.clear()
 	for child in _spreadsheet.get_children():
 		_spreadsheet.remove_child(child)
-		child.free()
+		child.queue_free()
 	_averages.clear()
+	_stddevs.clear()
 	_group_counts.clear()
 	if _data_keys.is_empty():
 		if _groups.is_empty():
@@ -478,6 +501,26 @@ func _render_group(group: Dictionary) -> void:
 		cell.add_theme_color_override("font_color", Color(0.66, 0.9, 0.75))
 		average_row.add_child(cell)
 	_averages[group_id] = average_row
+
+	var stddev_row := HBoxContainer.new()
+	stddev_row.add_theme_constant_override("separation", 4)
+	var stddev_title := Label.new()
+	stddev_title.text = "STD DEV"
+	stddev_title.custom_minimum_size.x = 54
+	stddev_title.add_theme_color_override("font_color", Color(0.55, 0.75, 0.92))
+	body.add_child(stddev_row)
+	stddev_row.add_child(stddev_title)
+	var sd_spacer := Control.new()
+	sd_spacer.custom_minimum_size.x = 150
+	stddev_row.add_child(sd_spacer)
+	for key in _data_keys:
+		var sd_cell := Label.new()
+		sd_cell.custom_minimum_size.x = 112
+		sd_cell.clip_text = true
+		sd_cell.add_theme_color_override("font_color", Color(0.64, 0.80, 0.96))
+		stddev_row.add_child(sd_cell)
+	_stddevs[group_id] = stddev_row
+
 	_update_group_summary(group_id)
 
 
@@ -607,9 +650,11 @@ func _update_group_summary(group_id: int) -> void:
 	var included_count := 0
 	var sums := {}
 	var counts := {}
+	var vals := {}
 	for key in _data_keys:
 		sums[key] = 0.0
 		counts[key] = 0
+		vals[key] = []
 	for record in _records:
 		if int(record["group_id"]) != group_id:
 			continue
@@ -623,25 +668,173 @@ func _update_group_summary(group_id: int) -> void:
 			if value == null:
 				continue
 			if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
-				sums[key] += float(_display_stat_value(key, value))
+				var dv: float = float(_display_stat_value(key, value))
+				sums[key] += dv
 				counts[key] += 1
+				(vals[key] as Array).append(dv)
 	var count_label: Label = _group_counts.get(group_id)
 	if count_label != null:
 		count_label.text = "%d of %d included" % [included_count, total]
 	var average_row: HBoxContainer = _averages.get(group_id)
+	var stddev_row: HBoxContainer = _stddevs.get(group_id)
 	if average_row == null:
 		return
 	for index in range(_data_keys.size()):
 		var cell := average_row.get_child(index + 2) as Label
 		var key := _data_keys[index]
-		cell.text = _format_value(sums[key] / counts[key]) if counts[key] > 0 else "—"
+		var mean: float = (sums[key] / counts[key]) if counts[key] > 0 else 0.0
+		cell.text = _format_value(mean) if counts[key] > 0 else "—"
 		cell.tooltip_text = "Average %s from %d included shots" % [_column_label(key), counts[key]]
+		if stddev_row != null and index + 2 < stddev_row.get_child_count():
+			var sd_cell := stddev_row.get_child(index + 2) as Label
+			if counts[key] >= 2:
+				var sq: float = 0.0
+				for v in vals[key]:
+					sq += pow(float(v) - mean, 2.0)
+				var sd: float = sqrt(sq / float(counts[key]))
+				sd_cell.text = "±%s" % _format_value(sd)
+				sd_cell.tooltip_text = "Std Dev (σ) of %s across %d shots" % [_column_label(key), counts[key]]
+			else:
+				sd_cell.text = "—"
 
 
 func _update_chart() -> void:
-	if _chart == null or not _chart.has_method("set_analysis_data"):
+	if _chart != null and _chart.has_method("set_analysis_data"):
+		var mode_idx: int = _mode_selector.selected if _mode_selector != null else 0
+		_chart.call("set_analysis_data", _records, _groups, mode_idx == 0, mode_idx)
+	_update_coaching_tab()
+
+
+func _update_coaching_tab() -> void:
+	if _coaching_container == null:
 		return
-	_chart.call("set_analysis_data", _records, _groups, _mode_selector != null and _mode_selector.selected == 0)
+	for child in _coaching_container.get_children():
+		_coaching_container.remove_child(child)
+		child.queue_free()
+
+	var included_shots: Array = []
+	for record in _records:
+		if not bool(record.get("included", true)):
+			continue
+		if _active_group_id >= 0 and int(record.get("group_id", -1)) != _active_group_id:
+			continue
+		var s: Dictionary = record.get("shot", {})
+		if not s.is_empty():
+			included_shots.append(s)
+	if included_shots.is_empty():
+		for record in _records:
+			if bool(record.get("included", true)):
+				var s2: Dictionary = record.get("shot", {})
+				if not s2.is_empty():
+					included_shots.append(s2)
+
+	if included_shots.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "Take shots on the range (or include shots in a group) to view D-Plane flight shape matrix, Launch Optimizer, and Distance Loss diagnostics."
+		empty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty_lbl.add_theme_color_override("font_color", Color(0.72, 0.78, 0.86))
+		_coaching_container.add_child(empty_lbl)
+		return
+
+	var first_shot: Dictionary = included_shots[-1]
+	var club_name: String = str(first_shot.get("Club", first_shot.get("club", "Driver")))
+	var player_name: String = str(first_shot.get("Player", first_shot.get("player", "")))
+	var skill_level: String = "mid_handicap"
+	var is_lefty: bool = bool(first_shot.get("is_lefty", false))
+	var mp_mgr = get_node_or_null("/root/MultiplayerManager")
+	if mp_mgr != null:
+		if mp_mgr.has_method("get_player_skill_level"):
+			skill_level = str(mp_mgr.get_player_skill_level(player_name))
+		if mp_mgr.has_method("get_player_handedness") and not first_shot.has("is_lefty"):
+			is_lefty = int(mp_mgr.get_player_handedness(player_name)) == 1
+
+	var analysis: Dictionary = ShotAnalyticsEngineScript.analyze_shot_group(included_shots, club_name, skill_level, is_lefty)
+	if not bool(analysis.get("has_data", false)):
+		return
+
+	var focus: Dictionary = analysis.get("active_focus", {})
+	var recent: Dictionary = analysis.get("recent", {})
+	var loss: Dictionary = analysis.get("distance_loss", {})
+	var aim: Dictionary = recent.get("aim_shift", {})
+	var bf: Dictionary = recent.get("ball_flight", {})
+	var attr: Dictionary = recent.get("miss_attribution", {})
+
+	# 1. Active "One-Thing Focus" Hero Banner
+	var hero := PanelContainer.new()
+	var h_style := StyleBoxFlat.new()
+	h_style.bg_color = Color(0.08, 0.13, 0.20, 0.96)
+	h_style.border_width_left = 4
+	h_style.border_color = Color(0.24, 0.85, 0.56, 0.95)
+	h_style.content_margin_left = 14
+	h_style.content_margin_right = 14
+	h_style.content_margin_top = 10
+	h_style.content_margin_bottom = 10
+	hero.add_theme_stylebox_override("panel", h_style)
+	var h_vbox := VBoxContainer.new()
+	h_vbox.add_theme_constant_override("separation", 4)
+	var f_title := Label.new()
+	f_title.text = "🎯 Active Focus: %s (Est. -%.1f strokes/rd)" % [str(focus.get("title", "Ball Flight Stability")), float(focus.get("estimated_strokes_saved", 0.5))]
+	f_title.add_theme_font_size_override("font_size", 16)
+	f_title.add_theme_color_override("font_color", Color(0.45, 0.96, 0.70))
+	h_vbox.add_child(f_title)
+	var f_why := Label.new()
+	f_why.text = str(focus.get("why", ""))
+	f_why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	f_why.add_theme_color_override("font_color", Color(0.86, 0.92, 0.98))
+	h_vbox.add_child(f_why)
+	hero.add_child(h_vbox)
+	_coaching_container.add_child(hero)
+
+	# 2. Visual Charts Row: D-Plane Matrix + Launch Optimizer
+	var charts_row := HBoxContainer.new()
+	charts_row.add_theme_constant_override("separation", 12)
+	charts_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var d_plane: Control = AnalyticsVisualWidgetsScript.create_d_plane_matrix(
+		bf.get("counts", {}),
+		int(bf.get("total_classified", included_shots.size())),
+		is_lefty,
+		Vector2(280, 190)
+	)
+	charts_row.add_child(d_plane)
+	var bench: Dictionary = GolfSwingAnalyzer.get_benchmark(club_name, GolfSwingAnalyzer.normalize_skill_level(skill_level))
+	var launch_opt: Control = AnalyticsVisualWidgetsScript.create_launch_optimizer(analysis.get("normalized_shots", []), bench, Vector2(280, 190))
+	charts_row.add_child(launch_opt)
+	_coaching_container.add_child(charts_row)
+
+	# 3. Distance Loss + Aim Shift + Miss Attribution Summary Cards
+	var cards_row := HBoxContainer.new()
+	cards_row.add_theme_constant_override("separation", 12)
+	cards_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var loss_lbl := Label.new()
+	loss_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	loss_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if bool(loss.get("has_data", false)):
+		loss_lbl.text = "📏 Potential Carry: %.1f yds (Leaking %.1f yds — Strike: %.1f · Launch/Spin: %.1f · Curve: %.1f)" % [
+			float(loss.get("potential_carry_yds", 0.0)),
+			float(loss.get("total_lost_yds", 0.0)),
+			float(loss.get("smash_loss_yards", loss.get("smash_loss_yds", 0.0))),
+			float(loss.get("launch_spin_loss_yds", 0.0)),
+			float(loss.get("curve_loss_yds", 0.0))
+		]
+	else:
+		loss_lbl.text = "📏 Distance Loss: Include club speed telemetry to unlock missing yards attribution."
+	loss_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.58))
+	cards_row.add_child(loss_lbl)
+
+	var aim_lbl := Label.new()
+	aim_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	aim_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var shift_yds: float = float(aim.get("shift_yds", 0.0))
+	var shift_dir: String = str(aim.get("shift_dir", ""))
+	if not shift_dir.is_empty() and shift_yds >= 2.0:
+		aim_lbl.text = "🧭 Aim Shift: Aim %.1f yds %s to raise corridor rate from %d%% to ~%d%%." % [shift_yds, shift_dir, int(recent.get("pct_in_corridor", 0)), int(aim.get("projected_pct_in_corridor", 0))]
+	else:
+		aim_lbl.text = "🧭 Aim & Miss Driver: %s (%d%% Stock Shape)" % [str(attr.get("miss_pattern", "Centered")), int(bf.get("pct_functional_stock", 0))]
+	aim_lbl.add_theme_color_override("font_color", Color(0.65, 0.90, 1.0))
+	cards_row.add_child(aim_lbl)
+
+	_coaching_container.add_child(cards_row)
 
 
 func _column_label(key: String) -> String:

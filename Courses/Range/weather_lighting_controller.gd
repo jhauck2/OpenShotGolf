@@ -157,6 +157,7 @@ func _cache_original_settings() -> void:
 	if env != null:
 		_cached_env_settings = {
 			"fog_enabled": env.fog_enabled,
+			"fog_mode": env.fog_mode,
 			"fog_light_color": env.fog_light_color,
 			"fog_density": env.fog_density,
 			"fog_sky_affect": env.fog_sky_affect,
@@ -1377,12 +1378,15 @@ func _apply_weather_state(rain_active: bool) -> void:
 	if env != null:
 		if rain_active:
 			env.fog_enabled = true
+			env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 			env.fog_light_color = Color(0.48, 0.52, 0.58)
 			env.fog_density = 0.0035
 			env.fog_sky_affect = 0.6
 		else:
 			if _cached_env_settings.has("fog_enabled"):
 				env.fog_enabled = _cached_env_settings["fog_enabled"]
+			if _cached_env_settings.has("fog_mode"):
+				env.fog_mode = _cached_env_settings["fog_mode"]
 			if _cached_env_settings.has("fog_light_color"):
 				env.fog_light_color = _cached_env_settings["fog_light_color"]
 			if _cached_env_settings.has("fog_density"):

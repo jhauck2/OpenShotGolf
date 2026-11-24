@@ -21,9 +21,10 @@ public partial class OsmMapLoader : Node
     private static readonly string[] OverpassEndpoints = new[]
     {
         "https://overpass-api.de/api/interpreter",
-        "https://z.overpass-api.de/api/interpreter",
+        "https://overpass.openstreetmap.fr/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
-        "https://overpass.private.coffee/api/interpreter"
+        "https://overpass.private.coffee/api/interpreter",
+        "https://z.overpass-api.de/api/interpreter"
     };
     private static readonly System.Net.Http.HttpClient HttpClient = CreateHttpClient();
 
@@ -136,6 +137,7 @@ public partial class OsmMapLoader : Node
 
     private string _generationMessage = "";
     private ElevationMap? _currentElevationMap;
+    private TerrainGridSampler? _unifiedTerrainSampler;
     private double[]? _downloadedSatelliteImageBounds;
     private byte[]? _downloadedCoursePhotoBytes;
     private double _refLat;
@@ -883,20 +885,27 @@ public partial class OsmMapLoader : Node
         var candidatePaths = new List<string>();
         foreach (var slug in slugs)
         {
+            // Check user-cached geometry first (may already include supplemental roads/buildings);
+            // each loaded file is still validated against targetLat/targetLon below.
+            candidatePaths.Add($"user://cached_geometry/{slug}.json.gz");
+            candidatePaths.Add($"user://cached_geometry/{slug}.json");
+
+            bool skipResForDistance = false;
             if (targetLat != 0 || targetLon != 0)
             {
                 if (TryGetCachedCourseCoordinates(slug, out var coordsList) &&
                     !coordsList.Any(c => HaversineDistanceMeters(targetLat, targetLon, c.Lat, c.Lon) <= 25000.0))
                 {
-                    GD.Print($"{LogPrefix} Candidate cached slug '{slug}' is located > 25 km from requested coordinates ({targetLat}, {targetLon}). Skipping.");
-                    continue;
+                    GD.Print($"{LogPrefix} Candidate pre-packaged slug '{slug}' is located > 25 km from requested coordinates ({targetLat}, {targetLon}). Skipping res:// cache.");
+                    skipResForDistance = true;
                 }
             }
 
-            candidatePaths.Add($"res://Courses/CachedGeometry/{slug}.json.gz");
-            candidatePaths.Add($"res://Courses/CachedGeometry/{slug}.json");
-            candidatePaths.Add($"user://cached_geometry/{slug}.json.gz");
-            candidatePaths.Add($"user://cached_geometry/{slug}.json");
+            if (!skipResForDistance)
+            {
+                candidatePaths.Add($"res://Courses/CachedGeometry/{slug}.json.gz");
+                candidatePaths.Add($"res://Courses/CachedGeometry/{slug}.json");
+            }
         }
 
         foreach (var path in candidatePaths)
@@ -1023,7 +1032,7 @@ public partial class OsmMapLoader : Node
         return false;
     }
 
-    private static bool HasSupplementalRoadsAndBuildings(string json)
+    public static bool HasSupplementalRoadsAndBuildings(string json)
     {
         if (string.IsNullOrWhiteSpace(json)) return false;
         if (json.Contains("\"supplemented_roads_buildings\"", StringComparison.Ordinal))
@@ -1037,12 +1046,32 @@ public partial class OsmMapLoader : Node
 
             foreach (var el in elements.EnumerateArray())
             {
-                if (!el.TryGetProperty("tags", out var tags))
+                if (!el.TryGetProperty("tags", out var tags) || tags.ValueKind != JsonValueKind.Object)
                     continue;
-                bool hasGolf = tags.TryGetProperty("golf", out _);
-                if (!hasGolf && (tags.TryGetProperty("building", out _) || tags.TryGetProperty("highway", out _)))
+                if (tags.TryGetProperty("golf", out _))
+                    continue;
+
+                if (tags.TryGetProperty("building", out var bProp))
                 {
-                    return true;
+                    string bVal = (bProp.GetString() ?? "").Trim().ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(bVal) && bVal != "no" && bVal != "none" &&
+                        bVal != "ruins" && bVal != "construction" && bVal != "proposed")
+                    {
+                        return true;
+                    }
+                }
+
+                if (tags.TryGetProperty("highway", out var hProp))
+                {
+                    string hVal = (hProp.GetString() ?? "").Trim().ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(hVal) &&
+                        hVal != "path" && hVal != "footway" && hVal != "steps" && hVal != "bridleway" &&
+                        hVal != "cycleway" && hVal != "pedestrian" && hVal != "corridor" && hVal != "proposed" &&
+                        hVal != "construction" && hVal != "abandoned" && hVal != "razed" && hVal != "platform" &&
+                        hVal != "elevator" && hVal != "crossing" && hVal != "street_lamp" && hVal != "stop" && hVal != "give_way")
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -1052,39 +1081,160 @@ public partial class OsmMapLoader : Node
         return false;
     }
 
-    private async Task<string> TrySupplementOsmRoadsAndBuildingsAsync(string baseJson, double lat, double lon, string courseName)
+    public bool CheckHasSupplementalRoadsAndBuildings(string json)
+    {
+        return HasSupplementalRoadsAndBuildings(json);
+    }
+
+    /// <summary>
+    /// Computes the Overpass bounding box (south, west, north, east) covering the actual golf course
+    /// elements in baseJson plus surrounding padding (320m) so roads and buildings around every hole
+    /// are included even when the catalog lat/lon is off-center. Falls back to fallbackLat/Lon ± 1400m.
+    /// </summary>
+    public static (double South, double West, double North, double East) ComputeSupplementalQueryBBox(
+        string baseJson, double fallbackLat, double fallbackLon)
+    {
+        double minLat = double.MaxValue, maxLat = double.MinValue;
+        double minLon = double.MaxValue, maxLon = double.MinValue;
+        bool hasFallback = fallbackLat != 0 || fallbackLon != 0;
+
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(baseJson))
+            {
+                using var doc = JsonDocument.Parse(baseJson);
+                if (doc.RootElement.TryGetProperty("elements", out var elements))
+                {
+                    var nodeCoords = new Dictionary<long, (double Lat, double Lon)>();
+                    var golfNodeIds = new HashSet<long>();
+
+                    foreach (var el in elements.EnumerateArray())
+                    {
+                        string t = el.TryGetProperty("type", out var tp) ? (tp.GetString() ?? "") : "";
+                        if (t == "node")
+                        {
+                            if (el.TryGetProperty("id", out var idp) &&
+                                el.TryGetProperty("lat", out var latp) &&
+                                el.TryGetProperty("lon", out var lonp))
+                            {
+                                nodeCoords[idp.GetInt64()] = (latp.GetDouble(), lonp.GetDouble());
+                            }
+                        }
+                        else if (t == "way" && el.TryGetProperty("tags", out var tags) && tags.ValueKind == JsonValueKind.Object)
+                        {
+                            bool isGolf = tags.TryGetProperty("golf", out _) ||
+                                          (tags.TryGetProperty("leisure", out var lp) &&
+                                           string.Equals(lp.GetString(), "golf_course", StringComparison.OrdinalIgnoreCase));
+                            if (isGolf && el.TryGetProperty("nodes", out var wayNodes))
+                            {
+                                foreach (var nid in wayNodes.EnumerateArray())
+                                {
+                                    golfNodeIds.Add(nid.GetInt64());
+                                }
+                            }
+                        }
+                    }
+
+                    IEnumerable<(double Lat, double Lon)> targetCoords = golfNodeIds.Count > 0
+                        ? golfNodeIds.Where(nodeCoords.ContainsKey).Select(id => nodeCoords[id])
+                        : nodeCoords.Values;
+
+                    foreach (var (nLat, nLon) in targetCoords)
+                    {
+                        if (hasFallback && HaversineDistanceMeters(fallbackLat, fallbackLon, nLat, nLon) > 4500.0)
+                            continue;
+                        if (nLat < minLat) minLat = nLat;
+                        if (nLat > maxLat) maxLat = nLat;
+                        if (nLon < minLon) minLon = nLon;
+                        if (nLon > maxLon) maxLon = nLon;
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        if (minLat <= maxLat && minLon <= maxLon)
+        {
+            double midLat = (minLat + maxLat) * 0.5;
+            double padMeters = 320.0;
+            double dLat = padMeters / 111320.0;
+            double cosLat = Math.Max(0.2, Math.Cos(midLat * Math.PI / 180.0));
+            double dLon = padMeters / (111320.0 * cosLat);
+            return (minLat - dLat, minLon - dLon, maxLat + dLat, maxLon + dLon);
+        }
+
+        double fallbackRadiusMeters = 1400.0;
+        double fDLat = fallbackRadiusMeters / 111320.0;
+        double fCosLat = Math.Max(0.2, Math.Cos(fallbackLat * Math.PI / 180.0));
+        double fDLon = fallbackRadiusMeters / (111320.0 * fCosLat);
+        return (fallbackLat - fDLat, fallbackLon - fDLon, fallbackLat + fDLat, fallbackLon + fDLon);
+    }
+
+    public Godot.Collections.Dictionary ComputeSupplementalQueryBBoxForTest(string baseJson, double fallbackLat, double fallbackLon)
+    {
+        var (s, w, n, e) = ComputeSupplementalQueryBBox(baseJson, fallbackLat, fallbackLon);
+        return new Godot.Collections.Dictionary
+        {
+            ["south"] = s,
+            ["west"] = w,
+            ["north"] = n,
+            ["east"] = e
+        };
+    }
+
+    private async Task<string> TrySupplementOsmRoadsAndBuildingsAsync(
+        string baseJson, double lat, double lon, string courseName, int preferredEndpointOffset = 0)
     {
         if (lat == 0 && lon == 0) return baseJson;
         if (HasSupplementalRoadsAndBuildings(baseJson)) return baseJson;
 
-        string latStr = lat.ToString(CultureInfo.InvariantCulture);
-        string lonStr = lon.ToString(CultureInfo.InvariantCulture);
+        var (south, west, north, east) = ComputeSupplementalQueryBBox(baseJson, lat, lon);
+        string sStr = south.ToString("F6", CultureInfo.InvariantCulture);
+        string wStr = west.ToString("F6", CultureInfo.InvariantCulture);
+        string nStr = north.ToString("F6", CultureInfo.InvariantCulture);
+        string eStr = east.ToString("F6", CultureInfo.InvariantCulture);
+        string bboxStr = $"{sStr},{wStr},{nStr},{eStr}";
+
         string supplementQuery = $@"
-        [out:json][timeout:25];
+        [out:json][timeout:30];
         (
-          way(around:1200, {latStr}, {lonStr})[""highway""~""^(residential|service|unclassified|tertiary|secondary|primary|track)$""];
-          way(around:1200, {latStr}, {lonStr})[""building""];
-          relation(around:1200, {latStr}, {lonStr})[""building""];
+          way[""highway""~""^(residential|service|unclassified|tertiary|secondary|primary|track)$""]({bboxStr});
+          way[""building""]({bboxStr});
+          relation[""building""]({bboxStr});
         );
         out body;
         >;
         out skel qt;
         ";
 
-        for (int attempt = 1; attempt <= Math.Min(2, OverpassEndpoints.Length); attempt++)
+        int maxAttempts = OverpassEndpoints.Length;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            string endpoint = OverpassEndpoints[(attempt - 1) % OverpassEndpoints.Length];
+            string endpoint = OverpassEndpoints[(preferredEndpointOffset + attempt - 1) % OverpassEndpoints.Length];
             try
             {
-                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(35));
                 var content = new FormUrlEncodedContent(new[] { new KeyValuePair<string, string>("data", supplementQuery) });
                 var response = await HttpClient.PostAsync(endpoint, content, cts.Token);
                 if (!response.IsSuccessStatusCode)
+                {
+                    GD.Print($"{LogPrefix} Supplemental road/building query attempt {attempt}/{maxAttempts} ({endpoint}) returned HTTP {(int)response.StatusCode}; trying next mirror.");
+                    if (attempt < maxAttempts) await Task.Delay(500);
                     continue;
+                }
 
                 string supplementJson = await response.Content.ReadAsStringAsync(cts.Token);
                 if (string.IsNullOrWhiteSpace(supplementJson))
                     continue;
+
+                if (IsOverpassResultTruncated(supplementJson))
+                {
+                    GD.Print($"{LogPrefix} Supplemental road/building query attempt {attempt}/{maxAttempts} ({endpoint}) returned truncated/timed-out result; trying next mirror.");
+                    if (attempt < maxAttempts) await Task.Delay(500);
+                    continue;
+                }
 
                 using var baseDoc = JsonDocument.Parse(baseJson);
                 using var suppDoc = JsonDocument.Parse(supplementJson);
@@ -1125,7 +1275,7 @@ public partial class OsmMapLoader : Node
 
                     writer.WriteEndArray();
                     writer.WriteEndObject();
-                    GD.Print($"{LogPrefix} Supplemented cached geometry for '{courseName}' with {addedCount} road/building OSM elements.");
+                    GD.Print($"{LogPrefix} Supplemented cached geometry for '{courseName}' via {endpoint} with {addedCount} road/building OSM elements (bbox {bboxStr}).");
                 }
 
                 string merged = Encoding.UTF8.GetString(ms.ToArray());
@@ -1134,10 +1284,12 @@ public partial class OsmMapLoader : Node
             }
             catch (Exception ex)
             {
-                GD.Print($"{LogPrefix} Supplemental road/building query attempt {attempt} skipped: {ex.Message}");
+                GD.Print($"{LogPrefix} Supplemental road/building query attempt {attempt}/{maxAttempts} ({endpoint}) skipped: {ex.Message}");
+                if (attempt < maxAttempts) await Task.Delay(500);
             }
         }
 
+        GD.PrintErr($"{LogPrefix} All {maxAttempts} Overpass mirrors failed for supplemental road/building query on '{courseName}'. Proceeding with base geometry.");
         return baseJson;
     }
 
@@ -1217,7 +1369,7 @@ public partial class OsmMapLoader : Node
                             if (ShouldGenerateSurroundingFeatures())
                             {
                                 ReportProgress("Fetching surrounding roads and buildings...");
-                                result = await TrySupplementOsmRoadsAndBuildingsAsync(result, lat, lon, courseName);
+                                result = await TrySupplementOsmRoadsAndBuildingsAsync(result, lat, lon, courseName, preferredEndpointOffset: attempt);
                             }
                             return result;
                         }
@@ -1254,6 +1406,7 @@ public partial class OsmMapLoader : Node
         string location = "")
     {
         _generationMessage = "";
+        _unifiedTerrainSampler = null;
         ReportProgress("Parsing course layout and golf features...");
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
@@ -3576,7 +3729,8 @@ public partial class OsmMapLoader : Node
 
             if (GenerateCartPaths)
             {
-                cartPaths = MergeCartPaths(cartPaths, 2.0f);
+                cartPaths = MergeCartPaths(cartPaths, 4.5f, 2.0f);
+                cartPaths = SnapCartPathTJunctions(cartPaths, waterPolygons, 3.5f);
                 // Join path pieces that end at one shore and resume on the opposite shore so a bridge can span the water.
                 cartPaths = BridgeCartPathWaterGaps(cartPaths, waterPolygons);
                 for (int pathIndex = 0; pathIndex < cartPaths.Count; pathIndex++)
@@ -8429,7 +8583,7 @@ public partial class OsmMapLoader : Node
         CreateCollisionForPolygon(staticBody, uniquePoints, rootNode, exclusionPolygons);
     }
 
-    private static List<List<Vector2>> MergeCartPaths(List<List<Vector2>> paths, float maximumJoinDistance)
+    private static List<List<Vector2>> MergeCartPaths(List<List<Vector2>> paths, float maximumJoinDistance, float unconditionalJoinDistance = 2.0f)
     {
         var merged = paths
             .Where(path => path.Count >= 2)
@@ -8450,10 +8604,10 @@ public partial class OsmMapLoader : Node
                     bool reverseSecond = false;
                     var endpointPairs = new[]
                     {
-                        (First: first[^1], Second: second[0], ReverseFirst: false, ReverseSecond: false),
-                        (First: first[^1], Second: second[^1], ReverseFirst: false, ReverseSecond: true),
-                        (First: first[0], Second: second[0], ReverseFirst: true, ReverseSecond: false),
-                        (First: first[0], Second: second[^1], ReverseFirst: true, ReverseSecond: true)
+                        (First: first[^1], PrevFirst: first[^2], Second: second[0], NextSecond: second[1], ReverseFirst: false, ReverseSecond: false),
+                        (First: first[^1], PrevFirst: first[^2], Second: second[^1], NextSecond: second[^2], ReverseFirst: false, ReverseSecond: true),
+                        (First: first[0], PrevFirst: first[1], Second: second[0], NextSecond: second[1], ReverseFirst: true, ReverseSecond: false),
+                        (First: first[0], PrevFirst: first[1], Second: second[^1], NextSecond: second[^2], ReverseFirst: true, ReverseSecond: true)
                     };
                     var join = endpointPairs
                         .Select(candidate => (Candidate: candidate, Distance: candidate.First.DistanceTo(candidate.Second)))
@@ -8462,6 +8616,21 @@ public partial class OsmMapLoader : Node
                     if (join.Distance > bestDistance)
                     {
                         continue;
+                    }
+
+                    if (join.Distance > unconditionalJoinDistance)
+                    {
+                        Vector2 dirA = join.Candidate.First - join.Candidate.PrevFirst;
+                        Vector2 dirB = join.Candidate.Second - join.Candidate.NextSecond;
+                        Vector2 across = (join.Candidate.Second - join.Candidate.First) / join.Distance;
+                        if (dirA.LengthSquared() < 0.0001f || dirB.LengthSquared() < 0.0001f)
+                        {
+                            continue;
+                        }
+                        if (dirA.Normalized().Dot(across) < 0.35f || dirB.Normalized().Dot(-across) < 0.35f)
+                        {
+                            continue;
+                        }
                     }
 
                     reverseFirst = join.Candidate.ReverseFirst;
@@ -8488,6 +8657,87 @@ public partial class OsmMapLoader : Node
         return merged;
     }
 
+    /// <summary>
+    /// Snaps dangling cart path endpoints onto nearby interior cart path segments to close T-junctions.
+    /// </summary>
+    private static List<List<Vector2>> SnapCartPathTJunctions(List<List<Vector2>> paths, List<Vector2[]> waterPolygons, float maxSnapDist = 3.5f)
+    {
+        var result = paths
+            .Where(path => path.Count >= 2)
+            .Select(path => new List<Vector2>(path))
+            .ToList();
+
+        bool IsWetPoint(Vector2 pt)
+        {
+            if (waterPolygons == null) return false;
+            foreach (var wp in waterPolygons)
+            {
+                if (wp != null && wp.Length >= 3 && Geometry2D.IsPointInPolygon(pt, wp))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        for (int a = 0; a < result.Count; a++)
+        {
+            var pathA = result[a];
+            if (pathA.Count < 2) continue;
+            for (int endIdx = 0; endIdx < 2; endIdx++)
+            {
+                bool atEnd = endIdx == 1;
+                Vector2 pt = atEnd ? pathA[^1] : pathA[0];
+                Vector2 dir = atEnd ? (pathA[^1] - pathA[^2]) : (pathA[0] - pathA[1]);
+                if (dir.LengthSquared() < 0.0001f) continue;
+                Vector2 dirNorm = dir.Normalized();
+
+                float bestDist = maxSnapDist;
+                Vector2 bestProj = Vector2.Zero;
+                bool found = false;
+
+                for (int b = 0; b < result.Count; b++)
+                {
+                    if (b == a) continue;
+                    var pathB = result[b];
+                    for (int j = 0; j < pathB.Count - 1; j++)
+                    {
+                        Vector2 s0 = pathB[j];
+                        Vector2 s1 = pathB[j + 1];
+                        Vector2 seg = s1 - s0;
+                        float segLenSq = seg.LengthSquared();
+                        if (segLenSq < 0.0001f) continue;
+                        float t = Mathf.Clamp((pt - s0).Dot(seg) / segLenSq, 0f, 1f);
+                        Vector2 proj = s0 + seg * t;
+                        float dist = pt.DistanceTo(proj);
+                        if (dist <= 0.05f || dist >= bestDist) continue;
+                        Vector2 toProj = (proj - pt) / dist;
+                        if (dirNorm.Dot(toProj) <= 0.10f) continue;
+                        if (IsWetPoint(pt.Lerp(proj, 0.5f))) continue;
+
+                        bestDist = dist;
+                        bestProj = proj;
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    if (atEnd)
+                    {
+                        pathA.Add(bestProj);
+                    }
+                    else
+                    {
+                        pathA.Insert(0, bestProj);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
     private static bool IsPointInAnyWater(Vector2 point, List<ExclusionPolygon> exclusions, out float waterLevel)
     {
         waterLevel = float.MinValue;
@@ -8506,10 +8756,10 @@ public partial class OsmMapLoader : Node
     }
 
     /// <summary>
-    /// Finds index ranges [Start, End] of a sampled cart path that cross water. Start/End are the
-    /// last/first dry samples so the bridge deck is anchored on land at both ends.
+    /// Finds index ranges [Start, End] of a sampled cart path that cross water. Start/End are anchored
+    /// up to 2 dry samples onto land so the bridge deck overlaps smoothly onto the shores.
     /// </summary>
-    private static List<(int Start, int End)> FindCartPathBridgeRuns(List<Vector2> samples, List<ExclusionPolygon> exclusions)
+    private static List<(int Start, int End)> FindCartPathBridgeRuns(List<Vector2> samples, List<ExclusionPolygon> exclusions, float halfWidth = 1.25f)
     {
         var runs = new List<(int Start, int End)>();
         int n = samples.Count;
@@ -8518,7 +8768,15 @@ public partial class OsmMapLoader : Node
         bool anyWet = false;
         for (int i = 0; i < n; i++)
         {
-            wet[i] = IsPointInAnyWater(samples[i], exclusions, out _);
+            Vector2 fwd = i == 0
+                ? (samples[1] - samples[0])
+                : (i == n - 1 ? (samples[n - 1] - samples[n - 2]) : (samples[i + 1] - samples[i - 1]));
+            Vector2 perp = fwd.LengthSquared() > 0.0001f
+                ? new Vector2(-fwd.Y, fwd.X).Normalized() * halfWidth
+                : new Vector2(halfWidth, 0f);
+            wet[i] = IsPointInAnyWater(samples[i], exclusions, out _)
+                || IsPointInAnyWater(samples[i] + perp, exclusions, out _)
+                || IsPointInAnyWater(samples[i] - perp, exclusions, out _);
             anyWet |= wet[i];
         }
         if (!anyWet) return runs;
@@ -8536,8 +8794,8 @@ public partial class OsmMapLoader : Node
                 if (wet[scan]) last = scan;
                 scan++;
             }
-            int start = Mathf.Max(0, first - 1);
-            int end = Mathf.Min(n - 1, last + 1);
+            int start = Mathf.Max(0, first - 2);
+            int end = Mathf.Min(n - 1, last + 2);
             if (runs.Count > 0 && start <= runs[^1].End)
             {
                 runs[^1] = (runs[^1].Start, Mathf.Max(runs[^1].End, end));
@@ -8560,7 +8818,7 @@ public partial class OsmMapLoader : Node
         var result = paths.Where(p => p.Count >= 2).Select(p => new List<Vector2>(p)).ToList();
         if (waterPolygons == null || waterPolygons.Count == 0) return result;
         const float maxBridgeLength = 90f;
-        const float minBridgeLength = 2.5f;
+        const float minBridgeLength = 1.5f;
 
         bool IsWet(Vector2 pt)
         {
@@ -8597,7 +8855,7 @@ public partial class OsmMapLoader : Node
                             Vector2 dirB = endB == 1 ? (pb[^1] - pb[^2]) : (pb[0] - pb[1]);
                             Vector2 across = (ptB - ptA) / dist;
                             if (dirA.LengthSquared() < 0.0001f || dirB.LengthSquared() < 0.0001f) continue;
-                            if (dirA.Normalized().Dot(across) < 0.6f || dirB.Normalized().Dot(-across) < 0.6f) continue;
+                            if (dirA.Normalized().Dot(across) < 0.25f || dirB.Normalized().Dot(-across) < 0.25f) continue;
 
                             int samples = Mathf.Max(2, Mathf.CeilToInt(dist));
                             int wetSamples = 0;
@@ -8605,7 +8863,9 @@ public partial class OsmMapLoader : Node
                             {
                                 if (IsWet(ptA.Lerp(ptB, s / (float)samples))) wetSamples++;
                             }
-                            if (wetSamples < 2 || wetSamples < (samples - 1) * 0.5f) continue;
+                            bool enoughWater = (dist < 5.0f && wetSamples >= 1)
+                                || (wetSamples >= 2 && wetSamples >= (samples - 1) * 0.35f);
+                            if (!enoughWater) continue;
 
                             bestDistance = dist;
                             bestA = a; bestB = b; bestAEnd = endA == 1; bestBEnd = endB == 1;
@@ -8661,6 +8921,90 @@ public partial class OsmMapLoader : Node
         }
     }
 
+    private sealed class TerrainGridSampler
+    {
+        public float MinX { get; }
+        public float MaxX { get; }
+        public float MinZ { get; }
+        public float MaxZ { get; }
+        public int Cols { get; }
+        public int Rows { get; }
+        public float[] Heights { get; }
+
+        public TerrainGridSampler(float minX, float maxX, float minZ, float maxZ, int cols, int rows, float[] heights)
+        {
+            MinX = minX;
+            MaxX = maxX;
+            MinZ = minZ;
+            MaxZ = maxZ;
+            Cols = cols;
+            Rows = rows;
+            Heights = heights;
+        }
+
+        public float SampleHeight(float wx, float wz)
+        {
+            float spanX = MaxX - MinX;
+            float spanZ = MaxZ - MinZ;
+            if (Cols < 2 || Rows < 2 || spanX <= 0.001f || spanZ <= 0.001f || Heights.Length != Cols * Rows)
+            {
+                return 0f;
+            }
+
+            float u = Mathf.Clamp((wx - MinX) / spanX, 0f, 1f) * (Cols - 1);
+            float v = Mathf.Clamp((wz - MinZ) / spanZ, 0f, 1f) * (Rows - 1);
+            int c0 = Math.Min((int)MathF.Floor(u), Cols - 2);
+            int r0 = Math.Min((int)MathF.Floor(v), Rows - 2);
+            float tc = u - c0;
+            float tr = v - r0;
+
+            float h00 = Heights[r0 * Cols + c0];
+            float h10 = Heights[r0 * Cols + c0 + 1];
+            float h01 = Heights[(r0 + 1) * Cols + c0];
+            float h11 = Heights[(r0 + 1) * Cols + c0 + 1];
+
+            // Exact barycentric triangle match for UnifiedTerrain diagonal (c0+1, r0)-(c0, r0+1)
+            if (tc + tr <= 1.0f)
+            {
+                return h00 + tc * (h10 - h00) + tr * (h01 - h00);
+            }
+            return h11 + (1.0f - tc) * (h01 - h11) + (1.0f - tr) * (h10 - h11);
+        }
+
+        public Vector3 SampleNormal(float wx, float wz)
+        {
+            const float eps = 0.5f;
+            float hL = SampleHeight(wx - eps, wz);
+            float hR = SampleHeight(wx + eps, wz);
+            float hD = SampleHeight(wx, wz - eps);
+            float hU = SampleHeight(wx, wz + eps);
+            return new Vector3(hL - hR, 2.0f * eps, hD - hU).Normalized();
+        }
+    }
+
+    private float SampleTerrainHeight(float x, float z, List<ExclusionPolygon> exclusions)
+    {
+        if (_unifiedTerrainSampler != null)
+        {
+            return _unifiedTerrainSampler.SampleHeight(x, z);
+        }
+        return GetHeightWithFeatures(x, z, exclusions);
+    }
+
+    private Vector3 SampleTerrainNormal(float x, float z, List<ExclusionPolygon> exclusions)
+    {
+        if (_unifiedTerrainSampler != null)
+        {
+            return _unifiedTerrainSampler.SampleNormal(x, z);
+        }
+        const float eps = 0.5f;
+        float hL = GetHeightWithFeatures(x - eps, z, exclusions);
+        float hR = GetHeightWithFeatures(x + eps, z, exclusions);
+        float hD = GetHeightWithFeatures(x, z - eps, exclusions);
+        float hU = GetHeightWithFeatures(x, z + eps, exclusions);
+        return new Vector3(hL - hR, 2.0f * eps, hD - hU).Normalized();
+    }
+
     /// <summary>
     /// Builds a wooden bridge (planked deck, side beams, railings and pilings) carrying the cart path
     /// over water between sample indices startIndex and endIndex.
@@ -8676,8 +9020,8 @@ public partial class OsmMapLoader : Node
         {
             if (IsPointInAnyWater(samples[i], exclusions, out float wl)) waterLevel = Mathf.Max(waterLevel, wl);
         }
-        float yStart = GetHeightWithFeatures(samples[startIndex].X, samples[startIndex].Y, exclusions) + visualHeightOffset;
-        float yEnd = GetHeightWithFeatures(samples[endIndex].X, samples[endIndex].Y, exclusions) + visualHeightOffset;
+        float yStart = SampleTerrainHeight(samples[startIndex].X, samples[startIndex].Y, exclusions) + visualHeightOffset;
+        float yEnd = SampleTerrainHeight(samples[endIndex].X, samples[endIndex].Y, exclusions) + visualHeightOffset;
         if (waterLevel == float.MinValue) waterLevel = Mathf.Min(yStart, yEnd);
 
         // Cumulative distance along the span for height interpolation
@@ -8694,9 +9038,14 @@ public partial class OsmMapLoader : Node
             float t = cumulative[i] / total;
             float baseY = Mathf.Lerp(yStart, yEnd, t);
             float clearance = Mathf.Max(0f, waterLevel + 0.45f - baseY);
-            float arch = Mathf.Sin(Mathf.Pi * t) * (0.20f + clearance);
+            float arch = Mathf.Pow(Mathf.Sin(Mathf.Pi * t), 1.15f) * (0.18f + clearance);
             Vector2 p = samples[startIndex + i];
-            deck[i] = new Vector3(p.X, baseY + arch, p.Y);
+            float deckY = baseY + arch;
+            if (i > 0 && i < count - 1 && !IsPointInAnyWater(p, exclusions, out _))
+            {
+                deckY = Mathf.Max(deckY, SampleTerrainHeight(p.X, p.Y, exclusions) + visualHeightOffset + 0.015f);
+            }
+            deck[i] = new Vector3(p.X, deckY, p.Y);
         }
 
         const float plankThickness = 0.08f;
@@ -8726,6 +9075,18 @@ public partial class OsmMapLoader : Node
             Vector3 rightDir = fwd.Cross(Vector3.Up);
             if (rightDir.LengthSquared() < 0.0001f) rightDir = Vector3.Right;
             rightDir = rightDir.Normalized();
+
+            // Flush approach sill planks at deck entry & exit so there is no gap onto the gravel ribbon
+            if (i == 0)
+            {
+                AddOrientedBox(st, a + fwd * 0.04f - Vector3.Up * (plankThickness * 0.5f), fwd,
+                    new Vector3(deckHalfWidth * 2f, plankThickness, 0.14f), plankColors[0]);
+            }
+            if (i == count - 2)
+            {
+                AddOrientedBox(st, b - fwd * 0.04f - Vector3.Up * (plankThickness * 0.5f), fwd,
+                    new Vector3(deckHalfWidth * 2f, plankThickness, 0.14f), plankColors[1]);
+            }
 
             // Deck planks (3 per metre-ish segment with thin gaps)
             const int planksPerSegment = 3;
@@ -8794,6 +9155,15 @@ public partial class OsmMapLoader : Node
         mesh.SurfaceSetMaterial(0, material);
 
         var meshInstance = new MeshInstance3D { Name = $"cartbridge_{idSuffix}", Mesh = mesh };
+        Vector2 start2 = samples[startIndex];
+        Vector2 end2 = samples[endIndex];
+        Vector2 startInDir = (samples[startIndex + 1] - start2).Normalized();
+        Vector2 endInDir = (samples[endIndex - 1] - end2).Normalized();
+        meshInstance.SetMeta("bridge_start", start2);
+        meshInstance.SetMeta("bridge_end", end2);
+        meshInstance.SetMeta("bridge_start_dir", startInDir);
+        meshInstance.SetMeta("bridge_end_dir", endInDir);
+        meshInstance.SetMeta("bridge_half_width", pathHalfWidth);
         rootNode.AddChild(meshInstance);
         meshInstance.Owner = rootNode;
 
@@ -8818,9 +9188,12 @@ public partial class OsmMapLoader : Node
         }
 
         const float halfWidth = 1.25f;
-        const float maximumPointSpacing = 0.5f;
-        const float visualHeightOffset = 0.080f;
-        const float collisionHeightOffset = 0.050f;
+        const float maximumPointSpacing = 0.4f;
+        const float centerHeightOffset = 0.034f;
+        const int columns = 5;
+        float[] colUs = { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
+        float[] colOffsets = { 0.022f, 0.030f, centerHeightOffset, 0.030f, 0.022f };
+
         var cleanPoints = new List<Vector2>();
         foreach (var point in points)
         {
@@ -8860,26 +9233,53 @@ public partial class OsmMapLoader : Node
                 : previousDirection;
             Vector2 previousNormal = new Vector2(-previousDirection.Y, previousDirection.X);
             Vector2 nextNormal = new Vector2(-nextDirection.Y, nextDirection.X);
-            Vector2 miter = (previousNormal + nextNormal).Normalized();
-            if (miter.LengthSquared() < 0.001f)
-            {
-                miter = nextNormal;
-            }
-            float miterLength = Mathf.Min(halfWidth / Mathf.Max(Mathf.Abs(miter.Dot(nextNormal)), 0.25f), halfWidth * 2.5f);
+            Vector2 miterSum = previousNormal + nextNormal;
+            Vector2 miter = miterSum.LengthSquared() > 0.001f ? miterSum.Normalized() : nextNormal;
+            float miterLength = Mathf.Min(halfWidth / Mathf.Max(Mathf.Abs(miter.Dot(nextNormal)), 0.35f), halfWidth * 1.65f);
             Vector2 offset = miter * miterLength;
             leftEdge[pointIndex] = point + offset;
             rightEdge[pointIndex] = point - offset;
         }
 
-        var vertices = new Vector3[cleanPoints.Count * 2];
+        // Anti-fold clamp across tight bends so edge edges never cross backward
+        for (int pointIndex = 1; pointIndex < cleanPoints.Count; pointIndex++)
+        {
+            Vector2 seg = cleanPoints[pointIndex] - cleanPoints[pointIndex - 1];
+            if (seg.LengthSquared() < 0.0001f) continue;
+            Vector2 segDir = seg.Normalized();
+            Vector2 segNorm = new Vector2(-segDir.Y, segDir.X);
+            if ((leftEdge[pointIndex] - leftEdge[pointIndex - 1]).Dot(segDir) < 0f)
+            {
+                leftEdge[pointIndex] = cleanPoints[pointIndex] + segNorm * halfWidth;
+            }
+            if ((rightEdge[pointIndex] - rightEdge[pointIndex - 1]).Dot(segDir) < 0f)
+            {
+                rightEdge[pointIndex] = cleanPoints[pointIndex] - segNorm * halfWidth;
+            }
+        }
+
+        var vertices = new Vector3[cleanPoints.Count * columns];
         var normals = new Vector3[vertices.Length];
         var uvs = new Vector2[vertices.Length];
-        var indexList = new List<int>((cleanPoints.Count - 1) * 6);
-        var bridgeRuns = FindCartPathBridgeRuns(cleanPoints, exclusions);
+        var indexList = new List<int>((cleanPoints.Count - 1) * (columns - 1) * 6);
+        var bridgeRuns = FindCartPathBridgeRuns(cleanPoints, exclusions, halfWidth);
         var bridgeSegments = new bool[cleanPoints.Count - 1];
         foreach (var run in bridgeRuns)
         {
-            for (int s = run.Start; s < run.End; s++)
+            int skipStart = run.Start;
+            int skipEnd = run.End;
+            if (run.End - run.Start >= 3)
+            {
+                if (!IsPointInAnyWater(cleanPoints[run.Start], exclusions, out _) && !IsPointInAnyWater(cleanPoints[run.Start + 1], exclusions, out _))
+                {
+                    skipStart = run.Start + 1;
+                }
+                if (!IsPointInAnyWater(cleanPoints[run.End - 1], exclusions, out _) && !IsPointInAnyWater(cleanPoints[run.End], exclusions, out _))
+                {
+                    skipEnd = run.End - 1;
+                }
+            }
+            for (int s = skipStart; s < skipEnd; s++)
             {
                 bridgeSegments[s] = true;
             }
@@ -8894,12 +9294,67 @@ public partial class OsmMapLoader : Node
             float v = accumulatedDistance * 0.25f;
             Vector2 left = leftEdge[pointIndex];
             Vector2 right = rightEdge[pointIndex];
-            vertices[pointIndex * 2] = new Vector3(left.X, GetHeightWithFeatures(left.X, left.Y, exclusions) + visualHeightOffset, left.Y);
-            vertices[pointIndex * 2 + 1] = new Vector3(right.X, GetHeightWithFeatures(right.X, right.Y, exclusions) + visualHeightOffset, right.Y);
-            normals[pointIndex * 2] = Vector3.Up;
-            normals[pointIndex * 2 + 1] = Vector3.Up;
-            uvs[pointIndex * 2] = new Vector2(0f, v);
-            uvs[pointIndex * 2 + 1] = new Vector2(1f, v);
+            int rowBase = pointIndex * columns;
+            for (int c = 0; c < columns; c++)
+            {
+                Vector2 pos = left.Lerp(right, colUs[c]);
+                float y = SampleTerrainHeight(pos.X, pos.Y, exclusions) + colOffsets[c];
+                vertices[rowBase + c] = new Vector3(pos.X, y, pos.Y);
+                normals[rowBase + c] = SampleTerrainNormal(pos.X, pos.Y, exclusions);
+                uvs[rowBase + c] = new Vector2(colUs[c], v);
+            }
+        }
+
+        // 2-pass exact convex-crease midpoint clearance lift so terrain triangle ridges cannot slice through the path
+        for (int pass = 0; pass < 2; pass++)
+        {
+            var lifts = new float[vertices.Length];
+            for (int segmentIndex = 0; segmentIndex < cleanPoints.Count - 1; segmentIndex++)
+            {
+                if (bridgeSegments[segmentIndex])
+                {
+                    continue;
+                }
+                int rowA = segmentIndex * columns;
+                int rowB = (segmentIndex + 1) * columns;
+                for (int c = 0; c < columns - 1; c++)
+                {
+                    int i00 = rowA + c;
+                    int i10 = rowA + c + 1;
+                    int i01 = rowB + c;
+                    int i11 = rowB + c + 1;
+
+                    void CheckMid(int ia, int ib, float minClear)
+                    {
+                        Vector3 va = vertices[ia];
+                        Vector3 vb = vertices[ib];
+                        float mx = (va.X + vb.X) * 0.5f;
+                        float mz = (va.Z + vb.Z) * 0.5f;
+                        float my = (va.Y + vb.Y) * 0.5f;
+                        float targetY = SampleTerrainHeight(mx, mz, exclusions) + minClear;
+                        float deficit = targetY - my;
+                        if (deficit > 0f)
+                        {
+                            if (deficit > lifts[ia]) lifts[ia] = deficit;
+                            if (deficit > lifts[ib]) lifts[ib] = deficit;
+                        }
+                    }
+
+                    CheckMid(i00, i01, c == 0 ? 0.018f : 0.024f);
+                    CheckMid(i10, i11, c == columns - 2 ? 0.018f : 0.024f);
+                    CheckMid(i00, i10, 0.022f);
+                    CheckMid(i01, i11, 0.022f);
+                    CheckMid(i00, i11, 0.024f);
+                    CheckMid(i10, i01, 0.024f);
+                }
+            }
+            for (int vi = 0; vi < vertices.Length; vi++)
+            {
+                if (lifts[vi] > 0f)
+                {
+                    vertices[vi].Y += lifts[vi];
+                }
+            }
         }
         for (int segmentIndex = 0; segmentIndex < cleanPoints.Count - 1; segmentIndex++)
         {
@@ -8907,19 +9362,23 @@ public partial class OsmMapLoader : Node
             {
                 continue; // a wooden bridge replaces the ground ribbon over water
             }
-            int vertex = segmentIndex * 2;
-            indexList.Add(vertex);
-            indexList.Add(vertex + 2);
-            indexList.Add(vertex + 1);
-            indexList.Add(vertex + 1);
-            indexList.Add(vertex + 2);
-            indexList.Add(vertex + 3);
+            int rowA = segmentIndex * columns;
+            int rowB = (segmentIndex + 1) * columns;
+            for (int c = 0; c < columns - 1; c++)
+            {
+                indexList.Add(rowA + c);
+                indexList.Add(rowB + c);
+                indexList.Add(rowA + c + 1);
+                indexList.Add(rowA + c + 1);
+                indexList.Add(rowB + c);
+                indexList.Add(rowB + c + 1);
+            }
         }
         var indices = indexList.ToArray();
 
         foreach (var run in bridgeRuns)
         {
-            CreateCartPathBridge(rootNode, cleanPoints, run.Start, run.End, exclusions, $"{pathIndex}_{run.Start}", halfWidth, visualHeightOffset);
+            CreateCartPathBridge(rootNode, cleanPoints, run.Start, run.End, exclusions, $"{pathIndex}_{run.Start}", halfWidth, centerHeightOffset);
         }
         if (indices.Length == 0)
         {
@@ -8967,7 +9426,7 @@ public partial class OsmMapLoader : Node
         staticBody.SetMeta("is_cart_path", true);
         var collisionShape = new CollisionShape3D();
         var collisionFaces = mesh.GetFaces();
-        float collisionOffset = visualHeightOffset - collisionHeightOffset;
+        const float collisionOffset = 0.010f;
         for (int faceIndex = 0; faceIndex < collisionFaces.Length; faceIndex++)
         {
             Vector3 faceVertex = collisionFaces[faceIndex];
@@ -9014,7 +9473,8 @@ public partial class OsmMapLoader : Node
 
         var tris = new List<SubdivisionTriangle>();
         bool isMobile = OS.GetName() == "Android" || OS.GetName() == "iOS";
-        float maxEdge = isMobile ? 8.0f : 5.0f;
+        bool isBunkerBody = staticBody.HasMeta("is_sand") && staticBody.GetMeta("is_sand").AsBool();
+        float maxEdge = isBunkerBody ? 2.0f : (isMobile ? 8.0f : 5.0f);
         float maxEdgeSq = maxEdge * maxEdge;
         while (queue.Count > 0)
         {
@@ -9067,6 +9527,11 @@ public partial class OsmMapLoader : Node
         var colShape = new CollisionShape3D();
         colShape.Shape = concaveShape;
 
+        // Place invisible surface-zone overlay colliders on Layer 4 (bitmask 8) so TerrainStatic
+        // (1:1 visual UnifiedTerrain mesh) is the sole authoritative Layer 1 ground surface.
+        staticBody.CollisionLayer = 8;
+        staticBody.CollisionMask = 0;
+
         staticBody.AddChild(colShape);
         rootNode.AddChild(staticBody);
         staticBody.Owner = rootNode;
@@ -9091,7 +9556,9 @@ public partial class OsmMapLoader : Node
         float baseHeight = GetHeight(x, z);
         var point = new Vector2(x, z);
 
-        float bunkerDepression = 0f;
+        float maxBunkerConcave = 0f;
+        float maxOuterLipFactor = 0f;
+        bool inBunker = false;
         float? waterBedHeight = null;
         bool inWater = false;
 
@@ -9156,32 +9623,24 @@ public partial class OsmMapLoader : Node
             }
             else if (excl.GolfType == "bunker")
             {
+                const float lipRadius = 3.5f;
+                const float bowlRadius = 3.2f;
                 if (inside)
                 {
+                    inBunker = true;
                     float dist = DistanceToPolygon(point, excl.Polygon);
-                    float bowlRadius = 7.0f;
-                    float maxDepth = 1.0f;
-                    if (dist < bowlRadius)
-                    {
-                        float t = dist / bowlRadius;
-                        float smoothT = QuinticSmoothstep(t);
-                        bunkerDepression = Math.Max(bunkerDepression, smoothT * maxDepth);
-                    }
-                    else
-                    {
-                        bunkerDepression = Math.Max(bunkerDepression, maxDepth);
-                    }
+                    float t = Math.Clamp(dist / bowlRadius, 0f, 1f);
+                    float concave = 1f - MathF.Pow(1f - t, 2.2f);
+                    maxBunkerConcave = Math.Max(maxBunkerConcave, concave);
                 }
                 else
                 {
-                    // Raised lip outside bunker boundary: wider and gentler transition
+                    // Raised lush grassy bank outside bunker rim
                     float dist = DistanceToPolygon(point, excl.Polygon);
-                    float lipRadius = 4.0f;
                     if (dist < lipRadius)
                     {
-                        float t = 1.0f - (dist / lipRadius);
-                        float smoothT = QuinticSmoothstep(t);
-                        bunkerDepression = Math.Max(bunkerDepression, -smoothT * 0.12f);
+                        float u = dist / lipRadius;
+                        maxOuterLipFactor = Math.Max(maxOuterLipFactor, 1f - QuinticSmoothstep(u));
                     }
                 }
             }
@@ -9264,7 +9723,15 @@ public partial class OsmMapLoader : Node
         }
 
         float finalBase = (overrideHeight.HasValue ? overrideHeight.Value : baseHeight) + roughMounds;
-        return finalBase - bunkerDepression;
+        const float bunkerLipHeight = 0.28f;
+        const float bunkerMaxDepth = 1.05f;
+        float effectiveLipHeight = bunkerLipHeight * (1f - Math.Clamp(overrideWeight, 0f, 1f));
+        if (inBunker)
+        {
+            float bunkerOffset = effectiveLipHeight - (effectiveLipHeight + bunkerMaxDepth) * maxBunkerConcave;
+            return finalBase + bunkerOffset;
+        }
+        return finalBase + effectiveLipHeight * maxOuterLipFactor;
     }
 
     /// <summary>
@@ -9280,6 +9747,8 @@ public partial class OsmMapLoader : Node
         float worldWidth = maxX - minX;
         float worldDepth = maxZ - minZ;
         float blendRadius = 3.0f; // meters of smooth blending at zone boundaries (widened for gentle transitions)
+        float texelSize = MathF.Max(worldWidth, worldDepth) / MathF.Max(texSize - 1, 1);
+        float bunkerAA = Mathf.Clamp(texelSize * 0.85f, 0.30f, 0.75f);
 
         Parallel.For(0, texSize, py =>
         {
@@ -9296,21 +9765,27 @@ public partial class OsmMapLoader : Node
                 for (int i = 0; i < exclusions.Count; i++)
                 {
                     var excl = exclusions[i];
-                    if (worldX < excl.MinX - blendRadius || worldX > excl.MaxX + blendRadius ||
-                        worldZ < excl.MinY - blendRadius || worldZ > excl.MaxY + blendRadius)
+                    float featureBlend = excl.GolfType == "bunker" ? bunkerAA : blendRadius;
+                    if (worldX < excl.MinX - featureBlend || worldX > excl.MaxX + featureBlend ||
+                        worldZ < excl.MinY - featureBlend || worldZ > excl.MaxY + featureBlend)
                         continue;
 
                     bool inside = PointInPolygon(point, excl.Polygon);
                     float dist = DistanceToPolygon(point, excl.Polygon);
 
                     float weight = 0f;
-                    if (inside)
+                    if (excl.GolfType == "bunker")
+                    {
+                        float signedDist = inside ? dist : -dist;
+                        weight = 0.50f + 0.50f * Math.Clamp(signedDist / bunkerAA, -1.0f, 1.0f);
+                    }
+                    else if (inside)
                     {
                         weight = 1.0f;
                     }
-                    else if (dist < blendRadius)
+                    else if (dist < featureBlend)
                     {
-                        float t = 1.0f - (dist / blendRadius);
+                        float t = 1.0f - (dist / featureBlend);
                         weight = QuinticSmoothstep(t); // C2 quintic smoothstep
                     }
 
@@ -9331,23 +9806,27 @@ public partial class OsmMapLoader : Node
                     }
                 }
 
-                // Priority override: bunker > green/tee > fairway
-                if (bunkerWeight >= 1.0f)
+                // Priority override: bunker > green/tee > fairway, keeping grass weight solid outside the b=0.42 sand cutoff
+                float bunkerOcc = Math.Clamp((bunkerWeight - 0.42f) / 0.58f, 0.0f, 1.0f);
+                if (bunkerOcc >= 1.0f)
                 {
                     greenWeight = 0f;
                     fairwayWeight = 0f;
                 }
-                else if (greenWeight >= 1.0f)
-                {
-                    fairwayWeight = 0f;
-                    bunkerWeight = Math.Min(bunkerWeight, 1.0f - greenWeight);
-                }
                 else
                 {
-                    float baseSum = greenWeight + bunkerWeight;
-                    if (baseSum > 0f)
+                    if (greenWeight >= 1.0f)
                     {
-                        fairwayWeight = Math.Min(fairwayWeight, 1.0f - baseSum);
+                        fairwayWeight = 0f;
+                    }
+                    else
+                    {
+                        fairwayWeight = Math.Min(fairwayWeight, 1.0f - greenWeight);
+                    }
+                    if (bunkerOcc > 0.0f)
+                    {
+                        greenWeight *= (1.0f - bunkerOcc);
+                        fairwayWeight *= (1.0f - bunkerOcc);
                     }
                 }
 
@@ -9518,6 +9997,13 @@ public partial class OsmMapLoader : Node
 
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
+        var terrainHeights = new float[numVertices];
+        for (int i = 0; i < numVertices; i++)
+        {
+            terrainHeights[i] = vertices[i].Y;
+        }
+        _unifiedTerrainSampler = new TerrainGridSampler(minX, maxX, minZ, maxZ, subdivisionsX + 1, subdivisionsZ + 1, terrainHeights);
+
         // Build index buffer (two triangles per grid cell)
         var indicesList = new List<int>(subdivisionsX * subdivisionsZ * 6);
         for (int z = 0; z < subdivisionsZ; z++)
@@ -9605,6 +10091,7 @@ public partial class OsmMapLoader : Node
             Name = "UnifiedTerrain",
             Mesh = arrayMesh
         };
+        groundMesh.SetMeta("concave_bunkers_baked", true);
         root.AddChild(groundMesh);
         groundMesh.Owner = root;
 

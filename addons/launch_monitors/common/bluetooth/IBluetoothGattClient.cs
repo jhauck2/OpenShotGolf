@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,4 +30,7 @@ internal interface IBluetoothGattClient : IAsyncDisposable
         byte[] value,
         BluetoothWriteMode writeMode,
         CancellationToken cancellationToken);
+
+    IReadOnlyList<BluetoothGattCharacteristicInfo> GetDiscoveredCharacteristics() =>
+        Array.Empty<BluetoothGattCharacteristicInfo>();
 }

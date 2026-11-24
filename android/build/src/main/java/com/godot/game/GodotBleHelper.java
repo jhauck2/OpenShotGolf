@@ -356,6 +356,33 @@ public class GodotBleHelper {
         }
     }
 
+    public static String getDiscoveredCharacteristicsSummary(BluetoothGatt gatt) {
+        if (gatt == null) return "";
+        StringBuilder sb = new StringBuilder();
+        try {
+            List<BluetoothGattService> services = gatt.getServices();
+            if (services == null) return "";
+            for (BluetoothGattService service : services) {
+                if (service == null || service.getUuid() == null) continue;
+                String serviceUuid = service.getUuid().toString();
+                List<BluetoothGattCharacteristic> chars = service.getCharacteristics();
+                if (chars == null) continue;
+                for (BluetoothGattCharacteristic ch : chars) {
+                    if (ch == null || ch.getUuid() == null) continue;
+                    sb.append(serviceUuid)
+                      .append('|')
+                      .append(ch.getUuid().toString())
+                      .append('|')
+                      .append(ch.getProperties())
+                      .append('\n');
+                }
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Exception during getDiscoveredCharacteristicsSummary", t);
+        }
+        return sb.toString();
+    }
+
     public static BluetoothGattCharacteristic findCharacteristic(BluetoothGatt gatt, String uuidStr) {
         if (gatt == null || uuidStr == null) return null;
         try {

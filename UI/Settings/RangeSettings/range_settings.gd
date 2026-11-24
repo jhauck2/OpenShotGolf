@@ -319,14 +319,8 @@ func _ready() -> void:
 
 	_setup_displayed_stats_section()
 	if GlobalSettings and GlobalSettings.range_settings and "displayed_stats" in GlobalSettings.range_settings:
-		GlobalSettings.range_settings.displayed_stats.setting_changed.connect(func(_v):
-			if _is_internal_stats_sync:
-				return
-			if _stat_check_buttons.is_empty():
-				_setup_displayed_stats_section()
-			else:
-				_sync_displayed_stats_checkboxes()
-		)
+		if not GlobalSettings.range_settings.displayed_stats.setting_changed.is_connected(_on_displayed_stats_setting_changed):
+			GlobalSettings.range_settings.displayed_stats.setting_changed.connect(_on_displayed_stats_setting_changed)
 	_setup_square_monitor_section()
 	_setup_tcp_monitor_section()
 	_setup_hecklelinks_announcer_section()
@@ -416,9 +410,8 @@ func _ready() -> void:
 			)
 			break
 
-	GlobalSettings.wind_changed.connect(func(_spd: float, _dir: float):
-		_sync_wind_slider()
-	)
+	if not GlobalSettings.wind_changed.is_connected(_on_global_wind_changed):
+		GlobalSettings.wind_changed.connect(_on_global_wind_changed)
 
 	gameplay_vbox.add_child(wind_slider_container)
 	gameplay_vbox.move_child(wind_slider_container, 1)
@@ -2268,11 +2261,27 @@ func _create_fullscreen_setting_row(label_text: String) -> HBoxContainer:
 		GlobalSettings.set_fullscreen(on)
 	)
 	if GlobalSettings.has_signal("fullscreen_changed"):
-		GlobalSettings.fullscreen_changed.connect(func(is_fs: bool):
-			if is_instance_valid(_fullscreen_check):
-				_fullscreen_check.set_pressed_no_signal(is_fs)
-		)
+		if not GlobalSettings.fullscreen_changed.is_connected(_on_global_fullscreen_changed):
+			GlobalSettings.fullscreen_changed.connect(_on_global_fullscreen_changed)
 	return _create_toggle_widget(label_text, _fullscreen_check)
+
+
+func _on_displayed_stats_setting_changed(_v) -> void:
+	if _is_internal_stats_sync:
+		return
+	if _stat_check_buttons.is_empty():
+		_setup_displayed_stats_section()
+	else:
+		_sync_displayed_stats_checkboxes()
+
+
+func _on_global_wind_changed(_spd: float, _dir: float) -> void:
+	_sync_wind_slider()
+
+
+func _on_global_fullscreen_changed(is_fs: bool) -> void:
+	if is_instance_valid(_fullscreen_check):
+		_fullscreen_check.set_pressed_no_signal(is_fs)
 
 
 func _create_option_setting_row(label_text: String, setting_name: String, options: Array[String]) -> HBoxContainer:

@@ -59,7 +59,8 @@ func setup(scene_root: Node) -> void:
 	# 2. Ensure course 3D recessed bunkers, shoreline reeds, & horizon skirt exist and are visible
 	var reeds := scene_root.get_node_or_null("ShorelineReedsMultiMesh")
 	var bunkers := scene_root.get_node_or_null("HighFidelityBunkers")
-	if reeds == null or bunkers == null:
+	var details_baked := bool(scene_root.get_meta("course_details_baked", false))
+	if not details_baked and (reeds == null or bunkers == null):
 		CourseDetailEnhancerScript.enhance_course_scene(scene_root, false)
 	_set_detail_nodes_visible(scene_root, true)
 
@@ -85,7 +86,8 @@ func setup(scene_root: Node) -> void:
 
 func refresh(scene_root: Node) -> void:
 	HighFidelityLightingScript.apply(scene_root)
-	CourseDetailEnhancerScript.enhance_course_scene(scene_root, false)
+	if not bool(scene_root.get_meta("course_details_baked", false)) and scene_root.get_node_or_null("HighFidelityBunkers") == null and scene_root.get_node_or_null("ShorelineReedsMultiMesh") == null:
+		CourseDetailEnhancerScript.enhance_course_scene(scene_root, false)
 	_set_detail_nodes_visible(scene_root, true)
 	var is_range := MobilePerformance.is_driving_range_node(scene_root)
 	if is_range:

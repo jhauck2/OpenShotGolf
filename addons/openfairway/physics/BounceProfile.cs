@@ -51,11 +51,11 @@ public sealed class BounceProfile
     {
         Name = "Fairway",
         Version = "1.0",
-        FlightTangentialRetentionBase = 0.64f,
-        ShallowImpactRetentionMin = 0.62f,
-        ShallowImpactRetentionMax = 0.78f,
-        RolloutLowSpinRetention = 0.85f,
-        RolloutHighSpinRetention = 0.62f
+        FlightTangentialRetentionBase = 0.52f,
+        ShallowImpactRetentionMin = 0.48f,
+        ShallowImpactRetentionMax = 0.60f,
+        RolloutLowSpinRetention = 0.72f,
+        RolloutHighSpinRetention = 0.56f
     };
 
     public static BounceProfile Green { get; } = new()
@@ -64,11 +64,11 @@ public sealed class BounceProfile
         Version = "1.0",
         CorBaseA = 0.42f,
         CorHighSpeedCap = 0.22f,
-        FlightTangentialRetentionBase = 0.58f,
-        ShallowImpactRetentionMin = 0.55f,
-        ShallowImpactRetentionMax = 0.70f,
-        RolloutLowSpinRetention = 0.88f,
-        RolloutHighSpinRetention = 0.74f
+        FlightTangentialRetentionBase = 0.52f,
+        ShallowImpactRetentionMin = 0.50f,
+        ShallowImpactRetentionMax = 0.64f,
+        RolloutLowSpinRetention = 0.82f,
+        RolloutHighSpinRetention = 0.72f
     };
 
     public static BounceProfile Rough { get; } = new()

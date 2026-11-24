@@ -443,9 +443,16 @@ func _setup_environment() -> void:
 		env.ssao_ao_channel_affect = 0.5
 
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.74, 0.83, 0.93)
-	env.fog_density = 0.0005
-	env.fog_sky_affect = 0.18
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_light_color = Color(0.76, 0.85, 0.95)
+	env.fog_density = 0.45
+	env.fog_sky_affect = 0.15
+	if "fog_depth_begin" in env:
+		env.set("fog_depth_begin", 380.0)
+	if "fog_depth_end" in env:
+		env.set("fog_depth_end", 1500.0)
+	if "fog_depth_curve" in env:
+		env.set("fog_depth_curve", 1.6)
 
 	if ResourceLoader.exists("res://addons/sky_3d/src/Sky3D.gd"):
 		var Sky3DScript = load("res://addons/sky_3d/src/Sky3D.gd")
@@ -471,9 +478,16 @@ func _setup_environment() -> void:
 				sky3d.environment.ssao_horizon = env.ssao_horizon
 				sky3d.environment.ssao_ao_channel_affect = env.ssao_ao_channel_affect
 				sky3d.environment.fog_enabled = env.fog_enabled
+				sky3d.environment.fog_mode = env.fog_mode
 				sky3d.environment.fog_light_color = env.fog_light_color
 				sky3d.environment.fog_density = env.fog_density
 				sky3d.environment.fog_sky_affect = env.fog_sky_affect
+				if "fog_depth_begin" in sky3d.environment:
+					sky3d.environment.set("fog_depth_begin", 380.0)
+				if "fog_depth_end" in sky3d.environment:
+					sky3d.environment.set("fog_depth_end", 1500.0)
+				if "fog_depth_curve" in sky3d.environment:
+					sky3d.environment.set("fog_depth_curve", 1.6)
 			sky3d.enable_editor_time = false
 			sky3d.enable_game_time = false
 			sky3d.current_time = 13.25

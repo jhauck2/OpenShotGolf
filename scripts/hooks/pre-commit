@@ -1,0 +1,17 @@
+#!/bin/sh
+# Heckle Golf Simulator - Pre-commit Hook
+# Cleans up review capture files and ensures no lingering Godot background processes remain before committing.
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+if command -v powershell.exe >/dev/null 2>&1; then
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$REPO_ROOT/scripts/tools/clean_captures.ps1" -Quiet
+elif command -v pwsh >/dev/null 2>&1; then
+    pwsh -NoProfile -ExecutionPolicy Bypass -File "$REPO_ROOT/scripts/tools/clean_captures.ps1" -Quiet
+else
+    rm -f "$REPO_ROOT/captures/"* 2>/dev/null
+    rm -f "$REPO_ROOT/temp_recording_"*.avi 2>/dev/null
+    rm -f "$REPO_ROOT/test_"*.png "$REPO_ROOT/test_"*.mp4 "$REPO_ROOT/test_"*.gif 2>/dev/null
+fi
+
+exit 0

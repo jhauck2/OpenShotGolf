@@ -7,6 +7,7 @@ extends PanelContainer
 class_name SwingReplayModal
 
 const ClubDeliveryVisuals = preload("res://UI/GolferCamera/club_delivery_visuals.gd")
+const AnalyticsVisualWidgetsScript = preload("res://UI/ShotAnalysis/analytics_visual_widgets.gd")
 
 signal closed()
 signal detach_requested()
@@ -1490,7 +1491,8 @@ func _record_swing_recommendations() -> void:
 	if player_name.is_empty():
 		player_name = "Player 1"
 	if mp_mgr != null and mp_mgr.has_method("record_player_swing_issues"):
-		mp_mgr.record_player_swing_issues(player_name, recommendations)
+		var club_name: String = str(shot_data.get("Club", shot_data.get("club", "")))
+		mp_mgr.record_player_swing_issues(player_name, recommendations, club_name)
 		shot_data["_recommendations_recorded"] = true
 
 
@@ -2054,6 +2056,20 @@ func _build_data_comparison_content(container: VBoxContainer, rec: Dictionary, i
 
 			table_vbox.add_child(r_row)
 
+			if row_data.has("player_num") and row_data.has("target_min") and row_data.has("target_max"):
+				var gauge = AnalyticsVisualWidgetsScript.create_bullet_gauge(
+					"",
+					float(row_data["player_num"]),
+					float(row_data["target_min"]),
+					float(row_data["target_max"]),
+					float(row_data.get("scale_min", float(row_data["target_min"]) - 5.0)),
+					float(row_data.get("scale_max", float(row_data["target_max"]) + 5.0)),
+					str(row_data.get("unit", "")),
+					Vector2(180, 14),
+					false
+				)
+				table_vbox.add_child(gauge)
+
 		table_panel.add_child(table_vbox)
 		container.add_child(table_panel)
 
@@ -2194,6 +2210,31 @@ func _build_data_comparison_content(container: VBoxContainer, rec: Dictionary, i
 
 		effect_panel.add_child(eff_vbox)
 		container.add_child(effect_panel)
+
+	var loss_info: Dictionary = rec.get("distance_loss_breakdown", {}) if typeof(rec.get("distance_loss_breakdown", null)) == TYPE_DICTIONARY else {}
+	if not loss_info.is_empty() and float(loss_info.get("total_lost_yards", 0.0)) >= 3.0:
+		var loss_panel = PanelContainer.new()
+		var loss_style = StyleBoxFlat.new()
+		loss_style.bg_color = Color(0.11, 0.08, 0.07, 0.95)
+		loss_style.corner_radius_top_left = 8
+		loss_style.corner_radius_top_right = 8
+		loss_style.corner_radius_bottom_left = 8
+		loss_style.corner_radius_bottom_right = 8
+		loss_style.border_width_left = 3
+		loss_style.border_color = Color(0.98, 0.52, 0.30, 0.9)
+		loss_style.content_margin_left = 14
+		loss_style.content_margin_top = 8
+		loss_style.content_margin_right = 14
+		loss_style.content_margin_bottom = 8
+		loss_panel.add_theme_stylebox_override("panel", loss_style)
+
+		var l_lbl = Label.new()
+		l_lbl.text = "📏 Missing Yards Breakdown: " + str(loss_info.get("summary", ""))
+		l_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l_lbl.add_theme_font_size_override("font_size", 14)
+		l_lbl.add_theme_color_override("font_color", Color(1.0, 0.80, 0.56))
+		loss_panel.add_child(l_lbl)
+		container.add_child(loss_panel)
 
 
 func _create_status_pill(status_text: String, is_mob: bool) -> PanelContainer:
@@ -2415,6 +2456,72 @@ func _build_drills_content(container: VBoxContainer, rec: Dictionary, is_mob: bo
 
 		cue_panel.add_child(cue_vbox)
 		container.add_child(cue_panel)
+
+	# ── 3-Stage Progressive Drill Plan & Proof ──
+	var stages: Array = rec.get("drill_stages", []) if typeof(rec.get("drill_stages", null)) == TYPE_ARRAY else []
+	if not stages.is_empty():
+		var prog_panel = PanelContainer.new()
+		var prog_style = StyleBoxFlat.new()
+		prog_style.bg_color = Color(0.06, 0.09, 0.14, 0.95)
+		prog_style.corner_radius_top_left = 8
+		prog_style.corner_radius_top_right = 8
+		prog_style.corner_radius_bottom_left = 8
+		prog_style.corner_radius_bottom_right = 8
+		prog_style.border_width_left = 3
+		prog_style.border_color = Color(0.32, 0.72, 0.98, 0.85)
+		prog_style.content_margin_left = 14
+		prog_style.content_margin_top = 10
+		prog_style.content_margin_right = 14
+		prog_style.content_margin_bottom = 10
+		prog_panel.add_theme_stylebox_override("panel", prog_style)
+
+		var p_vbox = VBoxContainer.new()
+		p_vbox.add_theme_constant_override("separation", 6)
+
+		var p_head = Label.new()
+		p_head.text = "🪜 3-Stage Progression Ladder"
+		p_head.add_theme_font_size_override("font_size", 16)
+		p_head.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
+		p_vbox.add_child(p_head)
+
+		for st in stages:
+			if st is Dictionary:
+				var s_lbl = Label.new()
+				s_lbl.text = "Stage %s — %s: %s (%s)" % [str(st.get("stage", "")), str(st.get("name", "")), str(st.get("constraint", "")), str(st.get("reps", ""))]
+				s_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				s_lbl.add_theme_font_size_override("font_size", 13 if is_mob else 14)
+				s_lbl.add_theme_color_override("font_color", Color(0.88, 0.93, 0.98))
+				p_vbox.add_child(s_lbl)
+
+		var proof_txt: String = str(rec.get("monitor_proof", ""))
+		if not proof_txt.is_empty():
+			var pr_lbl = Label.new()
+			pr_lbl.text = "📈 Launch Monitor Proof: " + proof_txt
+			pr_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			pr_lbl.add_theme_font_size_override("font_size", 13)
+			pr_lbl.add_theme_color_override("font_color", Color(0.45, 0.95, 0.70))
+			p_vbox.add_child(pr_lbl)
+
+		var watch_txt: String = str(rec.get("watch_out_for", ""))
+		if not watch_txt.is_empty():
+			var wt_lbl = Label.new()
+			wt_lbl.text = "⚠️ Avoid Over-Correction: " + watch_txt
+			wt_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			wt_lbl.add_theme_font_size_override("font_size", 13)
+			wt_lbl.add_theme_color_override("font_color", Color(1.0, 0.78, 0.42))
+			p_vbox.add_child(wt_lbl)
+
+		var grad_txt: String = str(rec.get("graduation_target", ""))
+		if not grad_txt.is_empty():
+			var gr_lbl = Label.new()
+			gr_lbl.text = "✅ Graduation Goal: " + grad_txt
+			gr_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			gr_lbl.add_theme_font_size_override("font_size", 13)
+			gr_lbl.add_theme_color_override("font_color", Color(0.80, 0.90, 1.0))
+			p_vbox.add_child(gr_lbl)
+
+		prog_panel.add_child(p_vbox)
+		container.add_child(prog_panel)
 
 
 func _build_video_content(container: VBoxContainer, rec: Dictionary, is_mob: bool) -> void:

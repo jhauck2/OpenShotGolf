@@ -544,7 +544,8 @@ func is_minigames_gameplay_screen() -> bool:
 
 	var full_id := (scene_name + " " + script_path + " " + file_path).to_lower()
 	return full_id.contains("putting_practice") or full_id.contains("puttingpractice") \
-		or full_id.contains("chipping") or full_id.contains("/minigames/")
+		or full_id.contains("chipping") or full_id.contains("/minigames/") \
+		or full_id.contains("training_arena") or full_id.contains("trainingarena") or full_id.contains("/training/")
 
 
 func is_putting_minigame_screen() -> bool:
@@ -600,7 +601,7 @@ func is_menu_screen() -> bool:
 		or full_id.contains("players_menu") or full_id.contains("playersmenu") \
 		or full_id.contains("analytics") or full_id.contains("history") \
 		or full_id.contains("custom_course_creator") or full_id.contains("osm_download") \
-		or full_id.contains("course_preview"):
+		or full_id.contains("course_preview") or full_id.contains("training_menu") or full_id.contains("trainingmenu"):
 		return true
 
 	return false

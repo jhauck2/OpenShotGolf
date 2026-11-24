@@ -699,6 +699,202 @@ const ISSUE_DATABASE = {
       }
     ],
     video: HM_VIDEOS.sim_improvement
+  },
+
+  "Toe Gear-Effect Hook": {
+    category: "Strike & Gear Effect",
+    cause: "Contact toward the toe bends the face open at impact and imparts counter-clockwise gear-effect hook spin—even with a neutral Face-to-Path.",
+    ballFlightEffect: "Ball starts near target or slightly right (RH) and dives left with lower spin and lost carry.",
+    howToFix: "Stand 1/2 inch closer to the ball, check balance toward the balls of your feet, and feel your arms stay connected without standing up through impact.",
+    drills: [
+      {
+        name: "Toe-Gate / Foot-Spray Centering Drill",
+        setup: "Spray foot powder on the clubface and place a tee 1 inch outside the toe of the clubhead at address.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Verify posture tilt and set the ball opposite the center-heel line of the clubface at address." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Hit 10 three-quarter swings without grazing the outer tee; inspect face spray every 3 shots." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Hit 10 full-speed shots alternating targets, verifying center strike within ±6 mm." }
+        ],
+        steps: [
+          "Make 70% speed swings keeping your hips back in posture through impact.",
+          "Verify the impact mark moves off the toe toward the sweet spot."
+        ],
+        monitorProof: "Horizontal Impact moves from > +6 mm toward 0 mm and Spin Axis shifts closer to 0°.",
+        watchOutFor: "Do not try to hold the face open with your hands—fixing strike location removes the hook spin automatically.",
+        goal: "7 of 10 strikes within ±6 mm of center face.",
+        graduation: "7/10 shots within ±6 mm Horizontal Impact",
+        reps: "15 balls"
+      }
+    ],
+    video: HM_VIDEOS.low_point
+  },
+
+  "Heel Gear-Effect Slice": {
+    category: "Strike & Gear Effect",
+    cause: "Contact near the heel produces clockwise gear-effect slice spin and lower smash factor even when swing path is neutral.",
+    ballFlightEffect: "Weak fade/slice losing significant ball speed and leaking right (RH) / left (LH).",
+    howToFix: "Step 1/2 inch farther from the ball at setup, keep weight centered over mid-foot, and prevent arms from reaching out toward the ball in transition.",
+    drills: [
+      {
+        name: "Inside-Heel Gate Drill",
+        setup: "Place a headcover or tee 1 inch inside the heel of the ball and apply foot spray to the face.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Address the ball slightly toward the toe half of the clubhead and keep chest balanced over shoelaces." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Hit 10 smooth swings missing the inside heel tee completely." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Hit 10 full swings checking Smash Factor and horizontal strike centering." }
+        ],
+        steps: [
+          "Rehearse 3 slow swings avoiding the heel marker.",
+          "Hit 10 shots feeling your hands return closer to your thighs at impact."
+        ],
+        monitorProof: "Horizontal Impact shifts from < -6 mm toward 0 mm and Smash Factor rises immediately.",
+        watchOutFor: "Avoid pulling arms violently inside; simply stabilize posture and setup distance.",
+        goal: "7 of 10 strikes centered without touching the heel tee.",
+        graduation: "7/10 shots within ±6 mm Horizontal Impact",
+        reps: "15 balls"
+      }
+    ],
+    video: HM_VIDEOS.low_point
+  },
+
+  "Low-Face Driver Spin Spike": {
+    category: "Strike & Launch Window",
+    cause: "Striking below the driver equator engages vertical gear effect, spiking backspin and lowering launch.",
+    ballFlightEffect: "Low launch that climbs steeply and stalls in the air, costing 15–25 yards of total distance.",
+    howToFix: "Tee the ball half a ball above the driver crown, tilt your spine 8° away from target, and sweep slightly upward.",
+    drills: [
+      {
+        name: "Upper-Equator Tee Height Drill",
+        setup: "Tee the ball higher so half the ball sits above the driver crown, and apply face spray.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Ball opposite lead heel, trail shoulder lower than lead shoulder, driver resting slightly behind ball." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Hit 8 smooth swings trying to clip the upper-center quadrant of the face." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Hit 10 full drives tracking AoA (+1° to +4°) and BackSpin (< 2,800 rpm)." }
+        ],
+        steps: [
+          "Check spray mark height after each ball—target 2–5 mm above center.",
+          "Keep your head behind the ball through impact."
+        ],
+        monitorProof: "Vertical Impact rises to 0 to +5 mm, VLA increases 1–2°, and Spin drops 400–800 rpm.",
+        watchOutFor: "Don't drop your trail shoulder excessively and hit the ground behind the tee.",
+        goal: "Achieve positive Attack Angle and < 2,800 RPM driver spin.",
+        graduation: "7/10 drives with Spin < 2,800 RPM and VLA 11°–15°",
+        reps: "12–15 balls"
+      }
+    ],
+    video: HM_VIDEOS.one_metric_aoa
+  },
+
+  "Two-Way Miss / Face Instability": {
+    category: "Face & Start-Line Control",
+    cause: "Large shot-to-shot swings in Face Angle and timing cause misses both left and right.",
+    ballFlightEffect: "Wide dispersion ellipse and unpredictable start lines where aiming adjustments don't help.",
+    howToFix: "Switch to 75% tempo swings, standardize your grip pressure (4/10), and build wrist stability through impact before chasing distance.",
+    drills: [
+      {
+        name: "Differential Calibration & Start-Line Gate",
+        setup: "Place two alignment sticks 8 feet ahead forming a narrow start-line gate.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Verify neutral grip and clubface squareness to target stick before every rep." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Differential feel: hit 3 intentional draws, 3 intentional fades, then 4 straight gate shots." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Hit 10 full shots trying to start every ball cleanly through the gate." }
+        ],
+        steps: [
+          "Use the same 3-count rhythm on every swing.",
+          "Track HLA / Face Angle spread rather than total distance."
+        ],
+        monitorProof: "Face Angle StdDev tightens under ±2.2° and shots cluster on one side or center.",
+        watchOutFor: "Do not swing above 80% speed until 7 of 10 start cleanly inside the gate.",
+        goal: "Eliminate the opposite-side miss and narrow Face StdDev below 2.2°.",
+        graduation: "7/10 shots with |HLA| ≤ 2.0°",
+        reps: "10–16 balls"
+      }
+    ],
+    video: HM_VIDEOS.downswing_sequence
+  },
+
+  "High Spin Loft / Flipping": {
+    category: "Compression & Shaft Lean",
+    cause: "Hands flip/scoop through impact, adding excessive Dynamic Loft relative to Attack Angle and reducing compression.",
+    ballFlightEffect: "High weak shots with low smash factor that fall short into any headwind.",
+    howToFix: "Maintain a flat/bowed lead wrist through impact and rotate your torso forward so hands lead the clubhead at strike.",
+    drills: [
+      {
+        name: "9-to-3 Forward Shaft Lean Punch Drill",
+        setup: "Play the ball slightly back of center with a 7-iron or 8-iron.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Pre-set hands slightly ahead of the ball (shaft leaning toward lead thigh) and feel lead wrist flat." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Make waist-to-waist 9-to-3 swings finishing with clubhead lower than hands and lead wrist flat." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Blend the same impact feel into full swings." }
+        ],
+        steps: [
+          "Take a shallow divot or brush mark strictly ahead of the ball.",
+          "Hold your finish at waist height to inspect shaft lean."
+        ],
+        monitorProof: "Dynamic Loft drops 2–4°, AoA moves negative (-3° to -5°), and Smash Factor rises.",
+        watchOutFor: "Ensure your torso keeps rotating open—leaning the shaft without body turn can cause pulls.",
+        goal: "Lower Spin Loft into your club's optimal band and raise Smash Factor +0.03.",
+        graduation: "7/10 shots hitting club Smash benchmark",
+        reps: "15 balls"
+      }
+    ],
+    video: HM_VIDEOS.shaft_lean
+  },
+
+  "Low Descent Angle / Won't Hold Green": {
+    category: "Approach Stopping Power",
+    cause: "Shallow landing trajectory (<43° descent) or insufficient spin prevents irons from stopping quickly on greens.",
+    ballFlightEffect: "Approaches hit the green and bounce over the back pin.",
+    howToFix: "Achieve a crisp descending strike (-3° to -5° AoA) with clean grooves and solid height to steepen landing angle to 45°+.",
+    drills: [
+      {
+        name: "Apex & Steep Descent Compression Drill",
+        setup: "Place a tee or towel 3 inches behind your iron ball position.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Ball positioned center-forward with 55% weight on lead foot." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Strike down cleanly missing the rear towel, letting club loft launch the ball high." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Hit full shots monitoring Descent Angle (target ≥45°) and Apex." }
+        ],
+        steps: [
+          "Focus on hitting ball-first before turf.",
+          "Monitor Descent Angle and BackSpin after each strike."
+        ],
+        monitorProof: "Descent Angle climbs above 45° and BackSpin matches (~Club # × 1,000 rpm).",
+        watchOutFor: "Avoid scooping upward to add height—hitting down cleanly with speed creates real spin-lift.",
+        goal: "Average 45°+ Descent Angle on mid/short irons.",
+        graduation: "7/10 iron shots with Descent Angle ≥ 45°",
+        reps: "12 balls"
+      }
+    ],
+    video: HM_VIDEOS.shaft_lean
+  },
+
+  "In-Session Fatigue Drift": {
+    category: "Tempo & Endurance",
+    cause: "Late-session shots (>20 swings) lose posture and rhythm, widening dispersion and dropping ball speed.",
+    ballFlightEffect: "Opening 10 shots look great, then late swings drift offline and lose carry.",
+    howToFix: "Slow practice cadence: step back off the mat between shots, rest 60 seconds every 15 balls, and end high-focus blocks early when fatigue appears.",
+    drills: [
+      {
+        name: "10-Ball Quality Reset Protocol",
+        setup: "Commit to stepping off the hitting mat and taking 2 deep breaths after every 3 balls.",
+        stages: [
+          { stage: "Stage 1: Setup Check", desc: "Re-align feet and target before every single shot rather than raking-and-hitting." },
+          { stage: "Stage 2: 70% Tempo Block Reps", desc: "Play a 10-ball scoring game where only routine-backed shots count." },
+          { stage: "Stage 3: 100% Transfer Test", desc: "Maintain within ±2 mph ball speed and tight dispersion through ball #25." }
+        ],
+        steps: [
+          "Step completely behind the ball to pick a target before each swing.",
+          "Stop speed work as soon as Smash Factor dips below baseline."
+        ],
+        monitorProof: "Last 10 shots stay within 2 yds offline and 0.02 Smash of your opening 10.",
+        watchOutFor: "Rapidly hitting ball after ball grooves fatigue faults instead of your best swing.",
+        goal: "Zero drop-off between early and late session blocks.",
+        graduation: "Maintain target corridor rate within 10% across full session",
+        reps: "10-ball structured blocks"
+      }
+    ],
+    video: HM_VIDEOS.sim_improvement
   }
 };
 
@@ -708,7 +904,7 @@ const ANALYTICS_ISSUE_ALIASES = {
     issueType: "Expanding Offline Dispersion",
     category: "Accuracy & Dispersion",
     cause: "Recent shots are drifting further from the target centerline than your earlier baseline.",
-    ballFlightEffect: "Wider left-to-right miss pattern and fewer shots holding the ±10 yd fairway corridor.",
+    ballFlightEffect: "Wider left-to-right miss pattern and fewer shots holding the target corridor.",
     howToFix: "Slow tempo to 80%, verify alignment with a target stick, and focus on squaring the clubface before adding speed.",
     drills: [
       ISSUE_DATABASE["Launch Direction Deviation"].drills[0],
@@ -751,8 +947,67 @@ const ANALYTICS_ISSUE_ALIASES = {
   low_launch: {
     issueType: "Low Launch Window",
     ...ISSUE_DATABASE["Low Driver Launch"]
+  },
+  toe_gear_hook: {
+    issueType: "Toe Gear-Effect Hook",
+    ...ISSUE_DATABASE["Toe Gear-Effect Hook"]
+  },
+  heel_gear_slice: {
+    issueType: "Heel Gear-Effect Slice",
+    ...ISSUE_DATABASE["Heel Gear-Effect Slice"]
+  },
+  low_face_spin: {
+    issueType: "Low-Face Driver Spin Spike",
+    ...ISSUE_DATABASE["Low-Face Driver Spin Spike"]
+  },
+  two_way_miss: {
+    issueType: "Two-Way Miss / Face Instability",
+    ...ISSUE_DATABASE["Two-Way Miss / Face Instability"]
+  },
+  high_spin_loft: {
+    issueType: "High Spin Loft / Flipping",
+    ...ISSUE_DATABASE["High Spin Loft / Flipping"]
+  },
+  low_descent_angle: {
+    issueType: "Low Descent Angle / Won't Hold Green",
+    ...ISSUE_DATABASE["Low Descent Angle / Won't Hold Green"]
+  },
+  fatigue_drift: {
+    issueType: "In-Session Fatigue Drift",
+    ...ISSUE_DATABASE["In-Session Fatigue Drift"]
   }
 };
+
+function enrichDrillProgression(drill, issueDetails) {
+  const enriched = { ...drill };
+  if (!Array.isArray(enriched.stages) || enriched.stages.length === 0) {
+    enriched.stages = [
+      { stage: "Stage 1: Setup Check", desc: enriched.setup || "Verify balanced posture, grip, and target alignment before starting." },
+      { stage: "Stage 2: 70% Tempo Block Reps", desc: (enriched.steps && enriched.steps[0]) || issueDetails.howToFix || "Perform controlled 3/4 swings prioritizing feel over speed." },
+      { stage: "Stage 3: 100% Transfer Test", desc: enriched.goal || "Step up to full speed and verify ball flight matches your target window." }
+    ];
+  }
+  if (!enriched.monitorProof) {
+    enriched.monitorProof = enriched.goal || "Confirm launch monitor metrics trend closer to your target corridor over 10 shots.";
+  }
+  if (!enriched.watchOutFor) {
+    enriched.watchOutFor = "Avoid chasing distance during block drills—lock in the movement at 70–80% speed first.";
+  }
+  if (!enriched.graduation) {
+    enriched.graduation = enriched.goal || "7 of 10 shots meeting target criteria.";
+  }
+  return enriched;
+}
+
+function enrichIssueDetails(details) {
+  if (!details) return null;
+  return {
+    ...details,
+    drills: Array.isArray(details.drills)
+      ? details.drills.map((d) => enrichDrillProgression(d, details))
+      : []
+  };
+}
 
 /**
  * Looks up detailed fix instructions, causes, drills, and video metadata for any
@@ -763,15 +1018,15 @@ export function getSwingIssueDetails(issueName) {
   const key = String(issueName).trim();
 
   if (ISSUE_DATABASE[key]) {
-    return { issueType: key, ...ISSUE_DATABASE[key] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE[key] });
   }
   if (ANALYTICS_ISSUE_ALIASES[key]) {
-    return { ...ANALYTICS_ISSUE_ALIASES[key] };
+    return enrichIssueDetails({ ...ANALYTICS_ISSUE_ALIASES[key] });
   }
 
   // Handle dynamic club-specific issues such as "Scooping / Upward Iron AoA"
   if (/scooping|upward.*aoa/i.test(key)) {
-    return {
+    return enrichIssueDetails({
       issueType: key,
       category: "Attack Angle & Low Point",
       cause: "Clubhead is bottoming out behind the ball and swinging upward into impact.",
@@ -779,31 +1034,43 @@ export function getSwingIssueDetails(issueName) {
       howToFix: "Shift weight onto your lead foot in transition and deliver your hands ahead of the clubhead so your low point is 1–2 inches past the ball.",
       drills: ISSUE_DATABASE["Scooping Hybrid Off Turf"].drills,
       video: HM_VIDEOS.shaft_lean
-    };
+    });
   }
 
   // Keyword-based fallback so every recorded issue always provides helpful fix & drill advice
   const lower = key.toLowerCase();
+  if (lower.includes("toe") && lower.includes("gear")) {
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Toe Gear-Effect Hook"] });
+  }
+  if (lower.includes("heel") && lower.includes("gear")) {
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Heel Gear-Effect Slice"] });
+  }
+  if (lower.includes("descent")) {
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Low Descent Angle / Won't Hold Green"] });
+  }
+  if (lower.includes("spin loft") || lower.includes("flip")) {
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["High Spin Loft / Flipping"] });
+  }
   if (lower.includes("slice") || lower.includes("open")) {
-    return { issueType: key, ...ISSUE_DATABASE["Slice / Open Face-to-Path"] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Slice / Open Face-to-Path"] });
   }
   if (lower.includes("hook") || lower.includes("closed") || lower.includes("draw")) {
-    return { issueType: key, ...ISSUE_DATABASE["Hook / Closed Face-to-Path"] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Hook / Closed Face-to-Path"] });
   }
   if (lower.includes("steep")) {
-    return { issueType: key, ...ISSUE_DATABASE["Steep Driver Attack Angle"] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Steep Driver Attack Angle"] });
   }
   if (lower.includes("spin")) {
-    return { issueType: key, ...ISSUE_DATABASE["Excessive Driver Spin"] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Excessive Driver Spin"] });
   }
   if (lower.includes("launch")) {
-    return { issueType: key, ...ISSUE_DATABASE["Low Driver Launch"] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Low Driver Launch"] });
   }
   if (lower.includes("smash") || lower.includes("strike")) {
-    return { issueType: key, ...ISSUE_DATABASE["Low Smash Factor"] };
+    return enrichIssueDetails({ issueType: key, ...ISSUE_DATABASE["Low Smash Factor"] });
   }
 
-  return {
+  return enrichIssueDetails({
     issueType: key,
     category: "Swing Mechanics",
     cause: `Recurring tendency detected for "${key}" during simulator sessions.`,
@@ -822,7 +1089,7 @@ export function getSwingIssueDetails(issueName) {
       }
     ],
     video: HM_VIDEOS.sim_improvement
-  };
+  });
 }
 
 /**

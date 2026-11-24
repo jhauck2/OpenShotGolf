@@ -92,7 +92,15 @@ static func _apply_environment_settings(env: Environment) -> void:
 			"ssao_enabled": env.ssao_enabled,
 			"ssr_enabled": env.ssr_enabled,
 			"glow_enabled": env.glow_enabled,
+			"glow_bloom": env.glow_bloom,
 			"fog_enabled": env.fog_enabled,
+			"fog_mode": env.fog_mode,
+			"fog_density": env.fog_density,
+			"fog_sky_affect": env.fog_sky_affect,
+			"fog_aerial_perspective": env.fog_aerial_perspective,
+			"fog_depth_begin": env.get("fog_depth_begin") if "fog_depth_begin" in env else 10.0,
+			"fog_depth_end": env.get("fog_depth_end") if "fog_depth_end" in env else 100.0,
+			"fog_depth_curve": env.get("fog_depth_curve") if "fog_depth_curve" in env else 1.0,
 			"volumetric_fog_enabled": env.volumetric_fog_enabled,
 			"tonemap_mode": env.tonemap_mode,
 			"tonemap_exposure": env.tonemap_exposure,
@@ -132,17 +140,22 @@ static func _apply_environment_settings(env: Environment) -> void:
 	env.ssr_fade_out = 2.0
 	env.ssr_depth_tolerance = 0.25
 
-	# Single-pass Atmospheric Depth Fog (soft horizon aerial perspective without double-fog washout)
+	# Single-pass Atmospheric Depth Fog (crystal clear across playable hole distances 0-380m,
+	# gentle aerial perspective only near far culling/horizon boundary 380m-1500m)
 	env.fog_enabled = true
+	env.fog_mode = Environment.FOG_MODE_DEPTH
 	env.fog_light_color = Color(0.76, 0.85, 0.95)
 	env.fog_light_energy = 0.85
-	env.fog_sun_scatter = 0.18
-	env.fog_density = 0.00045
-	env.fog_aerial_perspective = 0.38
+	env.fog_sun_scatter = 0.15
+	env.fog_density = 0.45
+	env.fog_sky_affect = 0.15
+	env.fog_aerial_perspective = 0.25
 	if "fog_depth_begin" in env:
-		env.set("fog_depth_begin", 180.0)
+		env.set("fog_depth_begin", 380.0)
 	if "fog_depth_end" in env:
-		env.set("fog_depth_end", 900.0)
+		env.set("fog_depth_end", 1500.0)
+	if "fog_depth_curve" in env:
+		env.set("fog_depth_curve", 1.6)
 
 	# Incremental Sky Radiance (prevents per-frame full cubemap convolution spike)
 	if env.sky != null:
@@ -155,10 +168,10 @@ static func _apply_environment_settings(env: Environment) -> void:
 	env.ambient_light_energy = 0.28
 	env.ambient_light_color = Color(0.68, 0.80, 0.94)
 
-	# Subtle Natural Bloom
+	# Subtle Natural HDR Highlight Bloom (glow_bloom=0.0 avoids full-screen softness/blur)
 	env.glow_enabled = true
-	env.glow_intensity = 0.18
-	env.glow_bloom = 0.03
+	env.glow_intensity = 0.15
+	env.glow_bloom = 0.0
 
 
 static func _restore_environment_settings(env: Environment) -> void:
@@ -174,7 +187,18 @@ static func _restore_environment_settings(env: Environment) -> void:
 	env.ssao_enabled = orig.get("ssao_enabled", false)
 	env.ssr_enabled = orig.get("ssr_enabled", false)
 	env.glow_enabled = orig.get("glow_enabled", false)
+	env.glow_bloom = orig.get("glow_bloom", 0.0)
 	env.fog_enabled = orig.get("fog_enabled", false)
+	env.fog_mode = orig.get("fog_mode", Environment.FOG_MODE_EXPONENTIAL)
+	env.fog_density = orig.get("fog_density", 0.01)
+	env.fog_sky_affect = orig.get("fog_sky_affect", 1.0)
+	env.fog_aerial_perspective = orig.get("fog_aerial_perspective", 0.0)
+	if "fog_depth_begin" in env:
+		env.set("fog_depth_begin", orig.get("fog_depth_begin", 10.0))
+	if "fog_depth_end" in env:
+		env.set("fog_depth_end", orig.get("fog_depth_end", 100.0))
+	if "fog_depth_curve" in env:
+		env.set("fog_depth_curve", orig.get("fog_depth_curve", 1.0))
 	env.volumetric_fog_enabled = orig.get("volumetric_fog_enabled", false)
 	env.tonemap_mode = orig.get("tonemap_mode", Environment.TONE_MAPPER_LINEAR)
 	env.tonemap_exposure = orig.get("tonemap_exposure", 1.0)

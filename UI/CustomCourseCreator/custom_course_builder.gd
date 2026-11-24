@@ -1267,6 +1267,11 @@ static func _build_surface_collision(
 		static_body.set_meta("is_sand", true)
 	if is_water:
 		static_body.set_meta("is_water", true)
+	else:
+		# Place invisible surface-zone overlay colliders on Layer 4 (bitmask 8) so TerrainStatic
+		# (1:1 visual UnifiedTerrain mesh) is the sole authoritative Layer 1 ground surface.
+		static_body.collision_layer = 8
+		static_body.collision_mask = 0
 
 	var col_shape = CollisionShape3D.new()
 	var concave_shape = ConcavePolygonShape3D.new()

@@ -463,10 +463,23 @@ func _check_startup_sync() -> void:
 		sync_all_eligible_profiles("startup")
 
 
-func _on_multiplayer_game_over(winners: Array, _skins: Dictionary = {}) -> void:
+func _on_multiplayer_game_over(scores_or_players: Array, _skins: Dictionary = {}) -> void:
 	var mp = get_node_or_null("/root/MultiplayerManager")
 	if mp == null or mp.practice_mode_active:
 		return
+	var winners: Array = []
+	for item in scores_or_players:
+		if item is String:
+			winners.append(item)
+	if winners.is_empty():
+		var min_strokes := 999999
+		for p in mp.players:
+			if p is Dictionary and p.get("active", true) and int(p.get("total_strokes", 0)) > 0:
+				min_strokes = mini(min_strokes, int(p.get("total_strokes", 0)))
+		if min_strokes < 999999:
+			for p in mp.players:
+				if p is Dictionary and p.get("active", true) and int(p.get("total_strokes", 0)) == min_strokes:
+					winners.append(str(p.get("name", "")))
 	var match_dict = {
 		"match_id": mp.current_match_id,
 		"course_title": mp.course_title,
@@ -521,6 +534,11 @@ func sync_all_eligible_profiles(reason: String = "manual") -> void:
 
 	var my_uid = auth.get_uid() if (auth != null and auth.has_method("get_uid")) else ""
 
+	if mp != null and not my_uid.is_empty():
+		var restored_primary := await _ensure_primary_profile_from_cloud(mp, auth, my_uid, registered)
+		if restored_primary and mp.has_method("get_registered_players"):
+			registered = mp.get_registered_players()
+
 	for p in registered:
 		if typeof(p) != TYPE_DICTIONARY:
 			continue
@@ -535,13 +553,13 @@ func sync_all_eligible_profiles(reason: String = "manual") -> void:
 				p["cloud_uid"] = my_uid
 				mp.save_registered_players(registered)
 			if not p_cloud_uid.is_empty():
-				var res = await sync_single_profile(p_name, p_cloud_uid, is_manual_pass)
+				var res = await _sync_single_profile_impl(p_name, p_cloud_uid, is_manual_pass)
 				if res.get("ok", false):
 					synced.append(p_name)
 				else:
 					all_ok = false
 		elif role == "linked" and not p_cloud_uid.is_empty():
-			var res = await sync_single_profile(p_name, p_cloud_uid, is_manual_pass)
+			var res = await _sync_single_profile_impl(p_name, p_cloud_uid, is_manual_pass)
 			if res.get("ok", false):
 				synced.append(p_name)
 			elif res.get("revoked", false):
@@ -553,6 +571,108 @@ func sync_all_eligible_profiles(reason: String = "manual") -> void:
 	_is_syncing = false
 	sync_completed.emit(all_ok, synced)
 	print("[CloudSync] Sync pass '%s' completed. Synced profiles: %s (all_ok=%s)" % [reason, str(synced), str(all_ok)])
+
+
+func _ensure_primary_profile_from_cloud(mp: Node, auth: Node, my_uid: String, registered: Array) -> bool:
+	for p in registered:
+		if typeof(p) == TYPE_DICTIONARY and str(p.get("link_role", "none")) == "primary":
+			return false
+
+	var client := _get_firestore()
+	if client == null:
+		return false
+
+	var prof_res = await client.get_doc("profiles/" + my_uid)
+	if not prof_res.get("ok", false) or not (prof_res.get("data") is Dictionary):
+		return false
+	var cloud_prof: Dictionary = prof_res.get("data", {})
+	if cloud_prof.is_empty():
+		return false
+
+	var email: String = str(auth.get_email()).strip_edges() if (auth != null and auth.has_method("get_email")) else ""
+	var email_lower: String = email.to_lower()
+	var cloud_name: String = str(cloud_prof.get("display_name", "")).strip_edges()
+	if cloud_name.is_empty() and auth != null and auth.has_method("get_display_name"):
+		cloud_name = str(auth.get_display_name()).strip_edges()
+	if cloud_name.is_empty() and not email.is_empty():
+		cloud_name = email.split("@")[0] if email.contains("@") else email
+	if cloud_name.is_empty():
+		cloud_name = "Golfer"
+
+	var matching_local := ""
+	for p in registered:
+		if typeof(p) != TYPE_DICTIONARY or str(p.get("link_role", "none")) != "none":
+			continue
+		var p_name := str(p.get("name", "")).strip_edges()
+		var p_email := str(p.get("email", "")).strip_edges().to_lower()
+		if p_name.to_lower() == cloud_name.to_lower() or (not email_lower.is_empty() and p_email == email_lower):
+			matching_local = p_name
+			break
+
+	if not matching_local.is_empty():
+		if mp.has_method("set_primary_player"):
+			mp.set_primary_player(matching_local, my_uid)
+			_clear_dirty_flag(matching_local)
+			print("[CloudSync] Linked existing local profile '%s' to cloud primary uid %s." % [matching_local, my_uid])
+			return true
+		return false
+
+	if mp.has_method("register_player") and mp.has_method("set_primary_player"):
+		var bag_arr: Array = cloud_prof.get("bag", []) if cloud_prof.get("bag") is Array else []
+		mp.register_player(
+			cloud_name,
+			email,
+			str(cloud_prof.get("avatar", "")),
+			bag_arr,
+			str(cloud_prof.get("preferred_tee", "Blue")),
+			str(cloud_prof.get("skill_level", "mid_handicap")),
+			int(cloud_prof.get("handedness", 0)),
+			str(cloud_prof.get("ball_graphic", "single_line")),
+			str(cloud_prof.get("ball_type", "standard"))
+		)
+		mp.set_primary_player(cloud_name, my_uid)
+		_clear_dirty_flag(cloud_name)
+		print("[CloudSync] Created local primary profile '%s' from cloud uid %s." % [cloud_name, my_uid])
+		return true
+	return false
+
+
+func _clear_dirty_flag(player_name: String) -> void:
+	var target := player_name.strip_edges().to_lower()
+	var changed := false
+	for i in range(dirty_profiles.size() - 1, -1, -1):
+		if str(dirty_profiles[i]).strip_edges().to_lower() == target:
+			dirty_profiles.remove_at(i)
+			changed = true
+	if changed:
+		_save_sync_state()
+
+
+func _apply_cloud_metadata_to_reg_dict(reg_dict: Dictionary, cloud_prof: Dictionary) -> bool:
+	var bag_changed := false
+	if cloud_prof.has("bag") and cloud_prof["bag"] is Array:
+		var cloud_bag: Array = cloud_prof["bag"]
+		if not cloud_bag.is_empty() and reg_dict.get("bag", []) != cloud_bag:
+			reg_dict["bag"] = cloud_bag.duplicate()
+			bag_changed = true
+	var c_avatar := str(cloud_prof.get("avatar", "")).strip_edges()
+	if not c_avatar.is_empty():
+		reg_dict["avatar"] = c_avatar
+	var c_tee := str(cloud_prof.get("preferred_tee", "")).strip_edges()
+	if not c_tee.is_empty():
+		reg_dict["preferred_tee"] = c_tee
+	var c_skill := str(cloud_prof.get("skill_level", "")).strip_edges()
+	if not c_skill.is_empty():
+		reg_dict["skill_level"] = c_skill
+	if cloud_prof.has("handedness"):
+		reg_dict["handedness"] = int(cloud_prof.get("handedness", 0))
+	var c_bg := str(cloud_prof.get("ball_graphic", "")).strip_edges()
+	if not c_bg.is_empty():
+		reg_dict["ball_graphic"] = c_bg
+	var c_bt := str(cloud_prof.get("ball_type", "")).strip_edges()
+	if not c_bt.is_empty():
+		reg_dict["ball_type"] = c_bt
+	return bag_changed
 
 
 func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool = false) -> Dictionary:
@@ -573,6 +693,11 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 			}
 		last_manual_sync_timestamp = Time.get_unix_time_from_system()
 		_save_sync_state()
+
+	return await _sync_single_profile_impl(player_name, cloud_uid, is_manual)
+
+
+func _sync_single_profile_impl(player_name: String, cloud_uid: String, is_manual: bool = false) -> Dictionary:
 
 	var client := _get_firestore()
 	if client == null:
@@ -627,6 +752,20 @@ func sync_single_profile(player_name: String, cloud_uid: String, is_manual: bool
 	var local_ach = _gather_local_achievements(player_name)
 	var local_ach_count: int = local_ach.get("unlocked", {}).size()
 	var cloud_ach_count: int = int(cloud_prof.get("lifetime", {}).get("achievements_count", 0))
+
+	# Pull profile metadata (bag, avatar, tee, skill, handedness, ball settings) from cloud
+	# on initial device sync (local_rev == 0 and cloud_rev > 0) or when cloud is newer and local isn't dirty.
+	var should_pull_metadata: bool = is_owner and (not cloud_prof.is_empty()) and ((local_rev == 0 and cloud_rev > 0) or (cloud_rev > local_rev and not is_dirty))
+	if should_pull_metadata and mp != null and mp.has_method("get_registered_players"):
+		var bag_changed := _apply_cloud_metadata_to_reg_dict(reg_p, cloud_prof)
+		var reg_list_meta = mp.get_registered_players()
+		for p in reg_list_meta:
+			if str(p.get("name", "")).to_lower() == player_name.to_lower():
+				_apply_cloud_metadata_to_reg_dict(p, cloud_prof)
+				break
+		mp.save_registered_players(reg_list_meta)
+		if bag_changed and mp.has_signal("player_bag_changed"):
+			mp.emit_signal("player_bag_changed", player_name, reg_p.get("bag", []))
 
 	var needs_stats_sync = is_dirty or is_manual or (local_rev == 0) or (cloud_rev != local_rev) or cloud_prof.is_empty() or (local_ach_count > cloud_ach_count)
 
@@ -768,6 +907,8 @@ func _gather_local_stats_dict(player_name: String, _reg_p: Dictionary) -> Dictio
 		"tombstones": {},
 		"achievements": {},
 		"swing_issues": {},
+		"swing_issues_meta": {},
+		"coaching_goal": {},
 		"best_courses": {}
 	}
 
@@ -804,6 +945,7 @@ func _gather_local_stats_dict(player_name: String, _reg_p: Dictionary) -> Dictio
 							break
 				if p_sw is Dictionary:
 					local_dict["swing_issues"] = p_sw.get("monthly", {})
+					local_dict["swing_issues_meta"] = p_sw.get("monthly_meta", {}) if p_sw.get("monthly_meta", null) is Dictionary else {}
 					var sw_up = int(p_sw.get("updated_at", 0))
 					if sw_up == 0 and not local_dict["swing_issues"].is_empty():
 						sw_up = int(FileAccess.get_modified_time(swing_path))
@@ -814,6 +956,12 @@ func _gather_local_stats_dict(player_name: String, _reg_p: Dictionary) -> Dictio
 						if not local_dict["tombstones"] is Dictionary:
 							local_dict["tombstones"] = {}
 						local_dict["tombstones"]["cleared_swing_issues_at"] = int(p_sw["_cleared_at"])
+
+	# Coaching Goal
+	if mp != null and mp.has_method("get_player_coaching_goal"):
+		var g: Variant = mp.call("get_player_coaching_goal", player_name)
+		if g is Dictionary and not (g as Dictionary).is_empty():
+			local_dict["coaching_goal"] = (g as Dictionary).duplicate(true)
 
 	# Best courses
 	if mp != null and mp.has_method("calculate_player_stats"):
@@ -936,6 +1084,7 @@ func _apply_merged_stats_locally(player_name: String, merged: Dictionary) -> voi
 				all_swing = parsed_s
 	var sw_data = {
 		"monthly": merged.get("swing_issues", {}),
+		"monthly_meta": merged.get("swing_issues_meta", {}),
 		"all_time": {},
 		"updated_at": int(merged.get("swing_issues_updated_at", Time.get_unix_time_from_system()))
 	}
@@ -952,6 +1101,24 @@ func _apply_merged_stats_locally(player_name: String, merged: Dictionary) -> voi
 	if out_sf != null:
 		out_sf.store_string(JSON.stringify(all_swing, "\t"))
 		out_sf.close()
+
+	# Coaching Goal (write directly to avoid triggering mark_profile_dirty loop during apply)
+	var merged_goal: Variant = merged.get("coaching_goal", {})
+	if merged_goal is Dictionary and not (merged_goal as Dictionary).is_empty():
+		var goals_path := "user://player_coaching_goals.json"
+		var all_goals: Dictionary = {}
+		if FileAccess.file_exists(goals_path):
+			var gf = FileAccess.open(goals_path, FileAccess.READ)
+			if gf != null:
+				var parsed_g = JSON.parse_string(gf.get_as_text())
+				gf.close()
+				if parsed_g is Dictionary:
+					all_goals = parsed_g
+		all_goals[player_name] = (merged_goal as Dictionary).duplicate(true)
+		var out_gf = FileAccess.open(goals_path, FileAccess.WRITE)
+		if out_gf != null:
+			out_gf.store_string(JSON.stringify(all_goals, "\t"))
+			out_gf.close()
 
 
 func _build_club_summary(clubs_dict: Dictionary) -> Dictionary:

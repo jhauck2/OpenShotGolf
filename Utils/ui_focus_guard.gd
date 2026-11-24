@@ -109,6 +109,26 @@ func is_dropdown_open() -> bool:
 	return _option_popup_open
 
 
+## Cleanly closes any open OptionButton popup and clears modal focus locks
+## before SceneManager detaches the current scene.
+func reset_for_scene_change() -> void:
+	if _active_option_button != null and is_instance_valid(_active_option_button):
+		var popup := _active_option_button.get_popup()
+		if popup != null and is_instance_valid(popup) and popup.visible:
+			popup.hide()
+	_option_popup_open = false
+	_active_option_button = null
+	_last_tracked_dropdown_idx = -1
+	_lock_stack.clear()
+	# Prune stale instance IDs so _hooked_option_buttons never grows unboundedly
+	var stale_ids: Array = []
+	for iid in _hooked_option_buttons.keys():
+		if not is_instance_id_valid(int(iid)):
+			stale_ids.append(iid)
+	for iid in stale_ids:
+		_hooked_option_buttons.erase(iid)
+
+
 ## Push a focus lock — all directional navigation will be confined to
 ## descendants of `root_node` until pop_lock() is called or the modal closes.
 func push_lock(root_node: Node) -> bool:
@@ -623,20 +643,22 @@ func _hook_option_button(opt: OptionButton) -> void:
 	popup.hide_on_item_selection = true
 	popup.hide_on_checkable_item_selection = true
 
-	# Use a lambda that captures the OptionButton reference.
-	# visibility_changed fires when the popup shows AND hides.
-	if not popup.visibility_changed.is_connected(_on_popup_visibility_changed):
-		popup.visibility_changed.connect(_on_popup_visibility_changed.bind(opt, popup))
+	var vis_cb := _on_popup_visibility_changed.bind(opt, popup)
+	if not popup.visibility_changed.is_connected(vis_cb):
+		popup.visibility_changed.connect(vis_cb)
 
-	if not popup.index_pressed.is_connected(_on_popup_index_pressed):
-		popup.index_pressed.connect(_on_popup_index_pressed.bind(opt, popup))
+	var idx_cb := _on_popup_index_pressed.bind(opt, popup)
+	if not popup.index_pressed.is_connected(idx_cb):
+		popup.index_pressed.connect(idx_cb)
 
-	if not opt.item_selected.is_connected(_on_option_item_selected):
-		opt.item_selected.connect(_on_option_item_selected.bind(opt, popup))
+	var sel_cb := _on_option_item_selected.bind(opt, popup)
+	if not opt.item_selected.is_connected(sel_cb):
+		opt.item_selected.connect(sel_cb)
 
 	# Also handle the OptionButton being freed.
-	if not opt.tree_exiting.is_connected(_on_option_button_exiting):
-		opt.tree_exiting.connect(_on_option_button_exiting.bind(opt))
+	var exit_cb := _on_option_button_exiting.bind(opt)
+	if not opt.tree_exiting.is_connected(exit_cb):
+		opt.tree_exiting.connect(exit_cb)
 
 
 func _on_popup_index_pressed(_index: int, opt: OptionButton, popup: PopupMenu) -> void:
@@ -686,7 +708,7 @@ func _on_popup_visibility_changed(opt: OptionButton, popup: PopupMenu) -> void:
 			_option_popup_open = false
 			_active_option_button = null
 			_last_tracked_dropdown_idx = -1
-		if opt != null and is_instance_valid(opt) and opt.is_inside_tree() and opt.is_visible_in_tree():
+		if opt != null and is_instance_valid(opt) and not opt.is_queued_for_deletion() and opt.is_inside_tree() and opt.is_visible_in_tree():
 			opt.call_deferred("grab_focus")
 
 

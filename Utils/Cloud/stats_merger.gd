@@ -19,6 +19,8 @@ static func merge_profile_stats(local_data: Dictionary, cloud_data: Dictionary) 
 			"heard_heckles": []
 		},
 		"swing_issues": {},
+		"swing_issues_meta": {},
+		"coaching_goal": {},
 		"best_courses": {}
 	}
 
@@ -60,7 +62,7 @@ static func merge_profile_stats(local_data: Dictionary, cloud_data: Dictionary) 
 	var cld_clubs: Dictionary = cloud_data.get("clubs", {})
 	if loc_clubs.is_empty():
 		for k in local_data.keys():
-			if not str(k).begins_with("_") and not k in ["tombstones", "records", "achievements", "swing_issues", "best_courses", "schema_version", "rev", "updated_at"]:
+			if not str(k).begins_with("_") and not k in ["tombstones", "records", "achievements", "swing_issues", "swing_issues_meta", "swing_issues_updated_at", "coaching_goal", "best_courses", "schema_version", "rev", "updated_at"]:
 				if local_data[k] is Array:
 					loc_clubs[str(k)] = local_data[k]
 
@@ -260,6 +262,52 @@ static func merge_profile_stats(local_data: Dictionary, cloud_data: Dictionary) 
 		eff_swing_updated_at = int(Time.get_unix_time_from_system())
 	result["swing_issues"] = merged_swing
 	result["swing_issues_updated_at"] = eff_swing_updated_at
+
+	# ── 5b. SWING ISSUES META (DENOMINATORS PER MONTH & CLUB) ─────────────────
+	var loc_meta: Dictionary = local_data.get("swing_issues_meta", {}) if local_data.get("swing_issues_meta", null) is Dictionary else {}
+	var cld_meta: Dictionary = cloud_data.get("swing_issues_meta", {}) if cloud_data.get("swing_issues_meta", null) is Dictionary else {}
+	if eff_cleared_swing > 0:
+		if loc_swing_updated_at <= eff_cleared_swing:
+			loc_meta = {}
+		if cld_swing_updated_at <= eff_cleared_swing:
+			cld_meta = {}
+	var meta_months: Array = []
+	for m in loc_meta.keys():
+		if not meta_months.has(str(m)):
+			meta_months.append(str(m))
+	for m in cld_meta.keys():
+		if not meta_months.has(str(m)):
+			meta_months.append(str(m))
+	var merged_meta: Dictionary = {}
+	for m in meta_months:
+		var m_str: String = str(m)
+		var lm: Dictionary = loc_meta.get(m_str, {}) if loc_meta.get(m_str, null) is Dictionary else {}
+		var cm: Dictionary = cld_meta.get(m_str, {}) if cld_meta.get(m_str, null) is Dictionary else {}
+		var loc_bc: Dictionary = lm.get("by_club", {}) if lm.get("by_club", null) is Dictionary else {}
+		var cld_bc: Dictionary = cm.get("by_club", {}) if cm.get("by_club", null) is Dictionary else {}
+		var merged_bc: Dictionary = {}
+		for ck in loc_bc.keys():
+			merged_bc[str(ck)] = int(loc_bc[ck])
+		for ck in cld_bc.keys():
+			var c_str: String = str(ck)
+			merged_bc[c_str] = maxi(int(merged_bc.get(c_str, 0)), int(cld_bc[ck]))
+		merged_meta[m_str] = {
+			"analyzed_shots": maxi(int(lm.get("analyzed_shots", 0)), int(cm.get("analyzed_shots", 0))),
+			"by_club": merged_bc
+		}
+	result["swing_issues_meta"] = merged_meta
+
+	# ── 5c. COACHING GOAL (LATEST TIMESTAMP WINS) ─────────────────────────────
+	var loc_goal: Dictionary = local_data.get("coaching_goal", {}) if local_data.get("coaching_goal", null) is Dictionary else {}
+	var cld_goal: Dictionary = cloud_data.get("coaching_goal", {}) if cloud_data.get("coaching_goal", null) is Dictionary else {}
+	if loc_goal.is_empty() and not cld_goal.is_empty():
+		result["coaching_goal"] = cld_goal.duplicate(true)
+	elif not loc_goal.is_empty() and cld_goal.is_empty():
+		result["coaching_goal"] = loc_goal.duplicate(true)
+	elif not loc_goal.is_empty() and not cld_goal.is_empty():
+		var l_ts: int = int(loc_goal.get("updated_at", 0))
+		var c_ts: int = int(cld_goal.get("updated_at", 0))
+		result["coaching_goal"] = (cld_goal if c_ts > l_ts else loc_goal).duplicate(true)
 
 	# ── 6. BEST COURSES ──────────────────────────────────────────────────────
 	var loc_courses: Dictionary = local_data.get("best_courses", {})
